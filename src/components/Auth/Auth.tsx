@@ -1,112 +1,131 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { theme } from '../../styles/theme';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, signup } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
       if (isLogin) {
         await login(email, password);
-        toast.success('Logged in successfully!');
+        toast.success('Welcome back!');
       } else {
         await signup(email, password);
-        toast.success('Account created successfully!');
+        toast.success('Account created!');
       }
     } catch (error: any) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
     }}>
-      <div style={{
-        background: 'white',
-        padding: '2rem',
-        borderRadius: '10px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+      <div className="glass-card animate-in" style={{
+        padding: '48px',
         width: '100%',
-        maxWidth: '400px'
+        maxWidth: '420px',
       }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#333' }}>
-          {isLogin ? 'Login' : 'Sign Up'}
-        </h2>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            background: theme.colors.primaryGradient,
+            borderRadius: '20px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '32px',
+            marginBottom: '16px',
+            boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
+          }}>
+            💰
+          </div>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 700,
+            color: theme.colors.textPrimary,
+            marginBottom: '6px',
+            letterSpacing: '-0.02em',
+          }}>
+            {isLogin ? 'Welcome back' : 'Create account'}
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            color: theme.colors.textSecondary,
+            margin: 0,
+          }}>
+            {isLogin ? 'Sign in to your expense tracker' : 'Start tracking your expenses'}
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label className="input-label">Email</label>
             <input
               type="email"
-              placeholder="Email"
+              className="input"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #ddd',
-                borderRadius: '5px',
-                fontSize: '1rem'
-              }}
             />
           </div>
-          <div style={{ marginBottom: '1rem' }}>
+
+          <div style={{ marginBottom: '24px' }}>
+            <label className="input-label">Password</label>
             <input
               type="password"
-              placeholder="Password"
+              className="input"
+              placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #ddd',
-                borderRadius: '5px',
-                fontSize: '1rem'
-              }}
             />
           </div>
+
           <button
             type="submit"
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              fontSize: '1rem',
-              cursor: 'pointer',
-              marginBottom: '1rem'
-            }}
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ width: '100%', padding: '14px', fontSize: '15px' }}
           >
-            {isLogin ? 'Login' : 'Sign Up'}
+            {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
           </button>
         </form>
-        <button
-          onClick={() => setIsLogin(!isLogin)}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            background: 'transparent',
-            color: '#667eea',
-            border: '1px solid #667eea',
-            borderRadius: '5px',
-            fontSize: '1rem',
-            cursor: 'pointer'
-          }}
-        >
-          {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'}
-        </button>
+
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: theme.colors.primary,
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,131 +1,240 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import { format } from 'date-fns';
+import { theme } from '../../styles/theme';
+import { useEarnings } from '../../context/EarningsContext';
 
 interface EarningsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentEarnings: number;
-  onSave: (amount: number) => Promise<void>;
+  year: number;
+  month: number;
 }
 
-const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, currentEarnings, onSave }) => {
-  const [amount, setAmount] = useState(currentEarnings.toString());
+const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, month }) => {
+  const { getEarningsForMonth, setEarningsForMonth, earnings: defaultEarnings } = useEarnings();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [saveError, setSaveError] = useState<string>('');
+
+  const existingRecord = getEarningsForMonth(year, month);
+  const monthKey = `${isOpen ? 'open' : 'closed'}:${year}:${month}`;
+  const initialAmount = existingRecord
+    ? String(existingRecord.amount)
+    : String(defaultEarnings || 0);
+  const initialStatus = existingRecord?.status ?? 'estimated';
+  const [draft, setDraft] = useState(() => ({
+    monthKey,
+    amount: initialAmount,
+    status: initialStatus as 'confirmed' | 'estimated',
+  }));
+
+  const amount = draft.monthKey === monthKey ? draft.amount : initialAmount;
+  const status = draft.monthKey === monthKey ? draft.status : initialStatus;
+  const setAmount = (value: string) => {
+    setDraft((current) => ({
+      monthKey,
+      amount: value,
+      status: current.monthKey === monthKey ? current.status : initialStatus,
+    }));
+  };
+  const setStatus = (value: 'confirmed' | 'estimated') => {
+    setDraft((current) => ({
+      monthKey,
+      amount: current.monthKey === monthKey ? current.amount : initialAmount,
+      status: value,
+    }));
+  };
 
   if (!isOpen) return null;
 
+  const monthLabel = format(new Date(year, month), 'MMMM yyyy');
+
+  const validate = (): boolean => {
+    const num = parseFloat(amount);
+    if (amount === '' || isNaN(num)) {
+      setError('Enter a valid amount');
+      return false;
+    }
+    if (num < 0) {
+      setError('Earnings cannot be negative');
+      return false;
+    }
+    if (num > 100000000) {
+      setError('Amount seems too large (max ₹10 crore)');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newAmount = parseFloat(amount);
-    
-    if (isNaN(newAmount) || newAmount < 0) {
-      toast.error('Please enter a valid amount');
+    if (!validate()) {
+      toast.error('Please fix the errors');
       return;
     }
-
     setSaving(true);
+    setSaveError('');
     try {
-      await onSave(newAmount);
-      onClose();
-    } catch (error: any) {
-      console.error('Save error:', error);
-      // Error toast is already shown in context
+      await setEarningsForMonth(year, month, parseFloat(amount), status);
+      onClose(); // close modal on success
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save earnings';
+      setSaveError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000
-    }} onClick={onClose}>
-      <div style={{
-        background: 'white',
-        padding: '32px',
-        borderRadius: '20px',
-        width: '90%',
-        maxWidth: '400px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-      }} onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: '#1a1a2e' }}>
-          Set Monthly Earnings
-        </h2>
-        <p style={{ color: '#666', marginBottom: '24px', fontSize: '14px' }}>
-          Enter your monthly income to track savings
-        </p>
-        
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: '#333', fontWeight: '500' }}>
-              Monthly Earnings ($)
-            </label>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+          <div>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: theme.colors.textPrimary, marginBottom: '6px' }}>
+              Set Earnings
+            </h2>
+            <p style={{ fontSize: '14px', color: theme.colors.textSecondary, margin: 0 }}>
+              {monthLabel} — only affects this month
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(0,0,0,0.05)',
+              border: 'none',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              fontSize: '18px',
+              color: theme.colors.textSecondary,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {existingRecord && (
+          <div style={{
+            marginBottom: '16px',
+            padding: '10px 12px',
+            background: existingRecord.status === 'estimated'
+              ? 'rgba(245, 158, 11, 0.1)'
+              : 'rgba(16, 185, 129, 0.1)',
+            borderRadius: '10px',
+            fontSize: '12px',
+            color: theme.colors.textSecondary,
+          }}>
+            {existingRecord.status === 'estimated' ? (
+              <>⚠ Currently <strong>estimated</strong> (migrated from default). Confirm to lock in this value.</>
+            ) : (
+              <>✓ Currently <strong>confirmed</strong>. Editing will update this month only.</>
+            )}
+          </div>
+        )}
+
+        {saveError && (
+          <div style={{
+            marginBottom: '16px',
+            padding: '10px 12px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: `1px solid ${theme.colors.danger}40`,
+            borderRadius: '10px',
+            fontSize: '12px',
+            color: theme.colors.danger,
+            fontWeight: 500,
+          }}>
+            ⚠ {saveError}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate>
+          <div style={{ marginBottom: '16px' }}>
+            <label className="input-label">Monthly Earnings (₹)</label>
             <input
               type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              step="100"
-              required
-              autoFocus
+              className="input"
               style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '12px',
-                fontSize: '16px',
-                transition: 'all 0.3s ease',
-                boxSizing: 'border-box'
+                fontSize: '18px',
+                fontWeight: 600,
+                padding: '16px',
+                ...(error ? { borderColor: theme.colors.danger, background: 'rgba(239, 68, 68, 0.05)' } : {})
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
-              onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                if (error) setError('');
+              }}
+              placeholder="0"
+              step="1000"
+              autoFocus
             />
+            {error && (
+              <p style={{ fontSize: '12px', color: theme.colors.danger, margin: '6px 0 0 0', fontWeight: 500 }}>
+                {error}
+              </p>
+            )}
           </div>
-          
+
+          <div style={{ marginBottom: '24px' }}>
+            <label className="input-label">Status</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setStatus('confirmed')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: status === 'confirmed' ? theme.colors.primary : 'rgba(0,0,0,0.05)',
+                  color: status === 'confirmed' ? 'white' : theme.colors.textSecondary,
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                }}
+              >
+                ✓ Confirmed
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus('estimated')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: status === 'estimated' ? theme.colors.warning : 'rgba(0,0,0,0.05)',
+                  color: status === 'estimated' ? 'white' : theme.colors.textSecondary,
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                }}
+              >
+                ⚠ Estimated
+              </button>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               type="button"
               onClick={onClose}
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: '#f0f0f0',
-                color: '#666',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#e0e0e0'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#f0f0f0'}
+              className="btn btn-ghost"
+              style={{ flex: 1, padding: '14px' }}
             >
               Cancel
             </button>
             <button
               type="submit"
+              className="btn btn-primary"
               disabled={saving}
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: saving ? '#95a5a6' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.3s ease'
-              }}
+              style={{ flex: 1, padding: '14px' }}
             >
-              {saving ? 'Saving...' : 'Save Earnings'}
+              {saving ? 'Saving...' : `Save for ${format(new Date(year, month), 'MMM yyyy')}`}
             </button>
           </div>
         </form>

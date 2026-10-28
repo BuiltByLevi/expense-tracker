@@ -1,59 +1,126 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { CategoryTotal } from '../../types';
+import { categoryColors } from '../../styles/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 interface CategoryPieChartProps {
   data: CategoryTotal[];
+  height?: number | string;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#4ECDC4', '#45B7D1'];
+const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300 }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (data.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-        No data available
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100%',
+        color: isDark ? '#94a3b8' : '#64748b',
+        fontSize: '14px',
+        fontWeight: 500,
+      }}>
+        No data available for this period
       </div>
     );
   }
 
+  // Force labels OFF on mobile to prevent overlap
+  const showLabels = !isMobile && data.length <= 6;
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const item = payload[0].payload;
+      return (
+        <div style={{
+          background: isDark
+            ? 'linear-gradient(180deg, rgba(45, 55, 80, 0.98) 0%, rgba(20, 25, 42, 0.98) 100%)'
+            : 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(20px)',
+          border: isDark
+            ? '1px solid rgba(139, 92, 246, 0.3)'
+            : '1px solid rgba(255,255,255,0.8)',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          boxShadow: isDark
+            ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.2)'
+            : '0 8px 24px rgba(15, 23, 42, 0.15)',
+          fontSize: '13px',
+        }}>
+          <p style={{ margin: 0, fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}>
+            {item.category}
+          </p>
+          <p style={{ margin: '4px 0 0 0', color: isDark ? '#a78bfa' : '#6366f1', fontWeight: 600 }}>
+            ₹{item.amount.toLocaleString('en-IN')}
+          </p>
+          <p style={{ margin: '2px 0 0 0', color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }}>
+            {item.percentage.toFixed(1)}% of total
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          labelLine={true}
-          label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(1)}%`}
-          outerRadius={140}
-          innerRadius={40}
-          paddingAngle={5}
-          dataKey="amount"
-          nameKey="category"
-        >
-          {data.map((_entry, index) => (
-            <Cell 
-              key={`cell-${index}`} 
-              fill={COLORS[index % COLORS.length]} 
-              stroke="#fff"
-              strokeWidth={2}
-            />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value: number | string | readonly (string | number)[] | undefined) => {
-          const numValue = Array.isArray(value)
-            ? Number(value[0])
-            : typeof value === 'number'
-            ? value
-            : typeof value === 'string'
-            ? parseFloat(value)
-            : 0;
-          return `₹${numValue.toLocaleString('en-IN')}`;
-        }} />
-        <Legend wrapperStyle={{ paddingTop: '20px' }} />
-      </PieChart>
-    </ResponsiveContainer>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={showLabels ? ({ name, percent }: any) =>
+              `${name}: ${((percent || 0) * 100).toFixed(1)}%` : false}
+            // Adjusted radius to look good on both mobile and desktop
+            outerRadius={isMobile ? 85 : Math.min(110, (typeof height === 'number' ? height : 300) * 0.55)}
+            innerRadius={isMobile ? 50 : Math.min(45, (typeof height === 'number' ? height : 300) * 0.22)}
+            paddingAngle={isMobile ? 2 : 4}
+            dataKey="amount"
+            nameKey="category"
+            cornerRadius={6}
+          >
+            {data.map((_entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={categoryColors[index % categoryColors.length]}
+                stroke={isDark ? 'rgba(20, 25, 42, 0.9)' : 'rgba(255,255,255,0.9)'}
+                strokeWidth={isMobile ? 2 : 3}
+              />
+            ))}
+          </Pie>
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            wrapperStyle={{
+              paddingTop: '10px',
+              fontSize: isMobile ? '11px' : '12px',
+              fontWeight: 500,
+              color: isDark ? '#a5b4c8' : '#64748b',
+              lineHeight: '1.4',
+            }}
+            formatter={(value: string) => (
+              <span style={{ color: isDark ? '#a5b4c8' : '#64748b', marginRight: '8px' }}>{value}</span>
+            )}
+            iconType="circle"
+            iconSize={isMobile ? 6 : 8}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 

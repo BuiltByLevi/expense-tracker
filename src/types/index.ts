@@ -7,6 +7,15 @@ export interface Expense {
   userId: string;
 }
 
+export interface MonthlyEarnings {
+  year: number;        // e.g. 2026
+  month: number;       // 0-11 (JS Date convention)
+  amount: number;      // rupees
+  status: 'confirmed' | 'estimated';
+  source: 'manual' | 'migrated';
+  updatedAt: string;   // ISO string
+}
+
 export interface MonthlyExpense {
   month: string;
   year: number;

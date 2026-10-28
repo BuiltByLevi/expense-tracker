@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import type { ExpenseCategory } from '../../types';
 import toast from 'react-hot-toast';
+import { theme } from '../../styles/theme';
 
 interface ExpenseFormProps {
-  onAddExpense: (expense: any) => Promise<void>;
+  onAddExpense: (expense: {
+    amount: number;
+    category: ExpenseCategory;
+    description: string;
+    date: Date;
+  }) => Promise<void>;
 }
 
 const categories: ExpenseCategory[] = [
@@ -25,11 +31,55 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
 
+  const [errors, setErrors] = useState<{
+    amount?: string;
+    description?: string;
+    date?: string;
+  }>({});
+
+  const validate = (): boolean => {
+    const newErrors: typeof errors = {};
+
+    // Amount validation
+    const numAmount = parseFloat(amount);
+    if (!amount || isNaN(numAmount)) {
+      newErrors.amount = 'Enter a valid amount';
+    } else if (numAmount <= 0) {
+      newErrors.amount = 'Amount must be greater than 0';
+    } else if (numAmount > 100000000) {
+      newErrors.amount = 'Amount seems too large (max ₹10 crore)';
+    }
+
+    // Description validation
+    const trimmedDesc = description.trim();
+    if (trimmedDesc.length > 0 && trimmedDesc.length < 2) {
+      newErrors.description = 'Description must be at least 2 characters';
+    } else if (trimmedDesc.length > 100) {
+      newErrors.description = 'Description must be under 100 characters';
+    }
+
+    // Date validation
+    if (!date) {
+      newErrors.date = 'Please select a date';
+    } else {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(today.getFullYear() + 1);
+      if (selectedDate > oneYearFromNow) {
+        newErrors.date = 'Date cannot be more than 1 year in the future';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Please enter a valid amount');
+
+    if (!validate()) {
+      toast.error('Please fix the errors');
       return;
     }
 
@@ -38,113 +88,126 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
       await onAddExpense({
         amount: parseFloat(amount),
         category,
-        description: description || 'No description',
+        description: description.trim() || 'No description',
         date: new Date(date)
       });
       setAmount('');
       setDescription('');
-      toast.success('Expense added successfully!');
-    } catch (error) {
+      setErrors({});
+      toast.success('Expense added!');
+    } catch {
       toast.error('Failed to add expense');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const inputErrorStyle = {
+    borderColor: theme.colors.danger,
+    background: 'rgba(239, 68, 68, 0.05)',
+  };
+
   return (
-    <div style={{
-      background: 'white',
-      padding: '1.5rem',
-      borderRadius: '10px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      marginBottom: '2rem'
-    }}>
-      <h3 style={{ marginBottom: '1rem', color: '#333' }}>Add New Expense</h3>
-      <form onSubmit={handleSubmit}>
-        <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#666' }}>Amount (₹)</label>
+    <form onSubmit={handleSubmit} noValidate>
+      <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: '1fr 1fr' }}>
+        <div>
+          <label className="input-label">Amount</label>
+          <div style={{ position: 'relative' }}>
+            <span style={{
+              position: 'absolute',
+              left: '14px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: errors.amount ? theme.colors.danger : theme.colors.textSecondary,
+              fontWeight: 600,
+              fontSize: '14px',
+            }}>₹</span>
             <input
               type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              className="input"
+              style={{
+                paddingLeft: '32px',
+                ...(errors.amount ? inputErrorStyle : {})
+              }}
               placeholder="0.00"
               step="1"
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '5px'
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                if (errors.amount) setErrors(prev => ({ ...prev, amount: undefined }));
               }}
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#666' }}>Category</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '5px'
-              }}
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#666' }}>Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '5px'
-              }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#666' }}>Description</label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What did you spend on?"
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '5px'
-              }}
-            />
-          </div>
+          {errors.amount && (
+            <p style={{ fontSize: '11px', color: theme.colors.danger, margin: '4px 0 0 0', fontWeight: 500 }}>
+              {errors.amount}
+            </p>
+          )}
         </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          style={{
-            marginTop: '1rem',
-            padding: '0.5rem 1rem',
-            background: '#667eea',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: submitting ? 'not-allowed' : 'pointer',
-            width: '100%'
-          }}
-        >
-          {submitting ? 'Adding...' : 'Add Expense'}
-        </button>
-      </form>
-    </div>
+
+        <div>
+          <label className="input-label">Category</label>
+          <select
+            className="input"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="input-label">Date</label>
+          <input
+            type="date"
+            className="input"
+            style={errors.date ? inputErrorStyle : {}}
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value);
+              if (errors.date) setErrors(prev => ({ ...prev, date: undefined }));
+            }}
+          />
+          {errors.date && (
+            <p style={{ fontSize: '11px', color: theme.colors.danger, margin: '4px 0 0 0', fontWeight: 500 }}>
+              {errors.date}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="input-label">Description</label>
+          <input
+            type="text"
+            className="input"
+            style={errors.description ? inputErrorStyle : {}}
+            placeholder="What was it for?"
+            maxLength={100}
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              if (errors.description) setErrors(prev => ({ ...prev, description: undefined }));
+            }}
+          />
+          {errors.description && (
+            <p style={{ fontSize: '11px', color: theme.colors.danger, margin: '4px 0 0 0', fontWeight: 500 }}>
+              {errors.description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={submitting}
+        style={{ width: '100%', marginTop: '20px', padding: '14px' }}
+      >
+        {submitting ? 'Adding...' : '+ Add Expense'}
+      </button>
+    </form>
   );
 };
 

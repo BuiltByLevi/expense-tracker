@@ -120,7 +120,7 @@ export const useExpenses = () => {
     return yearExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   };
 
-  const getCategoryAnalysis = (): CategoryTotal[] => {
+  const getCategoryAnalysis = () => {
     const categoryMap = new Map<string, number>();
     let total = 0;
 
