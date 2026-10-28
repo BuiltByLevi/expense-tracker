@@ -1,0 +1,17 @@
+[debug] [2026-10-28T19:03:17.368Z] ----------------------------------------------------------------------
+[debug] [2026-10-28T19:03:17.369Z] Command:       /Users/pratikthorat/.nvm/versions/node/v22.21.0/bin/node /Users/pratikthorat/.nvm/versions/node/v22.21.0/bin/firebase deploy --only firestore:rules
+[debug] [2026-10-28T19:03:17.370Z] CLI Version:   15.34.1
+[debug] [2026-10-28T19:03:17.370Z] Platform:      darwin
+[debug] [2026-10-28T19:03:17.370Z] Node Version:  v22.21.0
+[debug] [2026-10-28T19:03:17.370Z] Detected Agent: unknown
+[debug] [2026-10-28T19:03:17.370Z] Time:          Thu Oct 29 2026 00:33:17 GMT+0530 (India Standard Time)
+[debug] [2026-10-28T19:03:17.370Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-10-28T19:03:18.030Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-10-28T19:03:18.031Z] > authorizing via signed-in user (pratikcl2026@gmail.com)
+[debug] [2026-10-28T19:03:18.031Z] [iam] checking project expense-tracker-b56b6 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-10-28T19:03:18.038Z] Checked if tokens are valid: true, expires at: 1793216489585
+[debug] [2026-10-28T19:03:18.038Z] Checked if tokens are valid: true, expires at: 1793216489585
+[debug] [2026-10-28T19:03:18.038Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/expense-tracker-b56b6:testIamPermissions [none]
+[debug] [2026-10-28T19:03:18.038Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/expense-tracker-b56b6:testIamPermissions  x-goog-user-project=expense-tracker-b56b6
+[debug] [2026-10-28T19:03:18.038Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/expense-tracker-b56b6:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
