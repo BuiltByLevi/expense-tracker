@@ -39,7 +39,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
     const num = parseFloat(editValue);
     if (isNaN(num) || num < 0) {
       toast.error('Enter a valid amount');
-      return
+      return;
     }
     try {
       await setEarningsForMonth(year, month, num, 'confirmed');
@@ -68,8 +68,8 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
     }
   };
 
-  // Bulk update selected months
-  const handleBulkSave = async () => {
+  // BULK ACTION 1: Update Amount (auto-confirms)
+  const handleBulkSaveAmount = async () => {
     const num = parseFloat(bulkAmount);
     if (isNaN(num) || num < 0) {
       toast.error('Enter a valid amount');
@@ -107,11 +107,49 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
     }
   };
 
+  // BULK ACTION 2: Change Status Only (keep existing amount)
+  const handleBulkStatus = async (newStatus: 'confirmed' | 'estimated') => {
+    if (selectedMonths.size === 0) {
+      toast.error('Select at least one month');
+      return;
+    }
+
+    setBulkSaving(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const key of Array.from(selectedMonths)) {
+      const [yearStr, monthStr] = key.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      const record = getEarningsForMonth(year, month);
+      // Use existing amount if it exists, otherwise use default earnings
+      const currentAmount = record ? record.amount : defaultEarnings;
+      
+      try {
+        await setEarningsForMonth(year, month, currentAmount, newStatus);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    setBulkSaving(false);
+    setSelectedMonths(new Set());
+
+    const label = newStatus === 'confirmed' ? 'Confirmed' : 'Estimated';
+    if (failCount === 0) {
+      toast.success(`${successCount} months marked as ${label}`);
+    } else {
+      toast.error(`Updated ${successCount}, failed ${failCount}`);
+    }
+  };
+
   const allSelected = selectedMonths.size === months.length && months.length > 0;
   const someSelected = selectedMonths.size > 0 && !allSelected;
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px', paddingBottom: selectedMonths.size > 0 ? '120px' : '24px' }}>
+    <div style={{ minHeight: '100vh', padding: '24px', paddingBottom: selectedMonths.size > 0 ? '140px' : '24px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         
         {/* Header */}
@@ -138,7 +176,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
           border: `1px solid ${design.colors.primary}20`,
         }}>
           <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0 }}>
-            💡 <strong>Tip:</strong> Tick the checkboxes to select multiple months, then update them all at once using the bar at the bottom.
+            💡 <strong>Tip:</strong> Tick the checkboxes to select multiple months, then update amounts or status in bulk.
           </p>
         </div>
 
@@ -245,7 +283,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
           left: '50%',
           transform: 'translateX(-50%)',
           width: 'calc(100% - 40px)',
-          maxWidth: '860px',
+          maxWidth: '900px',
           background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
           borderRadius: '20px',
           padding: '16px 24px',
@@ -264,7 +302,8 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
             </p>
           </div>
           
-          <div style={{ flex: 1, minWidth: '200px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Amount input section */}
+          <div style={{ flex: 1, minWidth: '220px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <span style={{
                 position: 'absolute',
@@ -292,11 +331,52 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && handleBulkSave()}
+                onKeyDown={(e) => e.key === 'Enter' && handleBulkSaveAmount()}
               />
             </div>
           </div>
 
+          {/* Status buttons */}
+          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            <button
+              onClick={() => handleBulkStatus('confirmed')}
+              disabled={bulkSaving}
+              className="btn"
+              style={{
+                padding: '10px 14px',
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#34d399',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '10px',
+                cursor: 'pointer',
+              }}
+              title="Mark selected as Confirmed without changing amounts"
+            >
+              ✓ Mark Confirmed
+            </button>
+            <button
+              onClick={() => handleBulkStatus('estimated')}
+              disabled={bulkSaving}
+              className="btn"
+              style={{
+                padding: '10px 14px',
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'rgba(245, 158, 11, 0.15)',
+                color: '#fbbf24',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                borderRadius: '10px',
+                cursor: 'pointer',
+              }}
+              title="Mark selected as Estimated without changing amounts"
+            >
+              ⚠ Mark Estimated
+            </button>
+          </div>
+
+          {/* Action buttons */}
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <button
               onClick={() => {
@@ -309,10 +389,11 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
               Cancel
             </button>
             <button
-              onClick={handleBulkSave}
+              onClick={handleBulkSaveAmount}
               disabled={bulkSaving || !bulkAmount}
               className="btn btn-primary"
               style={{ padding: '10px 20px', fontSize: '13px', fontWeight: 700 }}
+              title="Update amounts and mark as Confirmed"
             >
               {bulkSaving ? 'Saving...' : `Update ${selectedMonths.size}`}
             </button>
