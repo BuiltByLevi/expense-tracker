@@ -11,6 +11,8 @@ const Dashboard: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
+  // This router only switches the main dashboards. 
+  // The sub-pages will be handled internally by DashboardWeb and DashboardMobile.
   return isMobile ? <DashboardMobile /> : <DashboardWeb />;
 };
 

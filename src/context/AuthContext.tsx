@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  updateProfile,
   setPersistence,
   browserSessionPersistence,
 } from 'firebase/auth';
@@ -15,10 +16,12 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUserProfile: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
@@ -38,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Force session-only persistence before login
     await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   };
@@ -52,8 +54,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut(auth);
   };
 
+  const updateUserProfile = async (data: { displayName?: string; photoURL?: string }) => {
+    if (!auth.currentUser) return;
+    await updateProfile(auth.currentUser, data);
+    setUser({ ...auth.currentUser });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,7 +8,9 @@ import ExpenseList from '../ExpenseList/ExpenseList';
 import CategoryPieChart from '../Charts/CategoryPieChart';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
 import EarningsModal from './EarningsModal';
-import EarningsHistoryPage from './EarningsHistoryPage'; // <-- NEW
+import EarningsHistoryPage from './EarningsHistoryPageWeb';
+import TransactionLedgerPage from './TransactionLedgerPageWeb';
+import ProfilePage from './ProfilePageWeb';
 import type { Expense } from '../../types';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { theme as design } from '../../styles/theme';
@@ -25,7 +27,9 @@ const DashboardWeb: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showEarningsModal, setShowEarningsModal] = useState(false);
-  const [showEarningsPage, setShowEarningsPage] = useState(false); // <-- NEW
+  const [showEarningsPage, setShowEarningsPage] = useState(false);
+  const [showLedgerPage, setShowLedgerPage] = useState(false);
+  const [showProfilePage, setShowProfilePage] = useState(false);
   const [activeView, setActiveView] = useState<GraphType>('total');
   const [showDebtDetails, setShowDebtDetails] = useState(false);
 
@@ -126,13 +130,19 @@ const DashboardWeb: React.FC = () => {
   const hasDeficit = financeTotals.cashFlowDeficit > 0;
   const isFuture = financeTotals.isSelectedMonthInFuture;
 
-  // Conditional render for the new History Page
+  // Conditional renders for sub-pages
   if (showEarningsPage) {
     return <EarningsHistoryPage onBack={() => setShowEarningsPage(false)} />;
   }
+  if (showLedgerPage) {
+    return <TransactionLedgerPage onBack={() => setShowLedgerPage(false)} />;
+  }
+  if (showProfilePage) {
+    return <ProfilePage onBack={() => setShowProfilePage(false)} />;
+  }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '24px' }}>
+    <div className="glass-page">
       <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
 
         {/* Header */}
@@ -148,6 +158,25 @@ const DashboardWeb: React.FC = () => {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button 
+              onClick={() => setShowProfilePage(true)} 
+              className="btn btn-ghost" 
+              style={{ padding: '6px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              {user?.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt="Profile" 
+                  style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} 
+                />
+              ) : (
+                <span>👤</span>
+              )}
+              Profile
+            </button>
+            <button onClick={() => setShowLedgerPage(true)} className="btn btn-ghost" style={{ padding: '10px 20px', fontSize: '13px' }}>
+              Account Statement
+            </button>
             <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost" style={{ padding: '10px 20px', fontSize: '13px' }}>
               Manage Earnings
             </button>
@@ -198,7 +227,7 @@ const DashboardWeb: React.FC = () => {
                 Estimated Earnings for {monthName}
               </p>
               <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>
-                This month's earnings are estimated based on your default salary. Click "Edit Earnings" to confirm the exact amount for this month.
+                This month's earnings are estimated based on your default salary. Click "Edit Earnings" to confirm the exact amount.
               </p>
             </div>
           </div>
