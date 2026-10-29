@@ -11,7 +11,7 @@ interface Props {
   onBack: () => void;
 }
 
-const CLOUDINARY_CLOUD_NAME = 'iwa2pjzg'; 
+const CLOUDINARY_CLOUD_NAME = 'jwa2pjzg'; 
 const CLOUDINARY_UPLOAD_PRESET = 'levihere';
 
 const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
