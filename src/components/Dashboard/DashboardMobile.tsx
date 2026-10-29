@@ -141,6 +141,26 @@ const DashboardMobile: React.FC = () => {
         <button onClick={goToNextMonth} className="btn btn-ghost" style={{ padding: '8px 12px', fontSize: '14px', flexShrink: 0 }}>▶</button>
       </div>
 
+      {/* Estimated Earnings Banner */}
+      {selectedMonthEarnings.status === 'estimated' && !isFuture && (
+        <div className="glass-card animate-in" style={{
+          padding: '10px 12px', marginBottom: '10px',
+          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(251, 191, 36, 0.15) 100%)',
+          border: `1px solid ${design.colors.warning}40`,
+          display: 'flex', alignItems: 'center', gap: '8px',
+        }}>
+          <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
+              Estimated earnings for {monthName}
+            </p>
+            <p style={{ fontSize: '9px', color: design.colors.textSecondary, margin: '1px 0 0 0' }}>
+              Tap "Edit Earnings" to confirm the exact amount.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Future Warning */}
       {isFuture && (
         <div className="glass-card animate-in" style={{
@@ -333,9 +353,7 @@ const DashboardMobile: React.FC = () => {
                       <tr key={`${summary.year}-${summary.month}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                         <td style={{ padding: '8px 4px', fontWeight: 600 }}>
                           {format(new Date(summary.year, summary.month), 'MMM yy')}
-                          {summary.earningsStatus === 'estimated' && (
-                            <span style={{ marginLeft: '4px', fontSize: '8px', color: design.colors.warning }}>EST</span>
-                          )}
+                          {summary.earningsStatus === 'estimated' && <span style={{ marginLeft: '4px', fontSize: '8px', color: design.colors.warning }}>EST</span>}
                         </td>
                         <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{summary.earnings.toLocaleString('en-IN')}</td>
                         <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{summary.spent.toLocaleString('en-IN')}</td>
