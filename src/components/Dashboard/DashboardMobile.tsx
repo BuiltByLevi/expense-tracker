@@ -11,6 +11,7 @@ import StatCard from './StatCard';
 import StatementUploadCard from './StatementUploadCard';
 import MonthYearPicker from '../common/MonthYearPicker';
 import LogoMark from '../common/LogoMark';
+import ListSkeleton from '../common/ListSkeleton';
 
 // Lazy-loaded: pulls in xlsx/pdfjs/papaparse (~1MB), only fetched when the
 // user actually opens the import flow instead of on every dashboard load.
@@ -210,7 +211,7 @@ const DashboardMobile: React.FC = () => {
             </div>
             <div className="glass-card" style={{ padding: '14px', maxHeight: '500px', overflowY: 'auto' }}>
               <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 12px 0' }}>📒 Transaction History</h3>
-              {loading ? <div style={{ textAlign: 'center', padding: '20px', color: design.colors.textSecondary, fontSize: '12px' }}>Loading...</div> : <ExpenseList expenses={monthExpenses} income={monthIncome} onDelete={handleDeleteExpense} onDeleteIncome={handleDeleteIncome} onEdit={handleEdit} />}
+              {loading ? <ListSkeleton rows={4} /> : <ExpenseList expenses={monthExpenses} income={monthIncome} onDelete={handleDeleteExpense} onDeleteIncome={handleDeleteIncome} onEdit={handleEdit} />}
             </div>
           </div>
         )}

@@ -702,6 +702,38 @@ body::after {
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+/* ============ SKELETON LOADING ============ */
+.skeleton {
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.12) 25%,
+    rgba(148, 163, 184, 0.24) 50%,
+    rgba(148, 163, 184, 0.12) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============ TRANSACTION ROW HOVER ============ */
+.tx-row {
+  transition: background 0.15s ease;
+  border-radius: 10px;
+}
+
+.tx-row:hover {
+  background: rgba(99, 102, 241, 0.06) !important;
+}
+
+[data-theme='dark'] .tx-row:hover {
+  background: rgba(139, 92, 246, 0.1) !important;
+}
+
 /* ============ UTILITY ============ */
 .text-gradient {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);

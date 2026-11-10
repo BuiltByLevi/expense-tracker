@@ -3,6 +3,7 @@ import { EXPENSE_CATEGORIES, type Expense, type Income } from '../../types';
 import { format } from 'date-fns';
 import { theme, categoryColors, incomeCategoryColors } from '../../styles/theme';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -31,17 +32,20 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; kind: 'expense' | 'income'; description: string } | null>(null);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Delete this expense?')) {
-      await onDelete(id);
-    }
+  const handleDelete = (row: Row) => {
+    setPendingDelete({ id: row.id, kind: row.kind, description: row.description });
   };
 
-  const handleDeleteIncome = async (id: string) => {
-    if (onDeleteIncome && window.confirm('Delete this income entry?')) {
-      await onDeleteIncome(id);
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    if (pendingDelete.kind === 'income') {
+      if (onDeleteIncome) await onDeleteIncome(pendingDelete.id);
+    } else {
+      await onDelete(pendingDelete.id);
     }
+    setPendingDelete(null);
   };
 
   const getCategoryColor = (category: string) => {
@@ -139,11 +143,11 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
                   </span>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {isIncome ? (
-                      onDeleteIncome && <button onClick={() => handleDeleteIncome(row.id)} className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '11px' }}>Delete</button>
+                      onDeleteIncome && <button onClick={() => handleDelete(row)} className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '11px' }}>Delete</button>
                     ) : (
                       <>
                         <button onClick={() => onEdit(row.source as Expense)} className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '11px' }}>Edit</button>
-                        <button onClick={() => handleDelete(row.id)} className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '11px' }}>Delete</button>
+                        <button onClick={() => handleDelete(row)} className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '11px' }}>Delete</button>
                       </>
                     )}
                   </div>
@@ -155,7 +159,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
       ) : (
         <div>
           <div style={{
-            display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', padding: '0 0 10px 0',
+            display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', padding: '0 8px 10px 8px',
             borderBottom: `2px solid ${theme.colors.primary}20`,
           }}>
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date</span>
@@ -168,8 +172,8 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
             const isIncome = row.kind === 'income';
             const color = isIncome ? (incomeCategoryColors[row.category] ?? theme.colors.success) : getCategoryColor(row.category);
             return (
-              <div key={`${row.kind}-${row.id}`} style={{
-                display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', alignItems: 'center', padding: '14px 0',
+              <div key={`${row.kind}-${row.id}`} className="tx-row" style={{
+                display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', alignItems: 'center', padding: '14px 8px',
                 borderBottom: idx < filteredRows.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                 background: isIncome ? 'rgba(16, 185, 129, 0.04)' : 'transparent',
               }}>
@@ -193,11 +197,11 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {isIncome ? (
-                    onDeleteIncome && <button onClick={() => handleDeleteIncome(row.id)} className="btn btn-danger" style={{ padding: '6px 10px', fontSize: '11px' }}>Delete</button>
+                    onDeleteIncome && <button onClick={() => handleDelete(row)} className="btn btn-danger" style={{ padding: '6px 10px', fontSize: '11px' }}>Delete</button>
                   ) : (
                     <>
                       <button onClick={() => onEdit(row.source as Expense)} className="btn btn-ghost" style={{ padding: '6px 10px', fontSize: '11px' }}>Edit</button>
-                      <button onClick={() => handleDelete(row.id)} className="btn btn-danger" style={{ padding: '6px 10px', fontSize: '11px' }}>Delete</button>
+                      <button onClick={() => handleDelete(row)} className="btn btn-danger" style={{ padding: '6px 10px', fontSize: '11px' }}>Delete</button>
                     </>
                   )}
                 </div>
@@ -206,6 +210,20 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        danger
+        title={pendingDelete?.kind === 'income' ? 'Delete this income entry?' : 'Delete this expense?'}
+        message={
+          pendingDelete
+            ? `"${pendingDelete.description.length > 60 ? pendingDelete.description.slice(0, 60) + '…' : pendingDelete.description}" will be permanently removed and all totals will update.`
+            : ''
+        }
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 };

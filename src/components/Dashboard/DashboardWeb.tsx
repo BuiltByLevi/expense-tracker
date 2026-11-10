@@ -12,6 +12,7 @@ import StatementUploadCard from './StatementUploadCard';
 import MonthYearPicker from '../common/MonthYearPicker';
 import ProfileMenu from './ProfileMenu';
 import LogoMark from '../common/LogoMark';
+import ListSkeleton from '../common/ListSkeleton';
 
 // Lazy-loaded: pulls in xlsx/pdfjs/papaparse (~1MB), only fetched when the
 // user actually opens the import flow instead of on every dashboard load.
@@ -388,7 +389,7 @@ const DashboardWeb: React.FC = () => {
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>📒 Transaction History</h3>
             <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>{monthExpenses.length + monthIncome.length} items</span>
           </div>
-          {loading ? <div style={{ textAlign: 'center', padding: '40px', color: design.colors.textSecondary }}>Loading...</div> : <ExpenseList expenses={monthExpenses} income={monthIncome} onDelete={handleDeleteExpense} onDeleteIncome={handleDeleteIncome} onEdit={handleEdit} />}
+          {loading ? <ListSkeleton rows={6} /> : <ExpenseList expenses={monthExpenses} income={monthIncome} onDelete={handleDeleteExpense} onDeleteIncome={handleDeleteIncome} onEdit={handleEdit} />}
         </div>
       </div>
 
