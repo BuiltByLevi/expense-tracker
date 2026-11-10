@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import type { Expense, ExpenseCategory } from '../../types';
+import { format } from 'date-fns';
+import { EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from '../../types';
 import toast from 'react-hot-toast';
 import { theme } from '../../styles/theme';
+import { parseLocalDateInput } from '../../utils/dateInput';
 
 interface EditExpenseModalProps {
   expense: Expense | null;
@@ -10,10 +12,7 @@ interface EditExpenseModalProps {
   onUpdate: (id: string, data: any) => Promise<void>;
 }
 
-const categories: ExpenseCategory[] = [
-  'Food & Dining', 'Transportation', 'Shopping', 'Entertainment',
-  'Bills & Utilities', 'Healthcare', 'Education', 'Rent', 'Other'
-];
+const categories = EXPENSE_CATEGORIES;
 
 const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, onClose, onUpdate }) => {
   const [amount, setAmount] = useState('');
@@ -27,7 +26,10 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
       setAmount(expense.amount.toString());
       setCategory(expense.category as ExpenseCategory);
       setDescription(expense.description);
-      setDate(new Date(expense.date).toISOString().split('T')[0]);
+      // format() reads local date parts — toISOString() would show the wrong
+      // day for imported expenses, whose Date objects carry a real local
+      // time-of-day rather than UTC midnight (see ExpenseForm's date default).
+      setDate(format(new Date(expense.date), 'yyyy-MM-dd'));
     }
   }, [expense]);
 
@@ -45,7 +47,7 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
         amount: parseFloat(amount),
         category,
         description: description || 'No description',
-        date: new Date(date)
+        date: parseLocalDateInput(date)
       });
       toast.success('Expense updated!');
       onClose();

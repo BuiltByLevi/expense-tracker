@@ -84,13 +84,29 @@ export const theme = {
 };
 
 export const categoryColors = [
-  '#6366f1', // indigo
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#06b6d4', // cyan
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#f97316', // orange
+  '#6366f1', // indigo        — Food & Dining
+  '#10b981', // emerald       — Transportation
+  '#f59e0b', // amber         — Shopping
+  '#ef4444', // red           — Entertainment
+  '#8b5cf6', // violet        — Bills & Utilities
+  '#06b6d4', // cyan          — Healthcare
+  '#ec4899', // pink          — Education
+  '#14b8a6', // teal          — Rent
+  '#84cc16', // lime          — Groceries
+  '#f97316', // orange        — Fuel
+  '#a855f7', // purple        — EMI & Loans
+  '#0ea5e9', // sky           — Insurance
+  '#22c55e', // green         — Investments
+  '#eab308', // yellow        — Cash Withdrawal
+  '#64748b', // slate         — Bank Charges
+  '#d946ef', // fuchsia       — Transfers
+  '#94a3b8', // gray          — Other
 ];
+
+export const incomeCategoryColors: Record<string, string> = {
+  Salary: theme.colors.success,
+  Interest: theme.colors.primary,
+  Refund: theme.colors.warning,
+  Transfer: theme.colors.textSecondary,
+  'Other Income': theme.colors.textTertiary,
+};

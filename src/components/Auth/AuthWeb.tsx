@@ -1,67 +1,13 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import toast from 'react-hot-toast';
+import React from 'react';
+import { useAuthForm } from '../../hooks/useAuthForm';
+import LogoMark from '../common/LogoMark';
 
 const AuthWeb: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
-  const { login, signup } = useAuth();
-
-  const validate = (): boolean => {
-    const newErrors: typeof errors = {};
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!password || password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (!isLogin && password !== confirmPassword) {
-      newErrors.confirm = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setLoading(true);
-    try {
-      if (isLogin) {
-        await login(email, password);
-        toast.success('Welcome back!');
-      } else {
-        await signup(email, password);
-        toast.success('Account created successfully!');
-      }
-    } catch (error: unknown) {
-      const authError = error as { code?: string; message?: string };
-      const message = authError.code === 'auth/invalid-credential'
-        ? 'Invalid email or password'
-        : authError.code === 'auth/email-already-in-use'
-        ? 'An account with this email already exists'
-        : authError.message ?? 'An unexpected error occurred';
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setErrors({});
-    setPassword('');
-    setConfirmPassword('');
-  };
+  const {
+    isLogin, email, setEmail, password, setPassword,
+    confirmPassword, setConfirmPassword, loading, errors, clearFieldError,
+    handleSubmit, toggleMode,
+  } = useAuthForm();
 
   return (
     <div style={{ 
@@ -120,13 +66,25 @@ const AuthWeb: React.FC = () => {
             width: '72px', height: '72px', borderRadius: '20px',
             background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '36px', marginBottom: '32px',
+            marginBottom: '24px',
             border: '1px solid rgba(255,255,255,0.3)',
-          }}>💰</div>
+          }}>
+            <LogoMark size={38} color="white" />
+          </div>
 
-          <h1 style={{ fontSize: '36px', fontWeight: 800, margin: '0 0 16px 0', lineHeight: 1.2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <h1 style={{ fontSize: '32px', fontWeight: 800, margin: 0, lineHeight: 1.2, letterSpacing: '0.02em' }}>
+              PRATIQ
+            </h1>
+            <span style={{
+              fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+              padding: '3px 10px', borderRadius: '999px',
+              background: 'rgba(16, 185, 129, 0.25)', border: '1px solid rgba(16, 185, 129, 0.5)',
+            }}>Pro Expense Tracker</span>
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 16px 0', lineHeight: 1.3, opacity: 0.95 }}>
             Track Every Rupee
-          </h1>
+          </h2>
           <p style={{ fontSize: '16px', opacity: 0.9, margin: '0 0 40px 0', lineHeight: 1.6 }}>
             Take control of your finances with smart expense tracking, detailed analytics, and beautiful insights.
           </p>
@@ -158,7 +116,7 @@ const AuthWeb: React.FC = () => {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors({ ...errors, email: undefined }); }}
+                onChange={(e) => { setEmail(e.target.value); clearFieldError('email'); }}
                 placeholder="you@example.com"
                 style={{
                   width: '100%', padding: '14px 16px',
@@ -180,7 +138,7 @@ const AuthWeb: React.FC = () => {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({ ...errors, password: undefined }); }}
+                onChange={(e) => { setPassword(e.target.value); clearFieldError('password'); }}
                 placeholder={isLogin ? 'Enter your password' : 'Create a strong password'}
                 style={{
                   width: '100%', padding: '14px 16px',
@@ -203,7 +161,7 @@ const AuthWeb: React.FC = () => {
                 <input
                   type="password"
                   value={confirmPassword}
-                  onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirm) setErrors({ ...errors, confirm: undefined }); }}
+                  onChange={(e) => { setConfirmPassword(e.target.value); clearFieldError('confirm'); }}
                   placeholder="Re-enter your password"
                   style={{
                     width: '100%', padding: '14px 16px',

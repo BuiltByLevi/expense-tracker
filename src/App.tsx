@@ -1,6 +1,8 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EarningsProvider } from './context/EarningsContext';
+import { ExpensesProvider } from './context/ExpensesContext';
+import { IncomeProvider } from './context/IncomeContext';
 import Dashboard from './components/Dashboard/Dashboard';
 import Auth from './components/Auth/Auth';
 import { Toaster } from 'react-hot-toast';
@@ -24,10 +26,14 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <EarningsProvider>
-        <AppContent />
-        <Toaster position="top-right" />
-      </EarningsProvider>
+      <ExpensesProvider>
+        <IncomeProvider>
+          <EarningsProvider>
+            <AppContent />
+            <Toaster position="top-right" />
+          </EarningsProvider>
+        </IncomeProvider>
+      </ExpensesProvider>
     </AuthProvider>
   );
 }

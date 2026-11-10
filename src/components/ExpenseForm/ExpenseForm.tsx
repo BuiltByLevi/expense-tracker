@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import type { ExpenseCategory } from '../../types';
+import { format } from 'date-fns';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type ExpenseCategory, type IncomeCategory } from '../../types';
 import toast from 'react-hot-toast';
 import { theme } from '../../styles/theme';
+import { parseLocalDateInput } from '../../utils/dateInput';
 
 interface ExpenseFormProps {
   onAddExpense: (expense: {
@@ -10,25 +12,27 @@ interface ExpenseFormProps {
     description: string;
     date: Date;
   }) => Promise<void>;
+  onAddIncome?: (entry: {
+    amount: number;
+    category: IncomeCategory;
+    description: string;
+    date: Date;
+  }) => Promise<void>;
 }
 
-const categories: ExpenseCategory[] = [
-  'Food & Dining',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Bills & Utilities',
-  'Healthcare',
-  'Education',
-  'Rent',
-  'Other'
-];
+const expenseCategories = EXPENSE_CATEGORIES;
+const incomeCategories = INCOME_CATEGORIES;
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
+const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, onAddIncome }) => {
+  const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>(categories[0]);
+  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>(expenseCategories[0]);
+  const [incomeCategory, setIncomeCategory] = useState<IncomeCategory>(incomeCategories[0]);
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  // format(), not toISOString(), so the default is today in the user's local
+  // timezone — toISOString() reports the UTC date, which is "yesterday" for
+  // several hours after local midnight in any timezone ahead of UTC (e.g. IST).
+  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [submitting, setSubmitting] = useState(false);
 
   const [errors, setErrors] = useState<{
@@ -62,7 +66,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
     if (!date) {
       newErrors.date = 'Please select a date';
     } else {
-      const selectedDate = new Date(date);
+      const selectedDate = parseLocalDateInput(date);
       const today = new Date();
       const oneYearFromNow = new Date();
       oneYearFromNow.setFullYear(today.getFullYear() + 1);
@@ -85,18 +89,28 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
 
     setSubmitting(true);
     try {
-      await onAddExpense({
-        amount: parseFloat(amount),
-        category,
-        description: description.trim() || 'No description',
-        date: new Date(date)
-      });
+      if (kind === 'income' && onAddIncome) {
+        await onAddIncome({
+          amount: parseFloat(amount),
+          category: incomeCategory,
+          description: description.trim() || 'No description',
+          date: parseLocalDateInput(date),
+        });
+        toast.success('Income added!');
+      } else {
+        await onAddExpense({
+          amount: parseFloat(amount),
+          category: expenseCategory,
+          description: description.trim() || 'No description',
+          date: parseLocalDateInput(date),
+        });
+        toast.success('Expense added!');
+      }
       setAmount('');
       setDescription('');
       setErrors({});
-      toast.success('Expense added!');
     } catch {
-      toast.error('Failed to add expense');
+      toast.error(kind === 'income' ? 'Failed to add income' : 'Failed to add expense');
     } finally {
       setSubmitting(false);
     }
@@ -107,8 +121,29 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
     background: 'rgba(239, 68, 68, 0.05)',
   };
 
+  const isIncome = kind === 'income';
+
   return (
     <form onSubmit={handleSubmit} noValidate>
+      {onAddIncome && (
+        <div className="tab-container" style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setKind('expense')}
+            className={`tab ${!isIncome ? 'active' : ''}`}
+          >
+            Expense
+          </button>
+          <button
+            type="button"
+            onClick={() => setKind('income')}
+            className={`tab ${isIncome ? 'active' : ''}`}
+          >
+            Income
+          </button>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: '1fr 1fr' }}>
         <div>
           <label className="input-label">Amount</label>
@@ -147,15 +182,27 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
 
         <div>
           <label className="input-label">Category</label>
-          <select
-            className="input"
-            value={category}
-            onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-          >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+          {isIncome ? (
+            <select
+              className="input"
+              value={incomeCategory}
+              onChange={(e) => setIncomeCategory(e.target.value as IncomeCategory)}
+            >
+              {incomeCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          ) : (
+            <select
+              className="input"
+              value={expenseCategory}
+              onChange={(e) => setExpenseCategory(e.target.value as ExpenseCategory)}
+            >
+              {expenseCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>
@@ -205,7 +252,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
         disabled={submitting}
         style={{ width: '100%', marginTop: '20px', padding: '14px' }}
       >
-        {submitting ? 'Adding...' : '+ Add Expense'}
+        {submitting ? 'Adding...' : isIncome ? '+ Add Income' : '+ Add Expense'}
       </button>
     </form>
   );

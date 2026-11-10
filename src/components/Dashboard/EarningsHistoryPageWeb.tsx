@@ -1,157 +1,25 @@
-import React, { useState, useMemo } from 'react';
-import { useEarnings } from '../../context/EarningsContext';
+import React from 'react';
 import { theme as design } from '../../styles/theme';
 import { format } from 'date-fns';
-import toast from 'react-hot-toast';
+import { useEarningsHistoryLogic } from '../../hooks/useEarningsHistoryLogic';
+import StatusBadge from '../common/StatusBadge';
 
 interface EarningsHistoryPageProps {
   onBack: () => void;
 }
 
 const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => {
-  const { getEarningsForMonth, setEarningsForMonth, earnings: defaultEarnings } = useEarnings();
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
-  
-  // Bulk selection state
-  const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
-  const [bulkAmount, setBulkAmount] = useState('');
-  const [bulkSaving, setBulkSaving] = useState(false);
-
-  // Generate a list of the last 36 months (3 years) to display
-  const months = useMemo(() => {
-    const list = [];
-    const now = new Date();
-    for (let i = 35; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      list.push({ year: d.getFullYear(), month: d.getMonth() });
-    }
-    return list.reverse(); // Newest first
-  }, []);
-
-  const handleEditClick = (year: number, month: number, currentAmount: number) => {
-    const key = `${year}-${month}`;
-    setEditingKey(key);
-    setEditValue(currentAmount.toString());
-  };
-
-  const handleSave = async (year: number, month: number) => {
-    const num = parseFloat(editValue);
-    if (isNaN(num) || num < 0) {
-      toast.error('Enter a valid amount');
-      return;
-    }
-    try {
-      await setEarningsForMonth(year, month, num, 'confirmed');
-      setEditingKey(null);
-    } catch {
-      // error toast handled in context
-    }
-  };
-
-  // Toggle single row selection
-  const toggleSelection = (key: string) => {
-    setSelectedMonths(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  // Select all / deselect all
-  const toggleSelectAll = () => {
-    if (selectedMonths.size === months.length) {
-      setSelectedMonths(new Set());
-    } else {
-      setSelectedMonths(new Set(months.map(m => `${m.year}-${m.month}`)));
-    }
-  };
-
-  // BULK ACTION 1: Update Amount (auto-confirms)
-  const handleBulkSaveAmount = async () => {
-    const num = parseFloat(bulkAmount);
-    if (isNaN(num) || num < 0) {
-      toast.error('Enter a valid amount');
-      return;
-    }
-    if (selectedMonths.size === 0) {
-      toast.error('Select at least one month');
-      return;
-    }
-
-    setBulkSaving(true);
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const key of Array.from(selectedMonths)) {
-      const [yearStr, monthStr] = key.split('-');
-      const year = parseInt(yearStr);
-      const month = parseInt(monthStr);
-      try {
-        await setEarningsForMonth(year, month, num, 'confirmed');
-        successCount++;
-      } catch {
-        failCount++;
-      }
-    }
-
-    setBulkSaving(false);
-    setSelectedMonths(new Set());
-    setBulkAmount('');
-
-    if (failCount === 0) {
-      toast.success(`${successCount} months updated to ₹${num.toLocaleString('en-IN')}`);
-    } else {
-      toast.error(`Updated ${successCount}, failed ${failCount}`);
-    }
-  };
-
-  // BULK ACTION 2: Change Status Only (keep existing amount)
-  const handleBulkStatus = async (newStatus: 'confirmed' | 'estimated') => {
-    if (selectedMonths.size === 0) {
-      toast.error('Select at least one month');
-      return;
-    }
-
-    setBulkSaving(true);
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const key of Array.from(selectedMonths)) {
-      const [yearStr, monthStr] = key.split('-');
-      const year = parseInt(yearStr);
-      const month = parseInt(monthStr);
-      const record = getEarningsForMonth(year, month);
-      // Use existing amount if it exists, otherwise use default earnings
-      const currentAmount = record ? record.amount : defaultEarnings;
-      
-      try {
-        await setEarningsForMonth(year, month, currentAmount, newStatus);
-        successCount++;
-      } catch {
-        failCount++;
-      }
-    }
-
-    setBulkSaving(false);
-    setSelectedMonths(new Set());
-
-    const label = newStatus === 'confirmed' ? 'Confirmed' : 'Estimated';
-    if (failCount === 0) {
-      toast.success(`${successCount} months marked as ${label}`);
-    } else {
-      toast.error(`Updated ${successCount}, failed ${failCount}`);
-    }
-  };
-
-  const allSelected = selectedMonths.size === months.length && months.length > 0;
-  const someSelected = selectedMonths.size > 0 && !allSelected;
+  const {
+    getEarningsForMonth, getImportDerived, defaultEarnings, months, availableYears, yearFilter, setYearFilter,
+    editingKey, setEditingKey, editValue, setEditValue, handleEditClick, handleSave,
+    selectedMonths, toggleSelection, toggleSelectAll, allSelected, someSelected,
+    bulkAmount, setBulkAmount, bulkSaving, handleBulkSaveAmount, handleBulkStatus, clearSelection,
+  } = useEarningsHistoryLogic();
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px', paddingBottom: selectedMonths.size > 0 ? '140px' : '24px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        
+
         {/* Header */}
         <div className="glass-card animate-in" style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', marginBottom: '20px',
@@ -164,9 +32,21 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
               Select months and update individually or in bulk.
             </p>
           </div>
-          <button onClick={onBack} className="btn btn-ghost" style={{ padding: '10px 20px' }}>
-            ← Back to Dashboard
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <select
+              className="input"
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value === 'All' ? 'All' : parseInt(e.target.value))}
+              style={{ padding: '10px 14px', fontSize: '13px', width: 'auto' }}
+              aria-label="Filter by year"
+            >
+              <option value="All">All years</option>
+              {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <button onClick={onBack} className="btn btn-ghost" style={{ padding: '10px 20px' }}>
+              ← Back to Dashboard
+            </button>
+          </div>
         </div>
 
         {/* Info Banner */}
@@ -188,6 +68,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
                 <th style={{ padding: '16px 12px 16px 24px', textAlign: 'left', width: '40px' }}>
                   <input
                     type="checkbox"
+                    aria-label="Select all months"
                     checked={allSelected}
                     ref={(el) => {
                       if (el) el.indeterminate = someSelected;
@@ -205,33 +86,38 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
             <tbody>
               {months.map(({ year, month }) => {
                 const key = `${year}-${month}`;
+                const imported = getImportDerived(year, month);
                 const record = getEarningsForMonth(year, month);
-                const amount = record ? record.amount : defaultEarnings;
-                const status = record ? record.status : 'missing';
+                const amount = imported ? imported.amount : record ? record.amount : defaultEarnings;
+                const status = imported ? 'confirmed' : record ? record.status : 'missing';
                 const isEditing = editingKey === key;
                 const isCurrentMonth = year === new Date().getFullYear() && month === new Date().getMonth();
                 const isSelected = selectedMonths.has(key);
 
                 return (
-                  <tr key={key} style={{ 
+                  <tr key={key} style={{
                     borderBottom: '1px solid rgba(0,0,0,0.04)',
-                    background: isSelected 
-                      ? 'rgba(99, 102, 241, 0.08)' 
-                      : isCurrentMonth 
-                        ? 'rgba(99, 102, 241, 0.04)' 
+                    background: isSelected
+                      ? 'rgba(99, 102, 241, 0.08)'
+                      : isCurrentMonth
+                        ? 'rgba(99, 102, 241, 0.04)'
                         : 'transparent',
+                    opacity: imported ? 0.85 : 1,
                   }}>
                     <td style={{ padding: '16px 12px 16px 24px' }}>
                       <input
                         type="checkbox"
+                        aria-label={`Select ${format(new Date(year, month), 'MMMM yyyy')}`}
                         checked={isSelected}
+                        disabled={!!imported}
                         onChange={() => toggleSelection(key)}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        style={{ cursor: imported ? 'not-allowed' : 'pointer', width: '16px', height: '16px' }}
                       />
                     </td>
                     <td style={{ padding: '16px 12px', fontWeight: 600, color: design.colors.textPrimary }}>
                       {format(new Date(year, month), 'MMMM yyyy')}
                       {isCurrentMonth && <span style={{ marginLeft: '8px', fontSize: '10px', color: design.colors.primary, fontWeight: 700 }}>CURRENT</span>}
+                      {imported && <span style={{ marginLeft: '8px', fontSize: '10px', color: design.colors.success, fontWeight: 700 }}>FROM IMPORT</span>}
                     </td>
                     <td style={{ padding: '16px 12px', textAlign: 'right' }}>
                       {isEditing ? (
@@ -251,12 +137,14 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
                       )}
                     </td>
                     <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                      {status === 'confirmed' && <span style={{ padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', color: design.colors.success, borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>✓ Confirmed</span>}
-                      {status === 'estimated' && <span style={{ padding: '4px 10px', background: 'rgba(245, 158, 11, 0.1)', color: design.colors.warning, borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>⚠ Estimated</span>}
-                      {status === 'missing' && <span style={{ padding: '4px 10px', background: 'rgba(0,0,0,0.05)', color: design.colors.textSecondary, borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>Default</span>}
+                      <StatusBadge status={status} />
                     </td>
                     <td style={{ padding: '16px 24px 16px 12px', textAlign: 'center' }}>
-                      {isEditing ? (
+                      {imported ? (
+                        <span title="Earnings come from your imported bank statement — edit the source transaction to change this" style={{ fontSize: '11px', color: design.colors.textTertiary }}>
+                          Not editable
+                        </span>
+                      ) : isEditing ? (
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                           <button onClick={() => handleSave(year, month)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }}>Save</button>
                           <button onClick={() => setEditingKey(null)} className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '12px' }}>Cancel</button>
@@ -301,7 +189,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
               {selectedMonths.size} {selectedMonths.size === 1 ? 'month' : 'months'} selected
             </p>
           </div>
-          
+
           {/* Amount input section */}
           <div style={{ flex: 1, minWidth: '220px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
@@ -379,10 +267,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <button
-              onClick={() => {
-                setSelectedMonths(new Set());
-                setBulkAmount('');
-              }}
+              onClick={clearSelection}
               className="btn btn-ghost"
               style={{ padding: '10px 16px', fontSize: '13px', color: '#cbd5e1', background: 'rgba(255,255,255,0.05)' }}
             >

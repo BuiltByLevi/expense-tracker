@@ -1,24 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { CategoryTotal } from '../../types';
 import { categoryColors } from '../../styles/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface CategoryPieChartProps {
   data: CategoryTotal[];
   height?: number | string;
+  /** Set false to suppress recharts' built-in legend, e.g. when the caller renders its own. */
+  legend?: boolean;
 }
 
-const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300 }) => {
+const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300, legend = true }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const isMobile = useIsMobile();
 
   if (data.length === 0) {
     return (
@@ -36,8 +33,9 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300 
     );
   }
 
-  // Force labels OFF on mobile to prevent overlap
-  const showLabels = !isMobile && data.length <= 6;
+  // Force labels OFF on mobile to prevent overlap, and whenever the caller
+  // renders its own legend (slice % labels would be redundant clutter).
+  const showLabels = legend && !isMobile && data.length <= 6;
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -102,22 +100,24 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300 
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
-          <Legend
-            verticalAlign="bottom"
-            height={36}
-            wrapperStyle={{
-              paddingTop: '10px',
-              fontSize: isMobile ? '11px' : '12px',
-              fontWeight: 500,
-              color: isDark ? '#a5b4c8' : '#64748b',
-              lineHeight: '1.4',
-            }}
-            formatter={(value: string) => (
-              <span style={{ color: isDark ? '#a5b4c8' : '#64748b', marginRight: '8px' }}>{value}</span>
-            )}
-            iconType="circle"
-            iconSize={isMobile ? 6 : 8}
-          />
+          {legend && (
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              wrapperStyle={{
+                paddingTop: '10px',
+                fontSize: isMobile ? '11px' : '12px',
+                fontWeight: 500,
+                color: isDark ? '#a5b4c8' : '#64748b',
+                lineHeight: '1.4',
+              }}
+              formatter={(value: string) => (
+                <span style={{ color: isDark ? '#a5b4c8' : '#64748b', marginRight: '8px' }}>{value}</span>
+              )}
+              iconType="circle"
+              iconSize={isMobile ? 6 : 8}
+            />
+          )}
         </PieChart>
       </ResponsiveContainer>
     </div>

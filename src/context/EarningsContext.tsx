@@ -5,6 +5,7 @@ import {
   setDoc,
   collection,
   getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from './AuthContext';
@@ -26,6 +27,7 @@ interface EarningsContextType {
     amount: number,
     status?: 'confirmed' | 'estimated'
   ) => Promise<void>;
+  resetEarningsHistory: () => Promise<void>;
   loading: boolean;
 }
 
@@ -210,6 +212,32 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  /** Permanently deletes the entire per-month earnings history and resets
+   *  the default earnings value — used by "Delete All Expense Data". */
+  const resetEarningsHistory = async () => {
+    if (!user) return;
+    try {
+      const historyRef = collection(db, 'userSettings', user.uid, 'earningsHistory');
+      const snapshot = await getDocs(historyRef);
+      const BATCH_LIMIT = 500;
+      const ids = snapshot.docs.map((d) => d.id);
+      for (let i = 0; i < ids.length; i += BATCH_LIMIT) {
+        const chunk = ids.slice(i, i + BATCH_LIMIT);
+        const batch = writeBatch(db);
+        for (const id of chunk) {
+          batch.delete(doc(db, 'userSettings', user.uid, 'earningsHistory', id));
+        }
+        await batch.commit();
+      }
+      await setDoc(doc(db, 'userSettings', user.uid), { monthlyEarnings: 0, updatedAt: new Date().toISOString() }, { merge: true });
+      setEarningsState(0);
+      setEarningsHistory({});
+    } catch (error) {
+      console.error('Error resetting earnings history:', error);
+      throw error;
+    }
+  };
+
   return (
     <EarningsContext.Provider
       value={{
@@ -218,6 +246,7 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setEarnings,
         getEarningsForMonth,
         setEarningsForMonth,
+        resetEarningsHistory,
         loading,
       }}
     >

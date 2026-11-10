@@ -1,8 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useExpenses } from '../../hooks/useExpenses';
-import { useEarnings } from '../../context/EarningsContext';
-import { useTheme } from '../../context/ThemeContext';
+import React, { Suspense, lazy, useState } from 'react';
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
 import ExpenseList from '../ExpenseList/ExpenseList';
 import CategoryPieChart from '../Charts/CategoryPieChart';
@@ -11,126 +7,40 @@ import EarningsModal from './EarningsModal';
 import EarningsHistoryPage from './EarningsHistoryPageWeb';
 import TransactionLedgerPage from './TransactionLedgerPageWeb';
 import ProfilePage from './ProfilePageWeb';
-import type { Expense } from '../../types';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import { theme as design } from '../../styles/theme';
-import { computeFinanceTotals } from '../../utils/finance';
+import StatCard from './StatCard';
+import StatementUploadCard from './StatementUploadCard';
+import MonthYearPicker from '../common/MonthYearPicker';
+import ProfileMenu from './ProfileMenu';
+import LogoMark from '../common/LogoMark';
+
+// Lazy-loaded: pulls in xlsx/pdfjs/papaparse (~1MB), only fetched when the
+// user actually opens the import flow instead of on every dashboard load.
+const BankStatementImportPage = lazy(() => import('./BankStatementImportPageWeb'));
+import { format } from 'date-fns';
+import { theme as design, categoryColors } from '../../styles/theme';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 type GraphType = 'total' | 'monthly';
 
 const DashboardWeb: React.FC = () => {
-  const { user, logout } = useAuth();
-  const { earnings, getEarningsForMonth } = useEarnings();
-  const { theme, toggleTheme } = useTheme();
-  const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses();
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [showEarningsModal, setShowEarningsModal] = useState(false);
-  const [showEarningsPage, setShowEarningsPage] = useState(false);
-  const [showLedgerPage, setShowLedgerPage] = useState(false);
-  const [showProfilePage, setShowProfilePage] = useState(false);
+  const {
+    user, logout, theme, toggleTheme, loading, updateExpense,
+    selectedYear, selectedMonth, currentYear, currentMonth,
+    goToPreviousMonth, goToNextMonth, goToCurrentMonth, goToMonth,
+    editingExpense, setEditingExpense, showEarningsModal, setShowEarningsModal,
+    showEarningsPage, setShowEarningsPage, showLedgerPage, setShowLedgerPage,
+    showProfilePage, setShowProfilePage, showImportPage, setShowImportPage,
+    showDebtDetails, setShowDebtDetails,
+    financeTotals, selectedMonthEarnings, expenses, monthExpenses, monthIncome, monthTotal, totalAllTime,
+    monthCategoryAnalysis, allTimeCategoryAnalysis, monthNetCashFlow,
+    handleEdit, handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
+    topCategoryAmount, topCategoryName, hasDeficit, isFuture,
+  } = useDashboardData();
+
   const [activeView, setActiveView] = useState<GraphType>('total');
-  const [showDebtDetails, setShowDebtDetails] = useState(false);
 
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
-
-  const financeTotals = useMemo(
-    () =>
-      computeFinanceTotals(
-        expenses,
-        earnings,
-        getEarningsForMonth,
-        selectedYear,
-        selectedMonth
-      ),
-    [expenses, earnings, getEarningsForMonth, selectedYear, selectedMonth]
-  );
-
-  const selectedMonthEarnings = useMemo(() => {
-    const record = getEarningsForMonth(selectedYear, selectedMonth);
-    if (record) {
-      return { amount: record.amount, status: record.status };
-    }
-    return { amount: earnings, status: 'missing' as const };
-  }, [getEarningsForMonth, selectedYear, selectedMonth, earnings]);
-
-  const getMonthExpenses = () => {
-    const start = startOfMonth(new Date(selectedYear, selectedMonth));
-    const end = endOfMonth(new Date(selectedYear, selectedMonth));
-    return expenses.filter((expense) => {
-      const expenseDate = new Date(expense.date);
-      return isWithinInterval(expenseDate, { start, end });
-    });
-  };
-
-  const monthExpenses = getMonthExpenses();
-  const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalAllTime = expenses.reduce((sum, e) => sum + e.amount, 0);
-
-  const getMonthCategoryAnalysis = () => {
-    const categoryMap = new Map<string, number>();
-    let total = 0;
-    monthExpenses.forEach((expense) => {
-      categoryMap.set(expense.category, (categoryMap.get(expense.category) || 0) + expense.amount);
-      total += expense.amount;
-    });
-    const analysis: { category: string; amount: number; percentage: number }[] = [];
-    categoryMap.forEach((amount, category) => {
-      analysis.push({ category, amount, percentage: total > 0 ? (amount / total) * 100 : 0 });
-    });
-    return analysis.sort((a, b) => b.amount - a.amount);
-  };
-
-  const getAllTimeCategoryAnalysis = () => {
-    const categoryMap = new Map<string, number>();
-    let total = 0;
-    expenses.forEach((expense) => {
-      categoryMap.set(expense.category, (categoryMap.get(expense.category) || 0) + expense.amount);
-      total += expense.amount;
-    });
-    const analysis: { category: string; amount: number; percentage: number }[] = [];
-    categoryMap.forEach((amount, category) => {
-      analysis.push({ category, amount, percentage: total > 0 ? (amount / total) * 100 : 0 });
-    });
-    return analysis.sort((a, b) => b.amount - a.amount);
-  };
-
-  const monthCategoryAnalysis = getMonthCategoryAnalysis();
-  const allTimeCategoryAnalysis = getAllTimeCategoryAnalysis();
-
-  const monthNetCashFlow = selectedMonthEarnings.amount - monthTotal;
-
-  const goToPreviousMonth = () => {
-    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(selectedYear - 1); }
-    else { setSelectedMonth(selectedMonth - 1); }
-  };
-
-  const goToNextMonth = () => {
-    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(selectedYear + 1); }
-    else { setSelectedMonth(selectedMonth + 1); }
-  };
-
-  const goToCurrentMonth = () => {
-    setSelectedMonth(currentMonth);
-    setSelectedYear(currentYear);
-  };
-
-  const handleEdit = (expense: Expense) => setEditingExpense(expense);
-  const handleAddExpense = async (expense: Omit<Expense, 'id' | 'userId'>) => await addExpense(expense);
-  const handleDeleteExpense = async (id: string) => await deleteExpense(id);
   const monthName = format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
 
-  const topCategory = allTimeCategoryAnalysis[0];
-  const topCategoryAmount = topCategory?.amount || 0;
-  const topCategoryName = topCategory?.category || 'N/A';
-
-  const hasDeficit = financeTotals.cashFlowDeficit > 0;
-  const isFuture = financeTotals.isSelectedMonthInFuture;
-
-  // Conditional renders for sub-pages
   if (showEarningsPage) {
     return <EarningsHistoryPage onBack={() => setShowEarningsPage(false)} />;
   }
@@ -140,6 +50,13 @@ const DashboardWeb: React.FC = () => {
   if (showProfilePage) {
     return <ProfilePage onBack={() => setShowProfilePage(false)} />;
   }
+  if (showImportPage) {
+    return (
+      <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
+        <BankStatementImportPage onBack={() => setShowImportPage(false)} />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="glass-page">
@@ -147,45 +64,41 @@ const DashboardWeb: React.FC = () => {
 
         {/* Header */}
         <div className="glass-card animate-in" style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px', marginBottom: '20px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 28px', marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
+          overflow: 'visible', position: 'relative', zIndex: 20,
         }}>
-          <div>
-            <h1 className="text-gradient" style={{ fontSize: '24px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
-              Expense Tracker
-            </h1>
-            <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>
-              Welcome back, {user?.email?.split('@')[0]}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="icon-box" style={{ width: '46px', height: '46px' }}>
+              <LogoMark size={26} color="white" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h1 style={{ fontSize: '20px', fontWeight: 800, margin: 0, letterSpacing: '0.01em', color: design.colors.textPrimary }}>
+                  PRATIQ
+                </h1>
+                <span className="badge-pill">Pro Expense Tracker</span>
+              </div>
+              <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>
+                Welcome back, {user?.email?.split('@')[0]}
+              </p>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button 
-              onClick={() => setShowProfilePage(true)} 
-              className="btn btn-ghost" 
-              style={{ padding: '6px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              {user?.photoURL ? (
-                <img 
-                  src={user.photoURL} 
-                  alt="Profile" 
-                  style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} 
-                />
-              ) : (
-                <span>👤</span>
-              )}
-              Profile
+            <button onClick={() => setShowLedgerPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📄 Statement
             </button>
-            <button onClick={() => setShowLedgerPage(true)} className="btn btn-ghost" style={{ padding: '10px 20px', fontSize: '13px' }}>
-              Account Statement
+            <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', color: design.colors.success }}>
+              💹 Manage Earnings
             </button>
-            <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost" style={{ padding: '10px 20px', fontSize: '13px' }}>
-              Manage Earnings
-            </button>
-            <button className="theme-toggle" onClick={toggleTheme} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label="Toggle theme">
-              {theme === 'light' ? '🌙' : '☀️'}
-            </button>
-            <button onClick={logout} className="btn btn-ghost" style={{ padding: '10px 20px' }}>
-              Logout
-            </button>
+            <ProfileMenu
+              name={user?.email?.split('@')[0] || 'User'}
+              email={user?.email}
+              photoURL={user?.photoURL}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              onViewProfile={() => setShowProfilePage(true)}
+              onLogout={logout}
+            />
           </div>
         </div>
 
@@ -194,22 +107,38 @@ const DashboardWeb: React.FC = () => {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={goToPreviousMonth} className="btn btn-ghost btn-icon">◀</button>
-            <span style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, minWidth: '160px', textAlign: 'center' }}>
-              {monthName}
-            </span>
-            <button onClick={goToNextMonth} className="btn btn-ghost btn-icon">▶</button>
+            <button onClick={goToPreviousMonth} className="btn btn-ghost btn-icon" aria-label="Previous month">◀</button>
+            <MonthYearPicker
+              year={selectedYear}
+              month={selectedMonth}
+              currentYear={currentYear}
+              currentMonth={currentMonth}
+              onSelect={goToMonth}
+              trigger={
+                <span style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, minWidth: '160px', textAlign: 'center', display: 'inline-block' }}>
+                  {monthName}
+                </span>
+              }
+            />
+            <button onClick={goToNextMonth} className="btn btn-ghost btn-icon" aria-label="Next month">▶</button>
             <button onClick={goToCurrentMonth} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '12px' }}>
               Today
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 600 }}>Monthly Total:</span>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: design.colors.primary }}>₹{monthTotal.toLocaleString('en-IN')}</span>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Monthly Total Spending</p>
+              <p style={{ fontSize: '20px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
+            </div>
             <button onClick={() => setShowEarningsModal(true)} className="btn btn-ghost" style={{ padding: '8px 14px', fontSize: '12px' }}>
-              Edit Earnings
+              ✎ Edit Earnings
             </button>
           </div>
+        </div>
+
+        {/* Bank Statement Import */}
+        <div style={{ marginBottom: '20px' }}>
+          <StatementUploadCard onOpen={() => setShowImportPage(true)} />
         </div>
 
         {/* Estimated Earnings Banner */}
@@ -254,85 +183,71 @@ const DashboardWeb: React.FC = () => {
           </div>
         )}
 
-        {/* 5 KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '16px', marginBottom: '20px' }}>
-          <div className="glass-card animate-in animate-in-delay-1" style={{ padding: '20px' }}>
-            <p className="kpi-label">
-              Monthly Earnings
-              {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', fontSize: '9px', color: design.colors.warning }}>⚠ EST</span>}
-              {selectedMonthEarnings.status === 'missing' && <span style={{ marginLeft: '6px', fontSize: '9px', color: design.colors.textTertiary }}>(default)</span>}
-            </p>
-            <h2 className="kpi-value" style={{ fontSize: '22px' }}>₹{selectedMonthEarnings.amount.toLocaleString('en-IN')}</h2>
+        {/* 4 KPI Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px', marginBottom: '20px' }}>
+          <div className="animate-in animate-in-delay-1">
+            <StatCard
+              icon="💰"
+              label={
+                <>
+                  Monthly Earnings
+                  {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', color: design.colors.warning }}>⚠ EST</span>}
+                  {selectedMonthEarnings.status === 'missing' && <span style={{ marginLeft: '6px', color: design.colors.textTertiary }}>(default)</span>}
+                </>
+              }
+              value={`₹${selectedMonthEarnings.amount.toLocaleString('en-IN')}`}
+            />
           </div>
 
-          <div className="glass-card animate-in animate-in-delay-1" style={{ padding: '20px' }}>
-            <p className="kpi-label">Monthly Spending</p>
-            <h2 className="kpi-value" style={{ fontSize: '22px' }}>₹{monthTotal.toLocaleString('en-IN')}</h2>
-            <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '8px 0 0 0', fontWeight: 500 }}>{monthExpenses.length} transactions</p>
+          <div className="animate-in animate-in-delay-1">
+            <StatCard
+              icon="📉"
+              label="Monthly Spending"
+              value={`₹${monthTotal.toLocaleString('en-IN')}`}
+              hint={`${monthExpenses.length} transactions`}
+            />
           </div>
 
-          <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '20px' }}>
-            <p className="kpi-label">Monthly Net Cash Flow</p>
-            <h2 className="kpi-value" style={{ fontSize: '22px', color: monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger }}>
-              ₹{monthNetCashFlow.toLocaleString('en-IN')}
-            </h2>
-            <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '8px 0 0 0', fontWeight: 500 }}>
-              {monthNetCashFlow >= 0 ? 'Earnings − Spending' : 'Overspent this month'}
-            </p>
+          <div className="animate-in animate-in-delay-2">
+            <StatCard
+              icon="🔄"
+              label="Monthly Net Cash Flow"
+              value={`₹${monthNetCashFlow.toLocaleString('en-IN')}`}
+              valueColor={monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger}
+              hint={monthNetCashFlow >= 0 ? 'All credits − Spending' : 'Overspent this month'}
+            />
           </div>
 
-          <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '20px' }}>
-            <p className="kpi-label">Cumulative Net Cash Flow</p>
-            {isFuture ? (
-              <>
-                <h2 className="kpi-value" style={{ fontSize: '22px', color: design.colors.textTertiary }}>—</h2>
-                <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '8px 0 0 0', fontWeight: 500 }}>Not calculated for future</p>
-              </>
-            ) : (
-              <>
-                <h2 className="kpi-value" style={{ fontSize: '22px', color: financeTotals.cumulativeNetCashFlow > 0 ? design.colors.success : design.colors.textSecondary }}>
-                  ₹{financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}
-                </h2>
-                <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '8px 0 0 0', fontWeight: 500 }}>Running balance since first expense</p>
-              </>
-            )}
-          </div>
-
-          <div className="glass-card animate-in animate-in-delay-3" onClick={() => !isFuture && setShowDebtDetails(true)} style={{ padding: '20px', cursor: isFuture ? 'default' : 'pointer', background: isFuture ? 'rgba(255,255,255,0.5)' : hasDeficit ? 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)' : design.colors.primaryGradient, border: 'none', opacity: isFuture ? 0.6 : 1 }}>
-            <p className="kpi-label" style={{ color: isFuture ? design.colors.textSecondary : 'rgba(255,255,255,0.85)' }}>
-              {isFuture ? '🔮 Cash-Flow Deficit' : hasDeficit ? '⚠ Cash-Flow Deficit' : '✓ Cash-Flow Deficit'}
-            </p>
-            {isFuture ? (
-              <>
-                <h2 className="kpi-value" style={{ fontSize: '22px', color: design.colors.textTertiary }}>—</h2>
-                <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '8px 0 0 0', fontWeight: 500 }}>Not calculated for future</p>
-              </>
-            ) : (
-              <>
-                <h2 className="kpi-value" style={{ fontSize: '22px', color: 'white' }}>₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}</h2>
-                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', margin: '8px 0 0 0', fontWeight: 500 }}>{hasDeficit ? 'Spending exceeded earnings' : 'No deficit — positive cash flow'}</p>
-              </>
-            )}
+          <div className="animate-in animate-in-delay-2">
+            <StatCard
+              icon="📊"
+              label="Cumulative Net Cash Flow"
+              value={isFuture ? '—' : `₹${financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}`}
+              valueColor={isFuture ? design.colors.textTertiary : financeTotals.cumulativeNetCashFlow > 0 ? design.colors.success : design.colors.textSecondary}
+              hint={isFuture ? 'Not calculated for future' : 'Running balance since first expense'}
+            />
           </div>
         </div>
 
-        {/* Deficit Alert */}
-        {hasDeficit && !isFuture && (
-          <div className="glass-card animate-in" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', marginBottom: '20px',
-            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%)',
-            border: `1px solid ${design.colors.danger}30`,
-          }}>
+        {/* Cash-Flow Deficit Banner */}
+        {!isFuture && (
+          <div className={`banner-alert animate-in ${hasDeficit ? 'banner-danger' : 'banner-success'}`} style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: design.colors.danger, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: 'white' }}>
-                ⚠
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '12px',
+                background: hasDeficit ? design.colors.danger : design.colors.success,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: 'white', flexShrink: 0,
+              }}>
+                {hasDeficit ? '⚠' : '✓'}
               </div>
               <div>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-                  Cash-flow deficit: ₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}
+                  Cash-Flow Deficit ₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}
                 </p>
                 <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>
-                  This is cumulative spending above earnings — not tracked actual debt.
+                  {hasDeficit
+                    ? 'This cumulative spending above earnings — not tracked actual debt.'
+                    : 'No deficit — cumulative spending is within earnings.'}
                 </p>
               </div>
             </div>
@@ -351,20 +266,20 @@ const DashboardWeb: React.FC = () => {
                   <h2 style={{ fontSize: '20px', fontWeight: 700, color: design.colors.textPrimary, marginBottom: '6px' }}>Financial History</h2>
                   <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0 }}>Month-by-month cash flow (per-month earnings)</p>
                 </div>
-                <button onClick={() => setShowDebtDetails(false)} style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', color: design.colors.textSecondary }}>×</button>
+                <button onClick={() => setShowDebtDetails(false)} aria-label="Close" style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', color: design.colors.textSecondary }}>×</button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Earned</p>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Earned</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.totalEarnings.toLocaleString('en-IN')}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Spent</p>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Spent</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.totalSpent.toLocaleString('en-IN')}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>{hasDeficit ? 'Deficit' : 'Net Positive'}</p>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>{hasDeficit ? 'Deficit' : 'Net Positive'}</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: hasDeficit ? design.colors.danger : design.colors.success, margin: '4px 0 0 0' }}>
                     ₹{hasDeficit ? financeTotals.cashFlowDeficit.toLocaleString('en-IN') : financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}
                   </p>
@@ -388,8 +303,8 @@ const DashboardWeb: React.FC = () => {
                         <tr key={`${summary.year}-${summary.month}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                           <td style={{ padding: '10px 8px', fontWeight: 600, color: design.colors.textPrimary }}>
                             {format(new Date(summary.year, summary.month), 'MMM yyyy')}
-                            {summary.earningsStatus === 'estimated' && <span style={{ marginLeft: '6px', fontSize: '9px', color: design.colors.warning }}>EST</span>}
-                            {summary.earningsStatus === 'missing' && <span style={{ marginLeft: '6px', fontSize: '9px', color: design.colors.textTertiary }}>(default)</span>}
+                            {summary.earningsStatus === 'estimated' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.warning }}>EST</span>}
+                            {summary.earningsStatus === 'missing' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.textTertiary }}>(default)</span>}
                           </td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textPrimary }}>₹{summary.earnings.toLocaleString('en-IN')}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textPrimary }}>₹{summary.spent.toLocaleString('en-IN')}</td>
@@ -407,76 +322,95 @@ const DashboardWeb: React.FC = () => {
         )}
 
         {/* Main Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 20px 0' }}>Quick Transaction</h3>
-              <ExpenseForm onAddExpense={handleAddExpense} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+          <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
+              <span className="badge-pill">Instant Ledger Update</span>
             </div>
-            <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px', maxHeight: '500px', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Transaction History</h3>
-                <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>{monthExpenses.length} items</span>
-              </div>
-              {loading ? <div style={{ textAlign: 'center', padding: '40px', color: design.colors.textSecondary }}>Loading...</div> : <ExpenseList expenses={monthExpenses} onDelete={handleDeleteExpense} onEdit={handleEdit} />}
-            </div>
+            <ExpenseForm onAddExpense={handleAddExpense} onAddIncome={handleAddIncome} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '6px' }}>
-              <div className="tab-container">
-                <button onClick={() => setActiveView('total')} className={`tab ${activeView === 'total' ? 'active' : ''}`}>Total Expenses</button>
-                <button onClick={() => setActiveView('monthly')} className={`tab ${activeView === 'monthly' ? 'active' : ''}`}>Monthly Expenses</button>
+          <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Expense Allocation</h3>
+              <div className="tab-container" style={{ padding: '3px' }}>
+                <button onClick={() => setActiveView('total')} className={`tab ${activeView === 'total' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>Total Expenses</button>
+                <button onClick={() => setActiveView('monthly')} className={`tab ${activeView === 'monthly' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>Monthly Expenses</button>
               </div>
             </div>
-            <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px', height: '500px', display: 'flex', flexDirection: 'column' }}>
-              {activeView === 'total' ? (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Total Expenses</h3>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Time</p>
-                      <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
-                    </div>
+
+            {activeView === 'total' ? (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Time</p>
+                  <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
+                </div>
+                <div style={{ height: '260px' }}>
+                  <CategoryPieChart data={allTimeCategoryAnalysis} height={260} legend={false} />
+                </div>
+                <CategoryLegend data={allTimeCategoryAnalysis} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Transactions</p>
+                    <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{expenses.length}</p>
                   </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
-                    <CategoryPieChart data={allTimeCategoryAnalysis} height={260} />
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Top</p>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{topCategoryName}</p>
+                    <p style={{ fontSize: '11px', color: design.colors.primary, margin: 0, fontWeight: 600 }}>₹{topCategoryAmount.toLocaleString('en-IN')}</p>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Transactions</p>
-                      <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{expenses.length}</p>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Top</p>
-                      <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{topCategoryName}</p>
-                      <p style={{ fontSize: '11px', color: design.colors.primary, margin: 0, fontWeight: 600 }}>₹{topCategoryAmount.toLocaleString('en-IN')}</p>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Monthly Avg</p>
-                      <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                      <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>over {financeTotals.calendarMonthCount} months</p>
-                    </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Monthly Avg</p>
+                    <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>over {financeTotals.calendarMonthCount} months</p>
                   </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>{monthName}</h3>
-                    <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
-                  </div>
-                  <div style={{ flex: 1, minHeight: 0 }}>
-                    <CategoryPieChart data={monthCategoryAnalysis} height={380} />
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{monthName}</p>
+                  <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
+                </div>
+                <div style={{ height: '300px' }}>
+                  <CategoryPieChart data={monthCategoryAnalysis} height={300} legend={false} />
+                </div>
+                <CategoryLegend data={monthCategoryAnalysis} />
+              </>
+            )}
           </div>
+        </div>
+
+        {/* Transaction History */}
+        <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>📒 Transaction History</h3>
+            <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>{monthExpenses.length + monthIncome.length} items</span>
+          </div>
+          {loading ? <div style={{ textAlign: 'center', padding: '40px', color: design.colors.textSecondary }}>Loading...</div> : <ExpenseList expenses={monthExpenses} income={monthIncome} onDelete={handleDeleteExpense} onDeleteIncome={handleDeleteIncome} onEdit={handleEdit} />}
         </div>
       </div>
 
       <EarningsModal isOpen={showEarningsModal} onClose={() => setShowEarningsModal(false)} year={selectedYear} month={selectedMonth} />
       <EditExpenseModal expense={editingExpense} isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} onUpdate={updateExpense} />
+    </div>
+  );
+};
+
+/** 2-column dot legend matching CategoryPieChart's per-slice color assignment. */
+const CategoryLegend: React.FC<{ data: { category: string; amount: number }[] }> = ({ data }) => {
+  if (data.length === 0) return null;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 16px', marginTop: '12px' }}>
+      {data.map((entry, index) => (
+        <div key={entry.category} style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: categoryColors[index % categoryColors.length], flexShrink: 0 }} />
+          <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {entry.category}
+          </span>
+        </div>
+      ))}
     </div>
   );
 };

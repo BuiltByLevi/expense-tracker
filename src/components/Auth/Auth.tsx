@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import AuthWeb from './AuthWeb';
 import AuthMobile from './AuthMobile';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const Auth: React.FC = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  
+  const isMobile = useIsMobile();
   return isMobile ? <AuthMobile /> : <AuthWeb />;
 };
 

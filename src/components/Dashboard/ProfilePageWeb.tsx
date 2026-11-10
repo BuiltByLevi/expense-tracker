@@ -1,153 +1,18 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useExpenses } from '../../hooks/useExpenses';
-import { useEarnings } from '../../context/EarningsContext';
-import { useTheme } from '../../context/ThemeContext';
+import React from 'react';
 import { theme as design } from '../../styles/theme';
-import { format } from 'date-fns';
-import toast from 'react-hot-toast';
+import { useProfileLogic } from '../../hooks/useProfileLogic';
 
 interface Props {
   onBack: () => void;
 }
 
-// REPLACE THESE WITH YOUR CLOUDINARY CREDENTIALS
-const CLOUDINARY_CLOUD_NAME = 'jwa2pjzg'; 
-const CLOUDINARY_UPLOAD_PRESET = 'levihere';
-
 const ProfilePage: React.FC<Props> = ({ onBack }) => {
-  const { user, logout, updateUserProfile } = useAuth();
-  const { expenses } = useExpenses();
-  const { earningsHistory, earnings: defaultEarnings } = useEarnings();
-  const { theme, toggleTheme } = useTheme();
-
-  const [displayName, setDisplayName] = useState(
-    user?.displayName || user?.email?.split('@')[0] || 'User'
-  );
-  const [savingName, setSavingName] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Compute profile stats
-  const stats = useMemo(() => {
-    const totalSpent = expenses.reduce((s, e) => s + e.amount, 0);
-    const uniqueMonths = new Set(
-      expenses.map(e => {
-        const d = new Date(e.date);
-        return `${d.getFullYear()}-${d.getMonth()}`;
-      })
-    );
-    return {
-      totalExpenses: totalSpent,
-      transactionCount: expenses.length,
-      monthsTracked: uniqueMonths.size,
-      memberSince: user?.metadata?.creationTime
-        ? format(new Date(user.metadata.creationTime), 'MMMM yyyy')
-        : 'Recently',
-      lastSignIn: user?.metadata?.lastSignInTime
-        ? format(new Date(user.metadata.lastSignInTime), 'dd MMM yyyy, hh:mm a')
-        : 'Just now',
-    };
-  }, [expenses, user]);
-
-  // Get initials for avatar
-  const initials = useMemo(() => {
-    const name = displayName || user?.email?.split('@')[0] || 'U';
-    const parts = name.split(/[\s._-]/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  }, [displayName, user]);
-
-  const handleSaveName = async () => {
-    if (!displayName.trim()) {
-      toast.error('Display name cannot be empty');
-      return;
-    }
-    setSavingName(true);
-    try {
-      await updateUserProfile({ displayName });
-      toast.success('Display name updated');
-    } catch {
-      toast.error('Failed to update name');
-    } finally {
-      setSavingName(false);
-    }
-  };
-
-  // CLOUDINARY IMAGE UPLOAD
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image must be less than 2MB');
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    setUploadingPhoto(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
-      
-      if (data.secure_url) {
-        await updateUserProfile({ photoURL: data.secure_url });
-        toast.success('Profile picture updated!');
-      } else {
-        throw new Error('Upload failed');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to upload picture');
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
-
-  const handleChangePassword = () => {
-    toast.success('Password reset email sent to ' + user?.email, { duration: 4000 });
-  };
-
-  const handleLogoutAllDevices = async () => {
-    if (window.confirm('This will sign you out from all devices. Continue?')) {
-      await logout();
-    }
-  };
-
-  const handleDeleteData = () => {
-    const confirmText = window.prompt(
-      'Type "DELETE" (all caps) to permanently delete all your expense data:'
-    );
-    if (confirmText === 'DELETE') {
-      toast.error('This action requires backend implementation', { duration: 4000 });
-    }
-  };
-
-  const handleDeleteAccount = () => {
-    const confirmText = window.prompt(
-      'Type "DELETE ACCOUNT" to permanently delete your account:'
-    );
-    if (confirmText === 'DELETE ACCOUNT') {
-      toast.error('Contact support to delete your account', { duration: 4000 });
-    }
-  };
+  const {
+    user, theme, toggleTheme, defaultEarnings, stats, totalSavings, initials,
+    displayName, setDisplayName, savingName, handleSaveName,
+    uploadingPhoto, fileInputRef, handlePhotoUpload,
+    handleChangePassword, handleLogout, handleDeleteData, deletingData, handleDeleteAccount,
+  } = useProfileLogic();
 
   return (
     <div className="glass-page">
@@ -178,7 +43,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
           background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
           border: `1px solid ${design.colors.primary}20`,
         }}>
-          
+
           {/* Avatar with Upload */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
@@ -191,10 +56,11 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
             }}>
               {!user?.photoURL && initials}
             </div>
-            
+
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingPhoto}
+              aria-label="Change profile picture"
               style={{
                 position: 'absolute', bottom: 0, right: 0,
                 width: '32px', height: '32px', borderRadius: '50%',
@@ -207,7 +73,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
             >
               {uploadingPhoto ? '...' : '📷'}
             </button>
-            
+
             <input
               type="file"
               ref={fileInputRef}
@@ -273,7 +139,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
               Total Savings
             </p>
             <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.success, margin: '6px 0 0 0' }}>
-              ₹{((earningsHistory ? Object.keys(earningsHistory).length : 1) * defaultEarnings - stats.totalExpenses).toLocaleString('en-IN')}
+              ₹{totalSavings.toLocaleString('en-IN')}
             </p>
           </div>
         </div>
@@ -395,7 +261,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
                 Sign out from your current session
               </p>
             </div>
-            <button onClick={handleLogoutAllDevices} className="btn btn-ghost" style={{ padding: '8px 16px' }}>
+            <button onClick={handleLogout} className="btn btn-ghost" style={{ padding: '8px 16px' }}>
               Sign Out
             </button>
           </div>
@@ -413,11 +279,11 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
                 Delete All Expense Data
               </p>
               <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>
-                Permanently delete all your expenses and earnings. Account stays active.
+                Permanently delete all your expenses, income, and earnings history. Account stays active.
               </p>
             </div>
-            <button onClick={handleDeleteData} className="btn" style={{ padding: '8px 16px', background: design.colors.danger, color: 'white' }}>
-              Delete Data
+            <button onClick={handleDeleteData} disabled={deletingData} className="btn" style={{ padding: '8px 16px', background: design.colors.danger, color: 'white', opacity: deletingData ? 0.6 : 1 }}>
+              {deletingData ? 'Deleting...' : 'Delete Data'}
             </button>
           </div>
 

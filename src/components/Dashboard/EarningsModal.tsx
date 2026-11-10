@@ -3,6 +3,8 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { theme } from '../../styles/theme';
 import { useEarnings } from '../../context/EarningsContext';
+import { useIncome } from '../../context/IncomeContext';
+import { deriveMonthlyEarnings } from '../../utils/earningsDerivation';
 
 interface EarningsModalProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ interface EarningsModalProps {
 
 const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, month }) => {
   const { getEarningsForMonth, setEarningsForMonth, earnings: defaultEarnings } = useEarnings();
+  const { getIncomeForMonth } = useIncome();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>('');
   const [saveError, setSaveError] = useState<string>('');
@@ -49,6 +52,74 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
   if (!isOpen) return null;
 
   const monthLabel = format(new Date(year, month), 'MMMM yyyy');
+  const { entries: importedIncome } = getIncomeForMonth(year, month);
+  const derived = deriveMonthlyEarnings(importedIncome);
+
+  if (derived) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+            <div>
+              <h2 style={{ fontSize: '22px', fontWeight: 700, color: theme.colors.textPrimary, marginBottom: '6px' }}>
+                Earnings
+              </h2>
+              <p style={{ fontSize: '14px', color: theme.colors.textSecondary, margin: 0 }}>{monthLabel}</p>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', color: theme.colors.textSecondary }}
+            >
+              ×
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '16px', padding: '14px 16px', background: 'rgba(16, 185, 129, 0.08)', border: `1px solid ${theme.colors.success}30`, borderRadius: '12px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: theme.colors.textPrimary, margin: 0 }}>
+              ₹{derived.amount.toLocaleString('en-IN')} credited {format(derived.lastDate, 'dd MMM yyyy')}
+            </p>
+            <p style={{ fontSize: '12px', color: theme.colors.textSecondary, margin: '4px 0 0 0' }}>
+              Counted as this month's earnings — the credit(s) dated on your statement's last transaction day, where salary is usually credited. Can't be manually overridden here; delete or edit the source transaction to change it.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '180px', overflowY: 'auto' }}>
+            {derived.countedEntries.map((entry) => (
+              <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px', padding: '8px 10px', background: 'rgba(16, 185, 129, 0.06)', borderRadius: '8px' }}>
+                <span style={{ color: theme.colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {format(entry.date, 'dd MMM')} · {entry.category} · {entry.description}
+                </span>
+                <span style={{ fontWeight: 600, color: theme.colors.textPrimary, flexShrink: 0 }}>₹{entry.amount.toLocaleString('en-IN')}</span>
+              </div>
+            ))}
+          </div>
+
+          {derived.otherEntries.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '11px', color: theme.colors.textTertiary, margin: '0 0 8px 0', textTransform: 'uppercase', fontWeight: 600 }}>
+                Other credits this month (not counted as earnings)
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '140px', overflowY: 'auto' }}>
+                {derived.otherEntries.map((entry) => (
+                  <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px', padding: '8px 10px', background: 'rgba(0,0,0,0.03)', borderRadius: '8px' }}>
+                    <span style={{ color: theme.colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {format(entry.date, 'dd MMM')} · {entry.category} · {entry.description}
+                    </span>
+                    <span style={{ fontWeight: 600, color: theme.colors.textSecondary, flexShrink: 0 }}>₹{entry.amount.toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button onClick={onClose} className="btn btn-primary" style={{ width: '100%', padding: '14px' }}>
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const validate = (): boolean => {
     const num = parseFloat(amount);
@@ -102,6 +173,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
               background: 'rgba(0,0,0,0.05)',
               border: 'none',
