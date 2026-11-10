@@ -35,14 +35,12 @@ const AuthWeb: React.FC = () => {
       }} />
 
       {/* Main Card */}
-      <div style={{
+      <div className="auth-split" style={{
         width: '100%',
         maxWidth: '1100px',
         background: 'white',
         borderRadius: '24px',
         boxShadow: '0 24px 64px rgba(0, 0, 0, 0.25)',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
         overflow: 'hidden',
         position: 'relative',
         zIndex: 1,
@@ -89,7 +87,7 @@ const AuthWeb: React.FC = () => {
             Take control of your finances with smart expense tracking, detailed analytics, and beautiful insights.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="auth-features" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <FeatureItem icon="📊" text="Category-wise analytics" />
             <FeatureItem icon="📈" text="Monthly & yearly reports" />
             <FeatureItem icon="💰" text="Track earnings & savings" />

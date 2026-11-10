@@ -144,7 +144,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, onAddIncome }) 
         </div>
       )}
 
-      <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: '1fr 1fr' }}>
+      <div className="form-grid">
         <div>
           <label className="input-label">Amount</label>
           <div style={{ position: 'relative' }}>

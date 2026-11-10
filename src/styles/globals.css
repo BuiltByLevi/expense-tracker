@@ -702,6 +702,52 @@ body::after {
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+/* ============ RESPONSIVE GRIDS ============ */
+/* The app switches to the dedicated Mobile components at <=768px, so these
+   classes exist for the in-between band (tablets / narrow desktop windows,
+   ~769-1200px) where the desktop layout would otherwise be crammed into too
+   little width. Inline styles can't carry media queries, hence classes. */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.auth-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 1150px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1000px) {
+  .auth-split { grid-template-columns: 1fr; }
+  /* Stacked: compress the branding panel so the sign-in form stays near the
+     top. !important because the panel's base padding is set inline. */
+  .auth-split > div:first-child { padding: 32px 36px !important; }
+  .auth-split .auth-features { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+
 /* ============ SKELETON LOADING ============ */
 .skeleton {
   border-radius: 10px;

@@ -185,7 +185,7 @@ const DashboardWeb: React.FC = () => {
         )}
 
         {/* 4 KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <div className="kpi-grid" style={{ marginBottom: '20px' }}>
           <div className="animate-in animate-in-delay-1">
             <StatCard
               icon="💰"
@@ -323,7 +323,7 @@ const DashboardWeb: React.FC = () => {
         )}
 
         {/* Main Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+        <div className="main-grid" style={{ marginBottom: '20px' }}>
           <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
