@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { theme, categoryColors, incomeCategoryColors } from '../../styles/theme';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import ConfirmDialog from '../common/ConfirmDialog';
+import { EMPTY_STATE_QUOTES, getRandomQuote } from '../../utils/quotes';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -36,6 +37,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [pendingDelete, setPendingDelete] = useState<{ id: string; kind: 'expense' | 'income'; description: string } | null>(null);
+  const [emptyQuote] = useState(() => getRandomQuote(EMPTY_STATE_QUOTES));
 
   const handleDelete = (row: Row) => {
     setPendingDelete({ id: row.id, kind: row.kind, description: row.description });
@@ -82,6 +84,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
         <div style={{ fontSize: '36px', marginBottom: '10px' }}>📭</div>
         <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: theme.colors.textSecondary }}>{emptyStateLabel || 'No transactions yet for this month'}</p>
         <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Add one with Quick Transaction, or import a bank statement.</p>
+        <p style={{ fontSize: '11px', fontStyle: 'italic', margin: '14px 0 0 0', opacity: 0.8 }}>“{emptyQuote.text}”</p>
       </div>
     );
   }
@@ -128,7 +131,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
             const color = isIncome ? (incomeCategoryColors[row.category] ?? theme.colors.success) : getCategoryColor(row.category);
             return (
               <div key={`${row.kind}-${row.id}`} style={{
-                background: isIncome ? 'rgba(16, 185, 129, 0.06)' : 'rgba(255,255,255,0.6)', borderRadius: '14px', padding: '14px', border: '1px solid rgba(0,0,0,0.04)',
+                background: isIncome ? 'rgba(20, 184, 166, 0.06)' : 'rgba(255,255,255,0.6)', borderRadius: '14px', padding: '14px', border: '1px solid rgba(0,0,0,0.04)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                   <span style={{ background: `${color}20`, color, padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
@@ -179,7 +182,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
               <div key={`${row.kind}-${row.id}`} className="tx-row" style={{
                 display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', alignItems: 'center', padding: '11px 8px',
                 borderBottom: idx < filteredRows.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                background: isIncome ? 'rgba(16, 185, 129, 0.04)' : 'transparent',
+                background: isIncome ? 'rgba(20, 184, 166, 0.04)' : 'transparent',
               }}>
                 <span style={{ fontSize: '13px', color: theme.colors.textSecondary, fontWeight: 500 }}>
                   {format(row.date, 'dd MMM')}

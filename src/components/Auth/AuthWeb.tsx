@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthForm } from '../../hooks/useAuthForm';
 import LogoMark from '../common/LogoMark';
+import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
 
 const AuthWeb: React.FC = () => {
   const {
@@ -8,11 +9,12 @@ const AuthWeb: React.FC = () => {
     confirmPassword, setConfirmPassword, loading, errors, clearFieldError,
     handleSubmit, toggleMode,
   } = useAuthForm();
+  const [quote] = useState(() => getDailyQuote(FINANCIAL_QUOTES));
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e3a8a 0%, #0f766e 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -47,7 +49,7 @@ const AuthWeb: React.FC = () => {
       }}>
         {/* Left Side - Branding */}
         <div style={{
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
           padding: '60px 48px',
           display: 'flex',
           flexDirection: 'column',
@@ -77,7 +79,7 @@ const AuthWeb: React.FC = () => {
             <span style={{
               fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
               padding: '3px 10px', borderRadius: '999px',
-              background: 'rgba(16, 185, 129, 0.25)', border: '1px solid rgba(16, 185, 129, 0.5)',
+              background: 'rgba(20, 184, 166, 0.25)', border: '1px solid rgba(20, 184, 166, 0.5)',
             }}>Pro Expense Tracker</span>
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 16px 0', lineHeight: 1.3, opacity: 0.95 }}>
@@ -92,6 +94,15 @@ const AuthWeb: React.FC = () => {
             <FeatureItem icon="📈" text="Monthly & yearly reports" />
             <FeatureItem icon="💰" text="Track earnings & savings" />
             <FeatureItem icon="🔒" text="Secure cloud sync" />
+          </div>
+
+          <div style={{ marginTop: '40px', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+            <p style={{ fontSize: '14px', fontStyle: 'italic', lineHeight: 1.6, opacity: 0.92, margin: 0 }}>
+              “{quote.text}”
+            </p>
+            <p style={{ fontSize: '12px', fontWeight: 600, opacity: 0.7, margin: '8px 0 0 0' }}>
+              — {quote.author}
+            </p>
           </div>
         </div>
 
@@ -123,7 +134,7 @@ const AuthWeb: React.FC = () => {
                   outline: 'none', boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
-                onFocus={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#6366f1'; }}
+                onFocus={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#1e3a8a'; }}
                 onBlur={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#e2e8f0'; }}
               />
               {errors.email && <p style={{ fontSize: '12px', color: '#ef4444', margin: '6px 0 0 0' }}>{errors.email}</p>}
@@ -145,7 +156,7 @@ const AuthWeb: React.FC = () => {
                   outline: 'none', boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
-                onFocus={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#6366f1'; }}
+                onFocus={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#1e3a8a'; }}
                 onBlur={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#e2e8f0'; }}
               />
               {errors.password && <p style={{ fontSize: '12px', color: '#ef4444', margin: '6px 0 0 0' }}>{errors.password}</p>}
@@ -168,7 +179,7 @@ const AuthWeb: React.FC = () => {
                     outline: 'none', boxSizing: 'border-box',
                     transition: 'all 0.2s ease',
                   }}
-                  onFocus={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#6366f1'; }}
+                  onFocus={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#1e3a8a'; }}
                   onBlur={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#e2e8f0'; }}
                 />
                 {errors.confirm && <p style={{ fontSize: '12px', color: '#ef4444', margin: '6px 0 0 0' }}>{errors.confirm}</p>}
@@ -180,11 +191,11 @@ const AuthWeb: React.FC = () => {
               disabled={loading}
               style={{
                 width: '100%', padding: '16px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
                 color: 'white', border: 'none', borderRadius: '12px',
                 fontSize: '15px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.7 : 1, transition: 'all 0.2s ease',
-                boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)',
+                boxShadow: '0 4px 16px rgba(30, 64, 175, 0.3)',
               }}
               onMouseEnter={(e) => { if (!loading) e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
@@ -199,7 +210,7 @@ const AuthWeb: React.FC = () => {
               <button
                 onClick={toggleMode}
                 style={{
-                  background: 'none', border: 'none', color: '#6366f1',
+                  background: 'none', border: 'none', color: '#1e3a8a',
                   fontWeight: 700, cursor: 'pointer', fontSize: '14px', padding: 0,
                 }}
               >

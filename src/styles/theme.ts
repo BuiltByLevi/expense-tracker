@@ -1,39 +1,42 @@
 export const theme = {
   colors: {
-    // Backgrounds
-    bgGradient: 'linear-gradient(135deg, #e0e7ff 0%, #f0fdf4 50%, #fef3c7 100%)',
-    bgGradientDark: 'linear-gradient(135deg, #1e1b4b 0%, #1e293b 50%, #0f172a 100%)',
-    
+    // Backgrounds — "Midnight Blue & Teal": cool off-white by day, deep navy-black by night.
+    bgGradient: 'linear-gradient(135deg, #eef2fa 0%, #e8f6f4 50%, #f5f3ea 100%)',
+    bgGradientDark: 'linear-gradient(135deg, #0a0e1a 0%, #101a33 50%, #0a1420 100%)',
+
     // Glass cards
     glassBg: 'rgba(255, 255, 255, 0.65)',
     glassBgHover: 'rgba(255, 255, 255, 0.8)',
     glassBorder: 'rgba(255, 255, 255, 0.6)',
-    glassShadow: '0 8px 32px rgba(99, 102, 241, 0.08)',
-    glassShadowHover: '0 12px 40px rgba(99, 102, 241, 0.15)',
-    
-    // Accent
-    primary: '#6366f1',
-    primaryLight: '#a5b4fc',
-    primaryDark: '#4f46e5',
-    primaryGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    
-    // Semantic
-    success: '#10b981',
-    successLight: '#d1fae5',
+    glassShadow: '0 8px 32px rgba(30, 64, 175, 0.08)',
+    glassShadowHover: '0 12px 40px rgba(30, 64, 175, 0.15)',
+
+    // Accent — navy primary, teal secondary (used together for the brand gradient)
+    primary: '#1e3a8a',
+    primaryLight: '#93b4e8',
+    primaryDark: '#15296b',
+    primaryGradient: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
+    teal: '#14b8a6',
+    tealLight: '#99f0e4',
+    tealDark: '#0f766e',
+
+    // Semantic — success now shares the teal accent; danger/warning stay standard
+    success: '#14b8a6',
+    successLight: '#ccfbf1',
     danger: '#ef4444',
     dangerLight: '#fee2e2',
     warning: '#f59e0b',
     warningLight: '#fef3c7',
-    
+
     // Text
     textPrimary: '#1e293b',
     textSecondary: '#64748b',
     textTertiary: '#94a3b8',
     textInverse: '#ffffff',
-    
+
     // Pastel accents
-    pastelPurple: '#ede9fe',
-    pastelMint: '#d1fae5',
+    pastelPurple: '#dbe4fb',
+    pastelMint: '#ccfbf1',
     pastelPeach: '#fed7aa',
     pastelBlue: '#dbeafe',
     pastelPink: '#fce7f3',
@@ -83,24 +86,42 @@ export const theme = {
   },
 };
 
+// Categorical hues validated with the data-viz skill's six checks (OKLCH
+// lightness band, chroma floor, CVD ΔE on adjacent pairs, normal-vision
+// floor, contrast vs. surface) for both light (#fcfcfb) and dark (#0a0e1a)
+// surfaces — same hue order in both, re-stepped lightness/chroma per mode.
+// Only the first 8 are validated as a fixed categorical set (see
+// CategoryLegend's cap in DashboardWeb/Mobile); slots 9-17 are a lower-
+// priority second tier for the long tail of less-used categories and cycle
+// the same 8 hues at reduced chroma, since they're folded under "+N more"
+// in the legend and only ever seen as thin pie slices.
 export const categoryColors = [
-  '#6366f1', // indigo        — Food & Dining
-  '#10b981', // emerald       — Transportation
-  '#f59e0b', // amber         — Shopping
-  '#ef4444', // red           — Entertainment
-  '#8b5cf6', // violet        — Bills & Utilities
-  '#06b6d4', // cyan          — Healthcare
-  '#ec4899', // pink          — Education
-  '#14b8a6', // teal          — Rent
-  '#84cc16', // lime          — Groceries
-  '#f97316', // orange        — Fuel
-  '#a855f7', // purple        — EMI & Loans
-  '#0ea5e9', // sky           — Insurance
-  '#22c55e', // green         — Investments
-  '#eab308', // yellow        — Cash Withdrawal
-  '#64748b', // slate         — Bank Charges
-  '#d946ef', // fuchsia       — Transfers
-  '#94a3b8', // gray          — Other
+  '#2971c6', // blue    — Food & Dining
+  '#b9454c', // red     — Transportation
+  '#0085a7', // teal    — Shopping
+  '#ae5600', // amber   — Entertainment
+  '#725ec2', // violet  — Bills & Utilities
+  '#877100', // olive   — Healthcare
+  '#a04c9a', // magenta — Education
+  '#008b52', // green   — Rent
+  '#6f93cf', // blue (muted)    — Groceries
+  '#c47d81', // red (muted)     — Fuel
+  '#5fa6ba', // teal (muted)    — EMI & Loans
+  '#c99a5c', // amber (muted)   — Insurance
+  '#a496d4', // violet (muted)  — Investments
+  '#b3a65c', // olive (muted)   — Cash Withdrawal
+  '#c086bb', // magenta (muted) — Bank Charges
+  '#5ea684', // green (muted)   — Transfers
+  '#94a3b8', // neutral gray    — Other
+];
+
+// Dark-mode counterparts (same hue order, re-stepped for the dark surface —
+// see categoryColors above). Consumers that need to theme-switch the chart
+// itself can read this; most places only show these via the light set today.
+export const categoryColorsDark = [
+  '#3a7bcb', '#bf5257', '#008dad', '#b46200', '#7b69c6', '#8e7a00', '#a758a1', '#00935d',
+  '#6f93cf', '#c47d81', '#5fa6ba', '#c99a5c', '#a496d4', '#b3a65c', '#c086bb', '#5ea684',
+  '#94a3b8',
 ];
 
 export const incomeCategoryColors: Record<string, string> = {

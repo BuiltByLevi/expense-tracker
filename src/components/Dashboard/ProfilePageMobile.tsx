@@ -31,16 +31,16 @@ const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
         <div className="glass-card animate-in animate-in-delay-1" style={{
           padding: '20px', marginBottom: '12px',
           display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '12px',
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
+          background: 'linear-gradient(135deg, rgba(30, 64, 175, 0.08) 0%, rgba(45, 212, 191, 0.08) 100%)',
           border: `1px solid ${design.colors.primary}20`,
         }}>
           <div style={{ position: 'relative' }}>
             <div style={{
               width: '90px', height: '90px', borderRadius: '50%',
-              background: user?.photoURL ? `url(${user.photoURL}) center/cover` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: user?.photoURL ? `url(${user.photoURL}) center/cover` : 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '32px', fontWeight: 700, color: 'white', overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.35)',
+              boxShadow: '0 8px 24px rgba(30, 64, 175, 0.35)',
             }}>
               {!user?.photoURL && initials}
             </div>
@@ -63,8 +63,8 @@ const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 2px 0' }}>{displayName}</h2>
             <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{user?.email}</p>
             <div style={{ display: 'flex', gap: '6px', marginTop: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(16, 185, 129, 0.1)', color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}>✓ Verified</span>
-              <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(99, 102, 241, 0.1)', color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}>📅 {stats.memberSince}</span>
+              <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(20, 184, 166, 0.1)', color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}>✓ Verified</span>
+              <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(30, 64, 175, 0.1)', color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}>📅 {stats.memberSince}</span>
             </div>
           </div>
         </div>

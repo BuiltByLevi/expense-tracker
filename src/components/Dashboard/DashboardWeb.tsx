@@ -21,6 +21,7 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageWeb'
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
 
 type GraphType = 'total' | 'monthly';
 
@@ -41,6 +42,7 @@ const DashboardWeb: React.FC = () => {
   } = useDashboardData();
 
   const [activeView, setActiveView] = useState<GraphType>('total');
+  const [quote] = useState(() => getDailyQuote(FINANCIAL_QUOTES));
 
   const monthName = format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
 
@@ -83,6 +85,9 @@ const DashboardWeb: React.FC = () => {
               </div>
               <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>
                 Welcome back, {user?.email?.split('@')[0]}
+              </p>
+              <p style={{ fontSize: '11px', fontStyle: 'italic', color: design.colors.textTertiary, margin: '3px 0 0 0' }}>
+                “{quote.text}” — {quote.author}
               </p>
             </div>
           </div>
@@ -246,7 +251,7 @@ const DashboardWeb: React.FC = () => {
                 <button onClick={() => setShowDebtDetails(false)} aria-label="Close" style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', color: design.colors.textSecondary }}>×</button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: 'rgba(30, 64, 175, 0.05)', borderRadius: '12px' }}>
                 <div style={{ textAlign: 'center' }}>
                   <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Earned</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.totalEarnings.toLocaleString('en-IN')}</p>

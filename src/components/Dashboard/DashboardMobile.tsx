@@ -20,6 +20,7 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageMobi
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
 
 type GraphType = 'total' | 'monthly';
 
@@ -41,6 +42,7 @@ const DashboardMobile: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'stats'>('expenses');
   const [activeGraph, setActiveGraph] = useState<GraphType>('total');
+  const [quote] = useState(() => getDailyQuote(FINANCIAL_QUOTES));
 
   const monthName = format(new Date(selectedYear, selectedMonth), 'MMM yyyy');
 
@@ -70,6 +72,9 @@ const DashboardMobile: React.FC = () => {
             </div>
             <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '2px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Welcome back, {user?.email?.split('@')[0]}
+            </p>
+            <p style={{ fontSize: '10px', fontStyle: 'italic', color: design.colors.textTertiary, margin: '4px 0 0 0' }}>
+              “{quote.text}” — {quote.author}
             </p>
           </div>
 
@@ -296,11 +301,11 @@ const DashboardMobile: React.FC = () => {
                 <button onClick={() => setShowDebtDetails(false)} aria-label="Close" style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px' }}>×</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
-                <div style={{ textAlign: 'center', padding: '10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px' }}>
+                <div style={{ textAlign: 'center', padding: '10px', background: 'rgba(20, 184, 166, 0.1)', borderRadius: '10px' }}>
                   <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>Net Positive</p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.success, margin: '4px 0 0 0' }}>₹{financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}</p>
                 </div>
-                <div style={{ textAlign: 'center', padding: '10px', background: hasDeficit ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', borderRadius: '10px' }}>
+                <div style={{ textAlign: 'center', padding: '10px', background: hasDeficit ? 'rgba(239, 68, 68, 0.1)' : 'rgba(20, 184, 166, 0.1)', borderRadius: '10px' }}>
                   <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>Deficit</p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: hasDeficit ? design.colors.danger : design.colors.success, margin: '4px 0 0 0' }}>₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}</p>
                 </div>

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthForm } from '../../hooks/useAuthForm';
 import LogoMark from '../common/LogoMark';
+import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
 
 const AuthMobile: React.FC = () => {
   const {
@@ -8,11 +9,12 @@ const AuthMobile: React.FC = () => {
     confirmPassword, setConfirmPassword, loading, errors, clearFieldError,
     handleSubmit, toggleMode,
   } = useAuthForm();
+  const [quote] = useState(() => getDailyQuote(FINANCIAL_QUOTES));
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #1e3a8a 0%, #0f766e 100%)',
       display: 'flex',
       flexDirection: 'column',
       padding: '24px 20px',
@@ -41,11 +43,14 @@ const AuthMobile: React.FC = () => {
           <span style={{
             fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
             padding: '2px 8px', borderRadius: '999px',
-            background: 'rgba(16, 185, 129, 0.25)', border: '1px solid rgba(16, 185, 129, 0.5)', color: 'white',
+            background: 'rgba(20, 184, 166, 0.25)', border: '1px solid rgba(20, 184, 166, 0.5)', color: 'white',
           }}>Pro Expense Tracker</span>
         </div>
         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', margin: 0 }}>
           Track every rupee, save more
+        </p>
+        <p style={{ fontSize: '12px', fontStyle: 'italic', color: 'rgba(255,255,255,0.75)', margin: '14px 0 0 0', padding: '0 12px', lineHeight: 1.5 }}>
+          “{quote.text}” <span style={{ fontStyle: 'normal', fontWeight: 600, opacity: 0.8 }}>— {quote.author}</span>
         </p>
       </div>
 
@@ -87,7 +92,7 @@ const AuthMobile: React.FC = () => {
                 borderRadius: '12px', fontSize: '16px',
                 outline: 'none', boxSizing: 'border-box',
               }}
-              onFocus={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#6366f1'; }}
+              onFocus={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#1e3a8a'; }}
               onBlur={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#e2e8f0'; }}
             />
             {errors.email && <p style={{ fontSize: '11px', color: '#ef4444', margin: '4px 0 0 0' }}>{errors.email}</p>}
@@ -108,7 +113,7 @@ const AuthMobile: React.FC = () => {
                 borderRadius: '12px', fontSize: '16px',
                 outline: 'none', boxSizing: 'border-box',
               }}
-              onFocus={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#6366f1'; }}
+              onFocus={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#1e3a8a'; }}
               onBlur={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#e2e8f0'; }}
             />
             {errors.password && <p style={{ fontSize: '11px', color: '#ef4444', margin: '4px 0 0 0' }}>{errors.password}</p>}
@@ -130,7 +135,7 @@ const AuthMobile: React.FC = () => {
                   borderRadius: '12px', fontSize: '16px',
                   outline: 'none', boxSizing: 'border-box',
                 }}
-                onFocus={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#6366f1'; }}
+                onFocus={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#1e3a8a'; }}
                 onBlur={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#e2e8f0'; }}
               />
               {errors.confirm && <p style={{ fontSize: '11px', color: '#ef4444', margin: '4px 0 0 0' }}>{errors.confirm}</p>}
@@ -142,11 +147,11 @@ const AuthMobile: React.FC = () => {
             disabled={loading}
             style={{
               width: '100%', padding: '16px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
               color: 'white', border: 'none', borderRadius: '12px',
               fontSize: '16px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1,
-              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)',
+              boxShadow: '0 4px 16px rgba(30, 64, 175, 0.3)',
             }}
           >
             {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
@@ -158,7 +163,7 @@ const AuthMobile: React.FC = () => {
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button
               onClick={toggleMode}
-              style={{ background: 'none', border: 'none', color: '#6366f1', fontWeight: 700, cursor: 'pointer', fontSize: '13px', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: '#1e3a8a', fontWeight: 700, cursor: 'pointer', fontSize: '13px', padding: 0 }}
             >
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>

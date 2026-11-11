@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { CategoryTotal } from '../../types';
 import { categoryColors } from '../../styles/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { EMPTY_STATE_QUOTES, getRandomQuote } from '../../utils/quotes';
 
 interface CategoryPieChartProps {
   data: CategoryTotal[];
@@ -16,19 +17,26 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300,
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const isMobile = useIsMobile();
+  const [emptyQuote] = useState(() => getRandomQuote(EMPTY_STATE_QUOTES));
 
   if (data.length === 0) {
     return (
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
         height: '100%',
-        color: isDark ? '#94a3b8' : '#64748b',
-        fontSize: '14px',
-        fontWeight: 500,
+        gap: '8px',
+        padding: '0 16px',
+        textAlign: 'center',
       }}>
-        No data available for this period
+        <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '14px', fontWeight: 500 }}>
+          No data available for this period
+        </span>
+        <span style={{ color: isDark ? '#6b7a94' : '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>
+          “{emptyQuote.text}”
+        </span>
       </div>
     );
   }
@@ -47,19 +55,19 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300,
             : 'rgba(255,255,255,0.95)',
           backdropFilter: 'blur(20px)',
           border: isDark
-            ? '1px solid rgba(139, 92, 246, 0.3)'
+            ? '1px solid rgba(45, 212, 191, 0.3)'
             : '1px solid rgba(255,255,255,0.8)',
           borderRadius: '12px',
           padding: '12px 16px',
           boxShadow: isDark
-            ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.2)'
+            ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(45, 212, 191, 0.2)'
             : '0 8px 24px rgba(15, 23, 42, 0.15)',
           fontSize: '13px',
         }}>
           <p style={{ margin: 0, fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}>
             {item.category}
           </p>
-          <p style={{ margin: '4px 0 0 0', color: isDark ? '#a78bfa' : '#6366f1', fontWeight: 600 }}>
+          <p style={{ margin: '4px 0 0 0', color: isDark ? '#2dd4bf' : '#1e3a8a', fontWeight: 600 }}>
             ₹{item.amount.toLocaleString('en-IN')}
           </p>
           <p style={{ margin: '2px 0 0 0', color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }}>

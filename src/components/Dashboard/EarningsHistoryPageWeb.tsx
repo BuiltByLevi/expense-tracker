@@ -52,7 +52,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
         {/* Info Banner */}
         <div className="glass-card animate-in animate-in-delay-1" style={{
           padding: '16px 24px', marginBottom: '20px',
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)',
+          background: 'linear-gradient(135deg, rgba(30, 64, 175, 0.05) 0%, rgba(45, 212, 191, 0.05) 100%)',
           border: `1px solid ${design.colors.primary}20`,
         }}>
           <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0 }}>
@@ -98,9 +98,9 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
                   <tr key={key} style={{
                     borderBottom: '1px solid rgba(0,0,0,0.04)',
                     background: isSelected
-                      ? 'rgba(99, 102, 241, 0.08)'
+                      ? 'rgba(30, 64, 175, 0.08)'
                       : isCurrentMonth
-                        ? 'rgba(99, 102, 241, 0.04)'
+                        ? 'rgba(30, 64, 175, 0.04)'
                         : 'transparent',
                     opacity: imported ? 0.85 : 1,
                   }}>
@@ -176,7 +176,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
           borderRadius: '20px',
           padding: '16px 24px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          border: '1px solid rgba(139, 92, 246, 0.3)',
+          border: '1px solid rgba(45, 212, 191, 0.3)',
           display: 'flex',
           alignItems: 'center',
           gap: '16px',
@@ -234,9 +234,9 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
                 padding: '10px 14px',
                 fontSize: '12px',
                 fontWeight: 600,
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: '#34d399',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                background: 'rgba(20, 184, 166, 0.15)',
+                color: '#2dd4bf',
+                border: '1px solid rgba(20, 184, 166, 0.3)',
                 borderRadius: '10px',
                 cursor: 'pointer',
               }}
