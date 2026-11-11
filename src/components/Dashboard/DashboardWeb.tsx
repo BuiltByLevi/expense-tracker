@@ -300,7 +300,7 @@ const DashboardWeb: React.FC = () => {
 
         {/* Main Grid */}
         <div className="main-grid" style={{ marginBottom: '20px' }}>
-          <div className="glass-card main-grid-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
+          <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
@@ -326,12 +326,10 @@ const DashboardWeb: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <ExpenseForm onAddExpense={handleAddExpense} onAddIncome={handleAddIncome} />
-            </div>
+            <ExpenseForm onAddExpense={handleAddExpense} onAddIncome={handleAddIncome} />
           </div>
 
-          <div className="glass-card main-grid-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
+          <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Expense Allocation</h3>
               <div className="tab-container" style={{ padding: '3px' }}>
@@ -340,47 +338,45 @@ const DashboardWeb: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              {activeView === 'total' ? (
-                <>
-                  <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                    <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Time</p>
-                    <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
+            {activeView === 'total' ? (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Time</p>
+                  <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
+                </div>
+                <div style={{ height: '260px' }}>
+                  <CategoryPieChart data={allTimeCategoryAnalysis} height={260} legend={false} />
+                </div>
+                <CategoryLegend data={allTimeCategoryAnalysis} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Transactions</p>
+                    <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{expenses.length}</p>
                   </div>
-                  <div style={{ height: '260px' }}>
-                    <CategoryPieChart data={allTimeCategoryAnalysis} height={260} legend={false} />
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Top</p>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{topCategoryName}</p>
+                    <p style={{ fontSize: '11px', color: design.colors.primary, margin: 0, fontWeight: 600 }}>₹{topCategoryAmount.toLocaleString('en-IN')}</p>
                   </div>
-                  <CategoryLegend data={allTimeCategoryAnalysis} />
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Transactions</p>
-                      <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{expenses.length}</p>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Top</p>
-                      <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{topCategoryName}</p>
-                      <p style={{ fontSize: '11px', color: design.colors.primary, margin: 0, fontWeight: 600 }}>₹{topCategoryAmount.toLocaleString('en-IN')}</p>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Monthly Avg</p>
-                      <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                      <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>over {financeTotals.calendarMonthCount} months</p>
-                    </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Monthly Avg</p>
+                    <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>over {financeTotals.calendarMonthCount} months</p>
                   </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                    <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{monthName}</p>
-                    <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
-                  </div>
-                  <div style={{ height: '300px' }}>
-                    <CategoryPieChart data={monthCategoryAnalysis} height={300} legend={false} />
-                  </div>
-                  <CategoryLegend data={monthCategoryAnalysis} />
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{monthName}</p>
+                  <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
+                </div>
+                <div style={{ height: '300px' }}>
+                  <CategoryPieChart data={monthCategoryAnalysis} height={300} legend={false} />
+                </div>
+                <CategoryLegend data={monthCategoryAnalysis} />
+              </>
+            )}
           </div>
         </div>
 
@@ -416,19 +412,36 @@ const DashboardWeb: React.FC = () => {
   );
 };
 
+// Caps the legend's own growth so an account with many categories (months of
+// real statement imports easily touch 12-17 distinct categories) can't make
+// Expense Allocation balloon far taller than its Quick Transaction sibling —
+// that mismatch is what left large dead space in the shorter card once both
+// are stretched to equal row height. `data` is already sorted by amount
+// descending (see analyzeCategories), so this keeps the biggest categories.
+const MAX_LEGEND_ENTRIES = 8;
+
 /** 2-column dot legend matching CategoryPieChart's per-slice color assignment. */
 const CategoryLegend: React.FC<{ data: { category: string; amount: number }[] }> = ({ data }) => {
   if (data.length === 0) return null;
+  const visible = data.slice(0, MAX_LEGEND_ENTRIES);
+  const hiddenCount = data.length - visible.length;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 16px', marginTop: '12px' }}>
-      {data.map((entry, index) => (
-        <div key={entry.category} style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: categoryColors[index % categoryColors.length], flexShrink: 0 }} />
-          <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {entry.category}
-          </span>
-        </div>
-      ))}
+    <div style={{ marginTop: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 16px' }}>
+        {visible.map((entry, index) => (
+          <div key={entry.category} style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: categoryColors[index % categoryColors.length], flexShrink: 0 }} />
+            <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {entry.category}
+            </span>
+          </div>
+        ))}
+      </div>
+      {hiddenCount > 0 && (
+        <p style={{ fontSize: '11px', color: design.colors.textTertiary, margin: '8px 0 0 0' }}>
+          +{hiddenCount} more {hiddenCount === 1 ? 'category' : 'categories'}
+        </p>
+      )}
     </div>
   );
 };

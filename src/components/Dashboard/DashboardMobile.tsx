@@ -346,19 +346,33 @@ const DashboardMobile: React.FC = () => {
   );
 };
 
+// See DashboardWeb's CategoryLegend for why this is capped — an account
+// with many months of real statement imports can easily touch 12-17
+// distinct categories, which would otherwise make this list grow unbounded.
+const MAX_LEGEND_ENTRIES = 8;
+
 /** 2-column dot legend matching CategoryPieChart's per-slice color assignment. */
 const CategoryLegend: React.FC<{ data: { category: string; amount: number }[] }> = ({ data }) => {
   if (data.length === 0) return null;
+  const visible = data.slice(0, MAX_LEGEND_ENTRIES);
+  const hiddenCount = data.length - visible.length;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px 12px', marginTop: '8px' }}>
-      {data.map((entry, index) => (
-        <div key={entry.category} style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: categoryColors[index % categoryColors.length], flexShrink: 0 }} />
-          <span style={{ fontSize: '11px', color: design.colors.textSecondary, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {entry.category}
-          </span>
-        </div>
-      ))}
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px 12px' }}>
+        {visible.map((entry, index) => (
+          <div key={entry.category} style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: categoryColors[index % categoryColors.length], flexShrink: 0 }} />
+            <span style={{ fontSize: '11px', color: design.colors.textSecondary, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {entry.category}
+            </span>
+          </div>
+        ))}
+      </div>
+      {hiddenCount > 0 && (
+        <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '6px 0 0 0' }}>
+          +{hiddenCount} more {hiddenCount === 1 ? 'category' : 'categories'}
+        </p>
+      )}
     </div>
   );
 };
