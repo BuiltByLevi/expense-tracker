@@ -77,10 +77,10 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
 
           <div style={{ marginBottom: '16px', padding: '14px 16px', background: 'rgba(16, 185, 129, 0.08)', border: `1px solid ${theme.colors.success}30`, borderRadius: '12px' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: theme.colors.textPrimary, margin: 0 }}>
-              ₹{derived.amount.toLocaleString('en-IN')} credited {format(derived.lastDate, 'dd MMM yyyy')}
+              ₹{derived.amount.toLocaleString('en-IN')} earned this month
             </p>
             <p style={{ fontSize: '12px', color: theme.colors.textSecondary, margin: '4px 0 0 0' }}>
-              Counted as this month's earnings — the credit(s) dated on your statement's last transaction day, where salary is usually credited. Can't be manually overridden here; delete or edit the source transaction to change it.
+              Counted as this month's earnings — every imported credit this month (salary, interest, Razorpay/Payload settlements, etc.), excluding refunds and transfers. Can't be manually overridden here; delete or edit the source transaction to change it.
             </p>
           </div>
 

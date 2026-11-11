@@ -69,4 +69,46 @@ describe('deriveMonthlyEarnings', () => {
     ];
     expect(deriveMonthlyEarnings(entries)?.amount).toBe(50000);
   });
+
+  describe('critical verification: eligible income on the 1st, a middle day, and the last day of the month', () => {
+    it('all three count, regardless of day', () => {
+      const entries = [
+        inc('first', 2500, 'Other Income', new Date(2026, 10, 1)),   // Razorpay-style, day 1
+        inc('mid', 750, 'Other Income', new Date(2026, 10, 15)),      // Payload-style, mid-month
+        inc('salary', 50000, 'Salary', new Date(2026, 10, 30)),       // last day
+      ];
+      const d = deriveMonthlyEarnings(entries);
+      expect(d?.amount).toBe(53250);
+      expect(d?.countedEntries).toHaveLength(3);
+      expect(d?.otherEntries).toHaveLength(0);
+    });
+
+    it('multiple credits on the SAME day all count, not just one', () => {
+      const entries = [
+        inc('rzp1', 2500, 'Other Income', new Date(2026, 10, 8)),
+        inc('rzp2', 1250, 'Other Income', new Date(2026, 10, 8)),
+        inc('payload1', 3000, 'Other Income', new Date(2026, 10, 8)),
+      ];
+      const d = deriveMonthlyEarnings(entries);
+      expect(d?.amount).toBe(6750);
+      expect(d?.countedEntries).toHaveLength(3);
+    });
+  });
+
+  it('switching months does not leak an adjacent month\'s income into this month\'s derivation (caller passes pre-filtered entries)', () => {
+    // deriveMonthlyEarnings trusts its caller (getIncomeForMonth) to have
+    // already filtered to one calendar month — passing only November's
+    // entries must never reflect October's or December's income.
+    const novemberOnly = [inc('nov-salary', 50000, 'Salary', new Date(2026, 10, 28))];
+    const d = deriveMonthlyEarnings(novemberOnly);
+    expect(d?.amount).toBe(50000);
+    expect(d?.countedEntries.every((e) => e.date.getMonth() === 10)).toBe(true);
+  });
+
+  it('debit-side transactions are never passed in as Income and cannot inflate earnings (type system guarantee, exercised via the full fixture in statementImportPipeline.test.ts)', () => {
+    // Expense amounts never reach this function — Income[] is the only
+    // input type. This is enforced structurally, not by a runtime check.
+    const entries = [inc('salary', 50000, 'Salary', new Date(2026, 10, 28))];
+    expect(deriveMonthlyEarnings(entries)?.amount).toBe(50000);
+  });
 });

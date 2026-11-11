@@ -95,4 +95,24 @@ describe('findDuplicate', () => {
     // important assertion is that it picks 'true-dup', not 'unrelated'.
     expect(m).toEqual({ duplicateOf: 'true-dup', confidence: 'likely' });
   });
+
+  it('two genuinely distinct Razorpay settlements, same day and amount, with different reference numbers are NEVER flagged as duplicates', () => {
+    const existing = [rec('rzp1', 1250, new Date(2026, 10, 8), 'RAZORPAY SETTLEMENT', 'RZPY0001')];
+    const second = tx({ date: new Date(2026, 10, 8), narration: 'RAZORPAY SETTLEMENT', amount: 1250, referenceNumber: 'RZPY0002' });
+    // Reference numbers present and different -> certainly not the same transaction,
+    // even though amount/date/description all coincide.
+    expect(findDuplicate(second, existing, 'RZPY0002')).toBeNull();
+  });
+
+  it('multiple Payload credits, same day, different amounts, no reference numbers -> each judged independently, not duplicates of each other', () => {
+    const existing = [rec('pl1', 3000, new Date(2026, 10, 10), 'PAYLOAD PAYMENT')];
+    const second = tx({ date: new Date(2026, 10, 10), narration: 'PAYLOAD SETTLEMENT', amount: 750 });
+    expect(findDuplicate(second, existing, null)).toBeNull();
+  });
+
+  it('re-importing the exact same Razorpay row (matching reference number) is correctly flagged exact, so it is not double-counted', () => {
+    const existing = [rec('rzp2', 2500, new Date(2026, 10, 5), 'RAZORPAY PAYMENTS CREDIT', 'RZPY-AAA')];
+    const reImport = tx({ date: new Date(2026, 10, 5), narration: 'RAZORPAY PAYMENTS CREDIT', amount: 2500, referenceNumber: 'RZPY-AAA' });
+    expect(findDuplicate(reImport, existing, 'RZPY-AAA')).toEqual({ duplicateOf: 'rzp2', confidence: 'exact' });
+  });
 });

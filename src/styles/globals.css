@@ -717,7 +717,25 @@ body::after {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  align-items: start;
+  /* stretch (grid default): Quick Transaction and Expense Allocation often
+     have very different natural content heights (a compact form vs. a
+     chart+legend+stats block). align-items:start used to leave the shorter
+     card's card-background ending early, exposing a slab of raw page
+     background below it before the next section — this made the cards look
+     mismatched AND made Transaction History appear to start with a large
+     gap. Stretching both cards to the row's height, combined with the
+     flex-centered content inside .main-grid-card (see DashboardWeb), fixes
+     both at once. */
+  align-items: stretch;
+}
+
+/* Lets a glass-card stretched taller by its main-grid row (see above) keep
+   its heading pinned at the top (consistent with every other card) while an
+   inner flex:1 wrapper centers the interactive content in the remaining
+   space, instead of leaving dead space pinned under it. */
+.main-grid-card {
+  display: flex;
+  flex-direction: column;
 }
 
 .form-grid {

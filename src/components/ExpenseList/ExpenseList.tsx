@@ -14,6 +14,9 @@ interface ExpenseListProps {
    *  (editing isn't supported yet) but deletable via onDeleteIncome. */
   income?: Income[];
   onDeleteIncome?: (id: string) => Promise<void>;
+  /** Shown when the list is empty — lets callers describe the active filter
+   *  (a selected month vs. a custom date range) instead of a generic string. */
+  emptyStateLabel?: string;
 }
 
 const categories = EXPENSE_CATEGORIES;
@@ -28,7 +31,7 @@ interface Row {
   source: Expense | Income;
 }
 
-const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, income = [], onDeleteIncome }) => {
+const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, income = [], onDeleteIncome, emptyStateLabel }) => {
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
@@ -75,9 +78,10 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
   // Reset filters if list is empty
   if (rows.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px', color: theme.colors.textTertiary }}>
-        <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
-        <p style={{ fontSize: '14px', fontWeight: 500, margin: 0 }}>No transactions yet for this month</p>
+      <div style={{ textAlign: 'center', padding: '36px 20px', color: theme.colors.textTertiary }}>
+        <div style={{ fontSize: '36px', marginBottom: '10px' }}>📭</div>
+        <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: theme.colors.textSecondary }}>{emptyStateLabel || 'No transactions yet for this month'}</p>
+        <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Add one with Quick Transaction, or import a bank statement.</p>
       </div>
     );
   }
@@ -173,7 +177,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
             const color = isIncome ? (incomeCategoryColors[row.category] ?? theme.colors.success) : getCategoryColor(row.category);
             return (
               <div key={`${row.kind}-${row.id}`} className="tx-row" style={{
-                display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', alignItems: 'center', padding: '14px 8px',
+                display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', alignItems: 'center', padding: '11px 8px',
                 borderBottom: idx < filteredRows.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                 background: isIncome ? 'rgba(16, 185, 129, 0.04)' : 'transparent',
               }}>

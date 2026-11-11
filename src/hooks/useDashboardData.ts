@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useEarnings } from '../context/EarningsContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,6 +8,8 @@ import { useIncome } from '../context/IncomeContext';
 import type { Expense, MonthlyEarnings } from '../types';
 import { computeFinanceTotals } from '../utils/finance';
 import { deriveMonthlyEarnings } from '../utils/earningsDerivation';
+import { makeCashFlowLookup } from '../utils/cashFlowLookup';
+import { filterByDateRange, type DateRange } from '../utils/dateRangePresets';
 
 function analyzeCategories(expenses: Expense[]) {
   const categoryMap = new Map<string, number>();
@@ -33,18 +35,17 @@ export function useDashboardData() {
   const { earnings, getEarningsForMonth } = useEarnings();
   const { theme, toggleTheme } = useTheme();
   const { expenses, loading: expensesLoading, addExpense, updateExpense, deleteExpense } = useExpenses();
-  const { loading: incomeLoading, addIncome, getIncomeForMonth, deleteIncome: handleDeleteIncome } = useIncome();
+  const { income, loading: incomeLoading, addIncome, getIncomeForMonth, deleteIncome: handleDeleteIncome } = useIncome();
   const loading = expensesLoading || incomeLoading;
 
-  // "Monthly Earnings" for any month with an imported statement comes from
-  // the credits dated on that month's LAST transaction date — salary is
-  // reliably credited on the last day of the month, so this picks it out
-  // rather than summing every credit (which would also pull in interest,
-  // refunds, or P2P transfers received earlier in the month). Months with no
-  // itemized income fall back to the manually-set/estimated single number.
-  // This is a LABEL ONLY — "what did I earn (salary-like income) this
-  // month" — and deliberately excludes refunds/transfers. It must NOT be
-  // used for cash-flow arithmetic (see getMonthlyCashFlowCredits below):
+  // "Monthly Earnings" for any month with an imported statement is the sum
+  // of every eligible credit that month — salary, interest, Razorpay/Payload
+  // settlements, or any other genuine income — regardless of which day it
+  // landed on (see deriveMonthlyEarnings). Months with no itemized income
+  // fall back to the manually-set/estimated single number. This is a LABEL
+  // ONLY — "what did I earn this month" — and deliberately excludes
+  // refunds/transfers. It must NOT be used for cash-flow arithmetic (see
+  // getMonthlyCashFlowCredits below):
   // a refund or transfer-in is still real money that landed in the account,
   // just not "earnings", and omitting it from cash-flow math would make the
   // Dashboard's balance disagree with the Transaction Ledger's balance for
@@ -65,18 +66,10 @@ export function useDashboardData() {
   // transfers-in alike), matching exactly what the Transaction Ledger page
   // totals for the same month. Feeds Monthly/Cumulative Net Cash Flow and
   // the Cash-Flow Deficit so they can never silently drop real money that a
-  // refund or transfer-in actually added to the account. Months with no
-  // itemized income have nothing to separate, so they fall back to the same
-  // manual/default single figure as the earnings label.
-  const getMonthlyCashFlowCredits = useCallback(
-    (year: number, month: number): MonthlyEarnings | null => {
-      const { entries, total } = getIncomeForMonth(year, month);
-      if (entries.length > 0) {
-        const lastDate = entries.reduce((max, e) => (e.date.getTime() > max.getTime() ? e.date : max), entries[0].date);
-        return { year, month, amount: total, status: 'confirmed', source: 'import', updatedAt: lastDate.toISOString() };
-      }
-      return getEarningsForMonth(year, month);
-    },
+  // refund or transfer-in actually added to the account. Shared with the
+  // Profile page via makeCashFlowLookup so both screens always agree.
+  const getMonthlyCashFlowCredits = useMemo(
+    () => makeCashFlowLookup(getIncomeForMonth, getEarningsForMonth),
     [getIncomeForMonth, getEarningsForMonth]
   );
 
@@ -89,6 +82,11 @@ export function useDashboardData() {
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showImportPage, setShowImportPage] = useState(false);
   const [showDebtDetails, setShowDebtDetails] = useState(false);
+  // Independent of selectedYear/selectedMonth on purpose — a banking-style
+  // date-range filter for the Transaction History list only. Applying it
+  // never touches the month-based KPI cards (Monthly Earnings/Spending/Net
+  // Cash Flow/Cumulative), which stay driven solely by selectedYear/Month.
+  const [dateRange, setDateRangeState] = useState<DateRange | null>(null);
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -141,6 +139,27 @@ export function useDashboardData() {
   }, [getMonthlyCashFlowCredits, selectedYear, selectedMonth, earnings]);
 
   const monthNetCashFlow = monthCashFlowCredits - monthTotal;
+
+  // Transaction History's source: the active date range when one is set,
+  // otherwise the selected month (unchanged default behavior). Filters the
+  // full expenses/income arrays directly rather than monthExpenses/
+  // monthIncome so a range can span across month boundaries.
+  const historyExpenses = useMemo(() => {
+    if (!dateRange) return monthExpenses;
+    return filterByDateRange(expenses, dateRange);
+  }, [dateRange, monthExpenses, expenses]);
+
+  const historyIncome = useMemo(() => {
+    if (!dateRange) return monthIncome;
+    return filterByDateRange(income, dateRange);
+  }, [dateRange, monthIncome, income]);
+
+  const historyLabel = dateRange
+    ? `${format(dateRange.start, 'dd MMM yyyy')} – ${format(dateRange.end, 'dd MMM yyyy')}`
+    : format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
+
+  const setDateRange = (range: DateRange) => setDateRangeState(range);
+  const clearDateRange = () => setDateRangeState(null);
 
   const goToPreviousMonth = () => {
     if (selectedMonth === 0) {
@@ -224,6 +243,13 @@ export function useDashboardData() {
     monthCategoryAnalysis,
     allTimeCategoryAnalysis,
     monthNetCashFlow,
+
+    dateRange,
+    setDateRange,
+    clearDateRange,
+    historyExpenses,
+    historyIncome,
+    historyLabel,
 
     handleEdit,
     handleAddExpense,

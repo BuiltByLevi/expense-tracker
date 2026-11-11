@@ -10,6 +10,7 @@ import ProfilePage from './ProfilePageMobile';
 import StatCard from './StatCard';
 import StatementUploadCard from './StatementUploadCard';
 import MonthYearPicker from '../common/MonthYearPicker';
+import DateRangeFilter from './DateRangeFilter';
 import LogoMark from '../common/LogoMark';
 import ListSkeleton from '../common/ListSkeleton';
 
@@ -31,8 +32,9 @@ const DashboardMobile: React.FC = () => {
     showEarningsPage, setShowEarningsPage, showLedgerPage, setShowLedgerPage,
     showProfilePage, setShowProfilePage, showImportPage, setShowImportPage,
     showDebtDetails, setShowDebtDetails,
-    financeTotals, selectedMonthEarnings, totalAllTime, expenses, monthExpenses, monthIncome, monthTotal,
+    financeTotals, selectedMonthEarnings, totalAllTime, expenses, monthTotal,
     monthCategoryAnalysis, allTimeCategoryAnalysis, monthNetCashFlow,
+    dateRange, setDateRange, clearDateRange, historyExpenses, historyIncome, historyLabel,
     handleEdit, handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
     topCategoryAmount, topCategoryName, hasDeficit, isFuture,
   } = useDashboardData();
@@ -102,24 +104,6 @@ const DashboardMobile: React.FC = () => {
               Logout
             </button>
           </div>
-        </div>
-
-        <div className="glass-card animate-in animate-in-delay-1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', marginBottom: '10px', gap: '8px', flexWrap: 'wrap' }}>
-          <button onClick={goToPreviousMonth} className="btn btn-ghost" aria-label="Previous month" style={{ padding: '8px 12px', fontSize: '14px', flexShrink: 0 }}>◀</button>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <MonthYearPicker
-              year={selectedYear}
-              month={selectedMonth}
-              currentYear={currentYear}
-              currentMonth={currentMonth}
-              onSelect={goToMonth}
-              trigger={
-                <span style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, textAlign: 'center', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{monthName}</span>
-              }
-            />
-          </div>
-          <button onClick={goToNextMonth} className="btn btn-ghost" aria-label="Next month" style={{ padding: '8px 12px', fontSize: '14px', flexShrink: 0 }}>▶</button>
-          <button onClick={goToCurrentMonth} className="btn btn-primary" style={{ padding: '8px 14px', fontSize: '12px', flexShrink: 0 }}>Today</button>
         </div>
 
         <div style={{ marginBottom: '10px' }}>
@@ -203,15 +187,51 @@ const DashboardMobile: React.FC = () => {
         {activeTab === 'expenses' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div className="glass-card" style={{ padding: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
                 <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
                 <span className="badge-pill" style={{ fontSize: '9px', padding: '2px 8px' }}>Instant Ledger Update</span>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '14px', paddingBottom: '12px', borderBottom: `1px solid ${design.colors.primary}12` }}>
+                <button onClick={goToPreviousMonth} className="btn btn-ghost" aria-label="Previous month" style={{ padding: '6px 10px', fontSize: '12px', flexShrink: 0 }}>◀</button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <MonthYearPicker
+                    year={selectedYear}
+                    month={selectedMonth}
+                    currentYear={currentYear}
+                    currentMonth={currentMonth}
+                    onSelect={goToMonth}
+                    trigger={
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, textAlign: 'center', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{monthName}</span>
+                    }
+                  />
+                </div>
+                <button onClick={goToNextMonth} className="btn btn-ghost" aria-label="Next month" style={{ padding: '6px 10px', fontSize: '12px', flexShrink: 0 }}>▶</button>
+                <button onClick={goToCurrentMonth} className="btn btn-primary" style={{ padding: '6px 10px', fontSize: '11px', flexShrink: 0 }}>Today</button>
+              </div>
               <ExpenseForm onAddExpense={handleAddExpense} onAddIncome={handleAddIncome} />
             </div>
-            <div className="glass-card" style={{ padding: '14px', maxHeight: '500px', overflowY: 'auto' }}>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 12px 0' }}>📒 Transaction History</h3>
-              {loading ? <ListSkeleton rows={4} /> : <ExpenseList expenses={monthExpenses} income={monthIncome} onDelete={handleDeleteExpense} onDeleteIncome={handleDeleteIncome} onEdit={handleEdit} />}
+            <div className="glass-card" style={{ padding: '14px', maxHeight: '600px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>📒 Transaction History</h3>
+                <span style={{ fontSize: '11px', color: design.colors.textSecondary, fontWeight: 500 }}>
+                  {historyExpenses.length + historyIncome.length} items · {historyLabel}
+                </span>
+              </div>
+              <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: `1px solid ${design.colors.primary}12` }}>
+                <DateRangeFilter value={dateRange} onApply={setDateRange} onClear={clearDateRange} />
+              </div>
+              {loading ? (
+                <ListSkeleton rows={4} />
+              ) : (
+                <ExpenseList
+                  expenses={historyExpenses}
+                  income={historyIncome}
+                  onDelete={handleDeleteExpense}
+                  onDeleteIncome={handleDeleteIncome}
+                  onEdit={handleEdit}
+                  emptyStateLabel={dateRange ? 'No transactions in this date range' : `No transactions yet for ${monthName}`}
+                />
+              )}
             </div>
           </div>
         )}

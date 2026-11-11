@@ -13,36 +13,37 @@ export interface DerivedEarnings {
 // calculations downstream).
 const NON_EARNINGS_CATEGORIES = new Set(['Refund', 'Transfer']);
 
-/** Calendar-day key (not exact timestamp) — see comment below on why. */
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
 /**
- * Salary is reliably credited on the last day of the month, so "Monthly
- * Earnings" for a month with imported income is the sum of entries dated on
- * that month's LATEST transaction date — not a sum of every credit, which
- * would also pull in interest, refunds, or P2P transfers received earlier
- * in the month and inflate the figure beyond actual salary.
+ * "Monthly Earnings" for a month with imported income is the sum of EVERY
+ * eligible credit in that month — salary, interest, Razorpay/Payload
+ * settlements, or any other genuine income, regardless of which calendar
+ * day it landed on. Only refunds and transfers are excluded (see
+ * NON_EARNINGS_CATEGORIES) since those are real cash but not earned income.
+ *
+ * This deliberately does NOT restrict counting to the month's single
+ * latest-dated transaction's calendar day. An earlier version did exactly
+ * that (salary is reliably credited on the last day of the month, so "just
+ * that day" seemed like a safe way to exclude interest/refunds/transfers
+ * landing earlier) — but it silently dropped every other genuine income
+ * source dated on a different day, e.g. gig/freelance settlements (Razorpay,
+ * Payload) that post throughout the month rather than on salary day, or
+ * interest posted on a day later than salary. Category alone (not date)
+ * already correctly distinguishes real earnings from refunds/transfers, so
+ * no day-based narrowing is needed or safe.
  */
 export function deriveMonthlyEarnings(entries: Income[]): DerivedEarnings | null {
   if (entries.length === 0) return null;
 
-  const eligible = entries.filter((e) => !NON_EARNINGS_CATEGORIES.has(e.category));
-  if (eligible.length === 0) return null;
+  const countedEntries = entries.filter((e) => !NON_EARNINGS_CATEGORIES.has(e.category));
+  if (countedEntries.length === 0) return null;
 
-  // Group by calendar day rather than exact Date#getTime(): parsed statement
-  // rows don't all carry the same time-of-day, so two entries truly on the
-  // same date can otherwise fail an exact-timestamp equality check and get
-  // wrongly split apart (silently under-counting earnings).
-  let latest = eligible[0];
-  for (const e of eligible) {
+  const otherEntries = entries.filter((e) => NON_EARNINGS_CATEGORIES.has(e.category));
+  const amount = countedEntries.reduce((s, e) => s + e.amount, 0);
+
+  let latest = countedEntries[0];
+  for (const e of countedEntries) {
     if (e.date.getTime() > latest.date.getTime()) latest = e;
   }
-  const maxKey = dayKey(latest.date);
 
-  const countedEntries = entries.filter((e) => !NON_EARNINGS_CATEGORIES.has(e.category) && dayKey(e.date) === maxKey);
-  const otherEntries = entries.filter((e) => NON_EARNINGS_CATEGORIES.has(e.category) || dayKey(e.date) !== maxKey);
-  const amount = countedEntries.reduce((s, e) => s + e.amount, 0);
   return { amount, lastDate: latest.date, countedEntries, otherEntries };
 }

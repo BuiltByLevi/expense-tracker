@@ -7,6 +7,8 @@ import { useIncome } from '../context/IncomeContext';
 import { useStatementImports } from './useStatementImports';
 import { useEarnings } from '../context/EarningsContext';
 import { useTheme } from '../context/ThemeContext';
+import { computeFinanceTotals } from '../utils/finance';
+import { makeCashFlowLookup } from '../utils/cashFlowLookup';
 
 // REPLACE THESE WITH YOUR CLOUDINARY CREDENTIALS
 const CLOUDINARY_CLOUD_NAME = 'jwa2pjzg';
@@ -20,9 +22,9 @@ const CLOUDINARY_UPLOAD_PRESET = 'levihere';
 export function useProfileLogic() {
   const { user, logout, updateUserProfile } = useAuth();
   const { expenses, deleteAllExpenses } = useExpenses();
-  const { deleteAllIncome } = useIncome();
+  const { getIncomeForMonth, deleteAllIncome } = useIncome();
   const { deleteAllImports } = useStatementImports();
-  const { earningsHistory, earnings: defaultEarnings, resetEarningsHistory } = useEarnings();
+  const { earnings: defaultEarnings, getEarningsForMonth, resetEarningsHistory } = useEarnings();
   const { theme, toggleTheme } = useTheme();
 
   const [displayName, setDisplayName] = useState(
@@ -54,10 +56,25 @@ export function useProfileLogic() {
     };
   }, [expenses, user]);
 
-  const totalSavings = useMemo(
-    () => (earningsHistory ? Object.keys(earningsHistory).length : 1) * defaultEarnings - stats.totalExpenses,
-    [earningsHistory, defaultEarnings, stats.totalExpenses]
+  // Same cash-flow lookup and walk the Dashboard uses for its Cumulative Net
+  // Cash Flow, so this stat can never silently disagree with the Dashboard
+  // for the same data (see utils/cashFlowLookup.ts).
+  const getMonthlyCashFlowCredits = useMemo(
+    () => makeCashFlowLookup(getIncomeForMonth, getEarningsForMonth),
+    [getIncomeForMonth, getEarningsForMonth]
   );
+
+  const totalSavings = useMemo(() => {
+    const today = new Date();
+    const totals = computeFinanceTotals(
+      expenses,
+      defaultEarnings,
+      getMonthlyCashFlowCredits,
+      today.getFullYear(),
+      today.getMonth()
+    );
+    return totals.cumulativeNetCashFlow;
+  }, [expenses, defaultEarnings, getMonthlyCashFlowCredits]);
 
   const initials = useMemo(() => {
     const name = displayName || user?.email?.split('@')[0] || 'U';

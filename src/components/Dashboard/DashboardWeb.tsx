@@ -10,6 +10,7 @@ import ProfilePage from './ProfilePageWeb';
 import StatCard from './StatCard';
 import StatementUploadCard from './StatementUploadCard';
 import MonthYearPicker from '../common/MonthYearPicker';
+import DateRangeFilter from './DateRangeFilter';
 import ProfileMenu from './ProfileMenu';
 import LogoMark from '../common/LogoMark';
 import ListSkeleton from '../common/ListSkeleton';
@@ -32,8 +33,9 @@ const DashboardWeb: React.FC = () => {
     showEarningsPage, setShowEarningsPage, showLedgerPage, setShowLedgerPage,
     showProfilePage, setShowProfilePage, showImportPage, setShowImportPage,
     showDebtDetails, setShowDebtDetails,
-    financeTotals, selectedMonthEarnings, expenses, monthExpenses, monthIncome, monthTotal, totalAllTime,
+    financeTotals, selectedMonthEarnings, expenses, monthExpenses, monthTotal, totalAllTime,
     monthCategoryAnalysis, allTimeCategoryAnalysis, monthNetCashFlow,
+    dateRange, setDateRange, clearDateRange, historyExpenses, historyIncome, historyLabel,
     handleEdit, handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
     topCategoryAmount, topCategoryName, hasDeficit, isFuture,
   } = useDashboardData();
@@ -103,40 +105,6 @@ const DashboardWeb: React.FC = () => {
           </div>
         </div>
 
-        {/* Month Navigation */}
-        <div className="glass-card animate-in animate-in-delay-1" style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={goToPreviousMonth} className="btn btn-ghost btn-icon" aria-label="Previous month">◀</button>
-            <MonthYearPicker
-              year={selectedYear}
-              month={selectedMonth}
-              currentYear={currentYear}
-              currentMonth={currentMonth}
-              onSelect={goToMonth}
-              trigger={
-                <span style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, minWidth: '160px', textAlign: 'center', display: 'inline-block' }}>
-                  {monthName}
-                </span>
-              }
-            />
-            <button onClick={goToNextMonth} className="btn btn-ghost btn-icon" aria-label="Next month">▶</button>
-            <button onClick={goToCurrentMonth} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '12px' }}>
-              Today
-            </button>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Monthly Total Spending</p>
-              <p style={{ fontSize: '20px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
-            </div>
-            <button onClick={() => setShowEarningsModal(true)} className="btn btn-ghost" style={{ padding: '8px 14px', fontSize: '12px' }}>
-              ✎ Edit Earnings
-            </button>
-          </div>
-        </div>
-
         {/* Bank Statement Import */}
         <div style={{ marginBottom: '20px' }}>
           <StatementUploadCard onOpen={() => setShowImportPage(true)} />
@@ -197,6 +165,14 @@ const DashboardWeb: React.FC = () => {
                 </>
               }
               value={`₹${selectedMonthEarnings.amount.toLocaleString('en-IN')}`}
+              hint={
+                <button
+                  onClick={() => setShowEarningsModal(true)}
+                  style={{ fontSize: '11px', padding: '3px 10px', background: `${design.colors.primary}15`, border: 'none', borderRadius: '8px', color: design.colors.primaryDark, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  ✎ Edit
+                </button>
+              }
             />
           </div>
 
@@ -324,15 +300,38 @@ const DashboardWeb: React.FC = () => {
 
         {/* Main Grid */}
         <div className="main-grid" style={{ marginBottom: '20px' }}>
-          <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
-              <span className="badge-pill">Instant Ledger Update</span>
+          <div className="glass-card main-grid-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
+                <span className="badge-pill">Instant Ledger Update</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button onClick={goToPreviousMonth} className="btn btn-ghost btn-icon" aria-label="Previous month" style={{ padding: '6px 10px', fontSize: '12px' }}>◀</button>
+                <MonthYearPicker
+                  year={selectedYear}
+                  month={selectedMonth}
+                  currentYear={currentYear}
+                  currentMonth={currentMonth}
+                  onSelect={goToMonth}
+                  trigger={
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, minWidth: '96px', textAlign: 'center', display: 'inline-block' }}>
+                      {monthName}
+                    </span>
+                  }
+                />
+                <button onClick={goToNextMonth} className="btn btn-ghost btn-icon" aria-label="Next month" style={{ padding: '6px 10px', fontSize: '12px' }}>▶</button>
+                <button onClick={goToCurrentMonth} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '11px' }}>
+                  Today
+                </button>
+              </div>
             </div>
-            <ExpenseForm onAddExpense={handleAddExpense} onAddIncome={handleAddIncome} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <ExpenseForm onAddExpense={handleAddExpense} onAddIncome={handleAddIncome} />
+            </div>
           </div>
 
-          <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
+          <div className="glass-card main-grid-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Expense Allocation</h3>
               <div className="tab-container" style={{ padding: '3px' }}>
@@ -341,55 +340,73 @@ const DashboardWeb: React.FC = () => {
               </div>
             </div>
 
-            {activeView === 'total' ? (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Time</p>
-                  <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
-                </div>
-                <div style={{ height: '260px' }}>
-                  <CategoryPieChart data={allTimeCategoryAnalysis} height={260} legend={false} />
-                </div>
-                <CategoryLegend data={allTimeCategoryAnalysis} />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Transactions</p>
-                    <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{expenses.length}</p>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              {activeView === 'total' ? (
+                <>
+                  <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                    <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Time</p>
+                    <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Top</p>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{topCategoryName}</p>
-                    <p style={{ fontSize: '11px', color: design.colors.primary, margin: 0, fontWeight: 600 }}>₹{topCategoryAmount.toLocaleString('en-IN')}</p>
+                  <div style={{ height: '260px' }}>
+                    <CategoryPieChart data={allTimeCategoryAnalysis} height={260} legend={false} />
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Monthly Avg</p>
-                    <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>over {financeTotals.calendarMonthCount} months</p>
+                  <CategoryLegend data={allTimeCategoryAnalysis} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Transactions</p>
+                      <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{expenses.length}</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Top</p>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{topCategoryName}</p>
+                      <p style={{ fontSize: '11px', color: design.colors.primary, margin: 0, fontWeight: 600 }}>₹{topCategoryAmount.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Monthly Avg</p>
+                      <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                      <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>over {financeTotals.calendarMonthCount} months</p>
+                    </div>
                   </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{monthName}</p>
-                  <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
-                </div>
-                <div style={{ height: '300px' }}>
-                  <CategoryPieChart data={monthCategoryAnalysis} height={300} legend={false} />
-                </div>
-                <CategoryLegend data={monthCategoryAnalysis} />
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                    <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{monthName}</p>
+                    <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
+                  </div>
+                  <div style={{ height: '300px' }}>
+                    <CategoryPieChart data={monthCategoryAnalysis} height={300} legend={false} />
+                  </div>
+                  <CategoryLegend data={monthCategoryAnalysis} />
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Transaction History */}
-        <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '20px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>📒 Transaction History</h3>
-            <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>{monthExpenses.length + monthIncome.length} items</span>
+            <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>
+              {historyExpenses.length + historyIncome.length} items · {historyLabel}
+            </span>
           </div>
-          {loading ? <ListSkeleton rows={6} /> : <ExpenseList expenses={monthExpenses} income={monthIncome} onDelete={handleDeleteExpense} onDeleteIncome={handleDeleteIncome} onEdit={handleEdit} />}
+          <div style={{ marginBottom: '14px', paddingBottom: '14px', borderBottom: `1px solid ${design.colors.primary}12` }}>
+            <DateRangeFilter value={dateRange} onApply={setDateRange} onClear={clearDateRange} />
+          </div>
+          {loading ? (
+            <ListSkeleton rows={6} />
+          ) : (
+            <ExpenseList
+              expenses={historyExpenses}
+              income={historyIncome}
+              onDelete={handleDeleteExpense}
+              onDeleteIncome={handleDeleteIncome}
+              onEdit={handleEdit}
+              emptyStateLabel={dateRange ? 'No transactions in this date range' : `No transactions yet for ${monthName}`}
+            />
+          )}
         </div>
       </div>
 
