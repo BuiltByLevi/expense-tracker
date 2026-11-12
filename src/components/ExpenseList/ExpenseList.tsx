@@ -7,6 +7,11 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { InboxIcon } from '../common/FinanceIcons';
 import { EMPTY_STATE_QUOTES, getRandomQuote } from '../../utils/quotes';
 
+// One fixed template shared by the ledger header and every row. Fixed widths
+// everywhere except Particulars, so the six columns line up across rows
+// regardless of how many action buttons a row renders.
+const LEDGER_COLUMNS = '90px 150px minmax(0, 1fr) 110px 110px 132px';
+
 interface ExpenseListProps {
   expenses: Expense[];
   onDelete: (id: string) => Promise<void>;
@@ -178,7 +183,10 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
       ) : (
         <div>
           <div style={{
-            display: 'grid', gridTemplateColumns: '90px minmax(0, 1fr) minmax(0, 1.2fr) 110px 110px auto', gap: '14px', padding: '0 8px 10px 8px',
+            // Must stay identical to the row template below — header and rows
+            // are separate grids, so any auto-sized column would resolve to a
+            // different width per row and skew every column.
+            display: 'grid', gridTemplateColumns: LEDGER_COLUMNS, gap: '14px', padding: '0 8px 10px 8px',
             borderBottom: `2px solid ${theme.colors.primary}20`,
           }}>
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date</span>
@@ -186,14 +194,14 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Particulars</span>
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'right' }}>Debit</span>
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'right' }}>Credit</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'right' }}>Actions</span>
           </div>
           {filteredRows.map((row, idx) => {
             const isIncome = row.kind === 'income';
             const color = isIncome ? (incomeCategoryColors[row.category] ?? theme.colors.success) : getCategoryColor(row.category);
             return (
               <div key={`${row.kind}-${row.id}`} className="tx-row" style={{
-                display: 'grid', gridTemplateColumns: '90px minmax(0, 1fr) minmax(0, 1.2fr) 110px 110px auto', gap: '14px', alignItems: 'center', padding: '11px 8px',
+                display: 'grid', gridTemplateColumns: LEDGER_COLUMNS, gap: '14px', alignItems: 'center', padding: '11px 8px',
                 borderBottom: idx < filteredRows.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                 background: isIncome ? `rgba(${theme.colors.successRgb}, 0.04)` : 'transparent',
               }}>
@@ -218,7 +226,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
                 <span style={{ fontSize: '14px', fontWeight: 700, color: isIncome ? theme.colors.success : theme.colors.textTertiary, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                   {isIncome ? `₹${row.amount.toLocaleString('en-IN')}` : '—'}
                 </span>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                   {isIncome ? (
                     onDeleteIncome && <button onClick={() => handleDelete(row)} className="btn btn-danger" style={{ padding: '6px 10px', fontSize: '11px' }}>Delete</button>
                   ) : (
