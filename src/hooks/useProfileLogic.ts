@@ -25,7 +25,7 @@ export function useProfileLogic() {
   const { getIncomeForMonth, deleteAllIncome } = useIncome();
   const { deleteAllImports } = useStatementImports();
   const { earnings: defaultEarnings, getEarningsForMonth, resetEarningsHistory } = useEarnings();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
 
   const [displayName, setDisplayName] = useState(
     user?.displayName || user?.email?.split('@')[0] || 'User'
@@ -186,6 +186,8 @@ export function useProfileLogic() {
     user,
     theme,
     toggleTheme,
+    colorTheme,
+    setColorTheme,
     defaultEarnings,
     stats,
     totalSavings,

@@ -65,7 +65,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <div
           style={{
             width: '52px', height: '52px', borderRadius: '16px', margin: '0 auto 16px auto',
-            background: danger ? 'rgba(239, 68, 68, 0.12)' : 'rgba(30, 64, 175, 0.12)',
+            background: danger ? 'rgba(239, 68, 68, 0.12)' : `rgba(${design.colors.primaryRgb}, 0.12)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px',
           }}
         >

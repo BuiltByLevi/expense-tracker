@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
+import { WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, RupeeIcon, AlertIcon, CalendarIcon, CardChip, ContactlessMark } from '../common/FinanceIcons';
 
 type GraphType = 'total' | 'monthly';
 
@@ -117,7 +118,7 @@ const DashboardMobile: React.FC = () => {
 
         {selectedMonthEarnings.status === 'estimated' && !isFuture && (
           <div className="glass-card animate-in" style={{ padding: '10px 12px', marginBottom: '10px', background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(251, 191, 36, 0.15) 100%)', border: `1px solid ${design.colors.warning}40`, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
+            <AlertIcon size={16} color={design.colors.warning} style={{ flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <p style={{ fontSize: '11px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Estimated earnings for {monthName}</p>
               <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: '1px 0 0 0' }}>Tap "Edit" to confirm the exact amount.</p>
@@ -127,7 +128,7 @@ const DashboardMobile: React.FC = () => {
 
         {isFuture && (
           <div className="glass-card animate-in" style={{ padding: '10px 12px', marginBottom: '10px', background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(251, 191, 36, 0.15) 100%)', border: `1px solid ${design.colors.warning}40`, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px', flexShrink: 0 }}>🔮</span>
+            <CalendarIcon size={16} color={design.colors.warning} style={{ flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <p style={{ fontSize: '11px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Future month — historical metrics not calculated</p>
             </div>
@@ -137,7 +138,7 @@ const DashboardMobile: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginBottom: '10px', width: '100%' }}>
           <StatCard
             compact
-            icon="💰"
+            icon={<WalletIcon size={12} />}
             label={<>Earnings {selectedMonthEarnings.status === 'estimated' && <span style={{ color: design.colors.warning }}>⚠</span>}</>}
             value={`₹${selectedMonthEarnings.amount.toLocaleString('en-IN')}`}
             hint={
@@ -146,10 +147,10 @@ const DashboardMobile: React.FC = () => {
               </button>
             }
           />
-          <StatCard compact icon="📉" label="Spending" value={`₹${monthTotal.toLocaleString('en-IN')}`} />
+          <StatCard compact icon={<TrendDownIcon size={12} />} label="Spending" value={`₹${monthTotal.toLocaleString('en-IN')}`} />
           <StatCard
             compact
-            icon="🔄"
+            icon={<ExchangeIcon size={12} />}
             label="Net Flow"
             value={`₹${monthNetCashFlow.toLocaleString('en-IN')}`}
             valueColor={monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger}
@@ -157,13 +158,24 @@ const DashboardMobile: React.FC = () => {
         </div>
 
         <div style={{ marginBottom: '10px' }}>
-          <StatCard
-            compact
-            icon="📊"
-            label="Cumulative Net Cash Flow"
-            value={isFuture ? '—' : `₹${financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}`}
-            valueColor={isFuture ? design.colors.textTertiary : financeTotals.cumulativeNetCashFlow > 0 ? design.colors.success : design.colors.textSecondary}
-          />
+          <div className="glass-card" style={{
+            padding: '12px 14px', minWidth: 0, overflow: 'hidden',
+            background: design.colors.primaryGradient, border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+                Net Balance · Cumulative
+              </p>
+              <p style={{ fontSize: '17px', fontWeight: 700, color: 'white', margin: '3px 0 0 0', fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isFuture ? '—' : `₹${financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}`}
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <CardChip width={26} />
+              <ContactlessMark size={16} />
+            </div>
+          </div>
         </div>
 
         {!isFuture && (
@@ -193,7 +205,7 @@ const DashboardMobile: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div className="glass-card" style={{ padding: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><RupeeIcon size={13} color={design.colors.primary} /> Quick Transaction</h3>
                 <span className="badge-pill" style={{ fontSize: '9px', padding: '2px 8px' }}>Instant Ledger Update</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '14px', paddingBottom: '12px', borderBottom: `1px solid ${design.colors.primary}12` }}>
@@ -217,9 +229,9 @@ const DashboardMobile: React.FC = () => {
             </div>
             <div className="glass-card" style={{ padding: '14px', maxHeight: '600px', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px', flexWrap: 'wrap', gap: '6px' }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>📒 Transaction History</h3>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><LedgerIcon size={13} color={design.colors.primary} /> Account Statement</h3>
                 <span style={{ fontSize: '11px', color: design.colors.textSecondary, fontWeight: 500 }}>
-                  {historyExpenses.length + historyIncome.length} items · {historyLabel}
+                  {historyExpenses.length + historyIncome.length} entries · {historyLabel}
                 </span>
               </div>
               <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: `1px solid ${design.colors.primary}12` }}>
@@ -301,11 +313,11 @@ const DashboardMobile: React.FC = () => {
                 <button onClick={() => setShowDebtDetails(false)} aria-label="Close" style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px' }}>×</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
-                <div style={{ textAlign: 'center', padding: '10px', background: 'rgba(20, 184, 166, 0.1)', borderRadius: '10px' }}>
+                <div style={{ textAlign: 'center', padding: '10px', background: `rgba(${design.colors.successRgb}, 0.1)`, borderRadius: '10px' }}>
                   <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>Net Positive</p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.success, margin: '4px 0 0 0' }}>₹{financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}</p>
                 </div>
-                <div style={{ textAlign: 'center', padding: '10px', background: hasDeficit ? 'rgba(239, 68, 68, 0.1)' : 'rgba(20, 184, 166, 0.1)', borderRadius: '10px' }}>
+                <div style={{ textAlign: 'center', padding: '10px', background: hasDeficit ? 'rgba(239, 68, 68, 0.1)' : `rgba(${design.colors.successRgb}, 0.1)`, borderRadius: '10px' }}>
                   <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>Deficit</p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: hasDeficit ? design.colors.danger : design.colors.success, margin: '4px 0 0 0' }}>₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}</p>
                 </div>

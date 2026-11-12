@@ -56,7 +56,7 @@ const EarningsHistoryPageMobile: React.FC<Props> = ({ onBack }) => {
 
             return (
               <div key={key} style={{
-                background: isSelected ? 'rgba(30, 64, 175, 0.08)' : isCurrentMonth ? 'rgba(30, 64, 175, 0.04)' : 'var(--glass-bg)',
+                background: isSelected ? `rgba(${design.colors.primaryRgb}, 0.08)` : isCurrentMonth ? `rgba(${design.colors.primaryRgb}, 0.04)` : 'var(--glass-bg)',
                 borderRadius: '16px', padding: '16px', border: '1px solid var(--glass-border)',
                 display: 'flex', flexDirection: 'column', gap: '12px',
                 opacity: imported ? 0.85 : 1,
@@ -124,7 +124,7 @@ const EarningsHistoryPageMobile: React.FC<Props> = ({ onBack }) => {
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => handleBulkStatus('confirmed')} disabled={bulkSaving} className="btn" style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: 600, background: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: '1px solid rgba(20, 184, 166, 0.3)', borderRadius: '10px' }}>✓ Confirm</button>
+            <button onClick={() => handleBulkStatus('confirmed')} disabled={bulkSaving} className="btn" style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: 600, background: `rgba(${design.colors.successRgb}, 0.15)`, color: design.colors.accentBright, border: `1px solid rgba(${design.colors.successRgb}, 0.3)`, borderRadius: '10px' }}>✓ Confirm</button>
             <button onClick={() => handleBulkStatus('estimated')} disabled={bulkSaving} className="btn" style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: 600, background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px' }}>⚠ Est</button>
           </div>
         </div>

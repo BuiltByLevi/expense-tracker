@@ -131,14 +131,23 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
             const color = isIncome ? (incomeCategoryColors[row.category] ?? theme.colors.success) : getCategoryColor(row.category);
             return (
               <div key={`${row.kind}-${row.id}`} style={{
-                background: isIncome ? 'rgba(20, 184, 166, 0.06)' : 'rgba(255,255,255,0.6)', borderRadius: '14px', padding: '14px', border: '1px solid rgba(0,0,0,0.04)',
+                background: isIncome ? `rgba(${theme.colors.successRgb}, 0.06)` : 'rgba(255,255,255,0.6)', borderRadius: '14px', padding: '14px', border: '1px solid rgba(0,0,0,0.04)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                   <span style={{ background: `${color}20`, color, padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
                     {row.category}
                   </span>
-                  <span style={{ fontWeight: 700, fontSize: '16px', color: isIncome ? theme.colors.success : theme.colors.textPrimary }}>
-                    {isIncome ? '+' : ''}₹{row.amount.toLocaleString('en-IN')}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      fontSize: '9px', fontWeight: 800, letterSpacing: '0.08em', padding: '2px 6px', borderRadius: '6px',
+                      color: isIncome ? theme.colors.success : theme.colors.danger,
+                      background: isIncome ? `rgba(${theme.colors.successRgb}, 0.12)` : 'rgba(239, 68, 68, 0.1)',
+                    }}>
+                      {isIncome ? 'CR' : 'DR'}
+                    </span>
+                    <span style={{ fontWeight: 700, fontSize: '16px', color: isIncome ? theme.colors.success : theme.colors.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
+                      {isIncome ? '+' : ''}₹{row.amount.toLocaleString('en-IN')}
+                    </span>
                   </span>
                 </div>
                 <p style={{ fontSize: '13px', color: theme.colors.textSecondary, margin: '0 0 10px 0' }}>
@@ -166,13 +175,14 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
       ) : (
         <div>
           <div style={{
-            display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', padding: '0 8px 10px 8px',
+            display: 'grid', gridTemplateColumns: '90px minmax(0, 1fr) minmax(0, 1.2fr) 110px 110px auto', gap: '14px', padding: '0 8px 10px 8px',
             borderBottom: `2px solid ${theme.colors.primary}20`,
           }}>
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date</span>
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Category</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Description</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'right' }}>Amount</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Particulars</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'right' }}>Debit</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'right' }}>Credit</span>
             <span style={{ fontSize: '10px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</span>
           </div>
           {filteredRows.map((row, idx) => {
@@ -180,11 +190,11 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
             const color = isIncome ? (incomeCategoryColors[row.category] ?? theme.colors.success) : getCategoryColor(row.category);
             return (
               <div key={`${row.kind}-${row.id}`} className="tx-row" style={{
-                display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr) minmax(0, 1fr) auto auto', gap: '16px', alignItems: 'center', padding: '11px 8px',
+                display: 'grid', gridTemplateColumns: '90px minmax(0, 1fr) minmax(0, 1.2fr) 110px 110px auto', gap: '14px', alignItems: 'center', padding: '11px 8px',
                 borderBottom: idx < filteredRows.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                background: isIncome ? 'rgba(20, 184, 166, 0.04)' : 'transparent',
+                background: isIncome ? `rgba(${theme.colors.successRgb}, 0.04)` : 'transparent',
               }}>
-                <span style={{ fontSize: '13px', color: theme.colors.textSecondary, fontWeight: 500 }}>
+                <span style={{ fontSize: '13px', color: theme.colors.textSecondary, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
                   {format(row.date, 'dd MMM')}
                 </span>
                 <span style={{ background: `${color}20`, color, padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'inline-block', width: 'fit-content' }}>
@@ -199,8 +209,11 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
                 >
                   {row.description}
                 </span>
-                <span style={{ fontSize: '15px', fontWeight: 700, color: isIncome ? theme.colors.success : theme.colors.textPrimary, textAlign: 'right' }}>
-                  {isIncome ? '+' : ''}₹{row.amount.toLocaleString('en-IN')}
+                <span style={{ fontSize: '14px', fontWeight: 700, color: isIncome ? theme.colors.textTertiary : theme.colors.textPrimary, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {isIncome ? '—' : `₹${row.amount.toLocaleString('en-IN')}`}
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: isIncome ? theme.colors.success : theme.colors.textTertiary, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {isIncome ? `₹${row.amount.toLocaleString('en-IN')}` : '—'}
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {isIncome ? (

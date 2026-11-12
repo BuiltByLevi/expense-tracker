@@ -1,5 +1,6 @@
 import React from 'react';
 import { theme as design } from '../../styles/theme';
+import { Sparkline } from '../common/FinanceIcons';
 
 interface StatCardProps {
   label: React.ReactNode;
@@ -10,6 +11,11 @@ interface StatCardProps {
   compact?: boolean;
   accent?: boolean;
   danger?: boolean;
+  /** 4-6 recent monthly values rendered as a mini trend line next to the value. */
+  trend?: number[];
+  trendColor?: string;
+  /** Extra element (e.g. a MoM DeltaBadge) rendered after the hint. */
+  badge?: React.ReactNode;
   onClick?: () => void;
   'aria-label'?: string;
 }
@@ -27,6 +33,9 @@ const StatCard: React.FC<StatCardProps> = ({
   compact = false,
   accent = false,
   danger = false,
+  trend,
+  trendColor,
+  badge,
   onClick,
   'aria-label': ariaLabel,
 }) => {
@@ -59,6 +68,7 @@ const StatCard: React.FC<StatCardProps> = ({
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: compact ? 'center' : undefined,
           gap: '6px',
           fontSize: compact ? '11px' : '11px',
           fontWeight: 600,
@@ -71,33 +81,46 @@ const StatCard: React.FC<StatCardProps> = ({
           whiteSpace: 'nowrap',
         }}
       >
-        {icon && <span style={{ fontSize: compact ? '12px' : '14px' }}>{icon}</span>}
+        {icon && <span style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>}
         {label}
       </p>
-      <h2
-        style={{
-          fontSize: compact ? '15px' : '22px',
-          fontWeight: 700,
-          color: valueOnColor,
-          margin: compact ? '6px 0 0 0' : '8px 0 0 0',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        {value}
-      </h2>
-      {hint && (
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: compact ? 'center' : 'space-between', gap: '10px', minWidth: 0 }}>
+        <h2
+          style={{
+            fontSize: compact ? '15px' : '22px',
+            fontWeight: 700,
+            color: valueOnColor,
+            margin: compact ? '6px 0 0 0' : '8px 0 0 0',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            letterSpacing: '-0.01em',
+            fontVariantNumeric: 'tabular-nums',
+            minWidth: 0,
+          }}
+        >
+          {value}
+        </h2>
+        {trend && trend.length >= 2 && !compact && (
+          <Sparkline data={trend} color={trendColor || valueOnColor} />
+        )}
+      </div>
+      {(hint || badge) && (
         <p
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: compact ? 'center' : undefined,
+            gap: '8px',
             fontSize: compact ? '11px' : '11px',
             color: onColor,
             margin: '6px 0 0 0',
             fontWeight: 500,
+            flexWrap: 'wrap',
           }}
         >
           {hint}
+          {badge}
         </p>
       )}
     </div>

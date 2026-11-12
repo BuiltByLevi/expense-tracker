@@ -22,6 +22,11 @@ import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
+import {
+  WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, ChartLineIcon,
+  PieIcon, RupeeIcon, AlertIcon, CheckCircleIcon, CalendarIcon,
+  CardChip, ContactlessMark, DeltaBadge,
+} from '../common/FinanceIcons';
 
 type GraphType = 'total' | 'monthly';
 
@@ -45,6 +50,13 @@ const DashboardWeb: React.FC = () => {
   const [quote] = useState(() => getDailyQuote(FINANCIAL_QUOTES));
 
   const monthName = format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
+
+  // Presentation-only: last ≤6 months of existing summary data feeds the KPI
+  // sparklines and month-over-month badges. No new financial derivation.
+  const summaries = financeTotals.monthlySummaries;
+  const selIdx = summaries.findIndex(m => m.year === selectedYear && m.month === selectedMonth);
+  const trendWindow = selIdx >= 0 ? summaries.slice(Math.max(0, selIdx - 5), selIdx + 1) : summaries.slice(-6);
+  const prevSummary = selIdx > 0 ? summaries[selIdx - 1] : undefined;
 
   if (showEarningsPage) {
     return <EarningsHistoryPage onBack={() => setShowEarningsPage(false)} />;
@@ -93,10 +105,10 @@ const DashboardWeb: React.FC = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button onClick={() => setShowLedgerPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              📄 Statement
+              <LedgerIcon size={15} /> Statement
             </button>
             <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', color: design.colors.success }}>
-              💹 Manage Earnings
+              <ChartLineIcon size={15} /> Manage Earnings
             </button>
             <ProfileMenu
               name={user?.email?.split('@')[0] || 'User'}
@@ -122,8 +134,8 @@ const DashboardWeb: React.FC = () => {
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
             border: `1px solid ${design.colors.warning}30`,
           }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: design.colors.warning, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: 'white', flexShrink: 0 }}>
-              ⚠️
+            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: design.colors.warning, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+              <AlertIcon size={20} color="white" />
             </div>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
@@ -143,8 +155,8 @@ const DashboardWeb: React.FC = () => {
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
             border: `1px solid ${design.colors.warning}30`,
           }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: design.colors.warning, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: 'white', flexShrink: 0 }}>
-              🔮
+            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: design.colors.warning, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+              <CalendarIcon size={20} color="white" />
             </div>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
@@ -161,7 +173,7 @@ const DashboardWeb: React.FC = () => {
         <div className="kpi-grid" style={{ marginBottom: '20px' }}>
           <div className="animate-in animate-in-delay-1">
             <StatCard
-              icon="💰"
+              icon={<WalletIcon size={14} />}
               label={
                 <>
                   Monthly Earnings
@@ -170,6 +182,9 @@ const DashboardWeb: React.FC = () => {
                 </>
               }
               value={`₹${selectedMonthEarnings.amount.toLocaleString('en-IN')}`}
+              trend={trendWindow.map(m => m.earnings)}
+              trendColor={design.colors.success}
+              badge={prevSummary && <DeltaBadge current={selectedMonthEarnings.amount} previous={prevSummary.earnings} />}
               hint={
                 <button
                   onClick={() => setShowEarningsModal(true)}
@@ -183,31 +198,55 @@ const DashboardWeb: React.FC = () => {
 
           <div className="animate-in animate-in-delay-1">
             <StatCard
-              icon="📉"
+              icon={<TrendDownIcon size={14} />}
               label="Monthly Spending"
               value={`₹${monthTotal.toLocaleString('en-IN')}`}
+              trend={trendWindow.map(m => m.spent)}
+              trendColor={design.colors.danger}
+              badge={prevSummary && <DeltaBadge current={monthTotal} previous={prevSummary.spent} goodWhenDown />}
               hint={`${monthExpenses.length} transactions`}
             />
           </div>
 
           <div className="animate-in animate-in-delay-2">
             <StatCard
-              icon="🔄"
+              icon={<ExchangeIcon size={14} />}
               label="Monthly Net Cash Flow"
               value={`₹${monthNetCashFlow.toLocaleString('en-IN')}`}
               valueColor={monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger}
+              trend={trendWindow.map(m => m.monthBalance)}
+              trendColor={monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger}
               hint={monthNetCashFlow >= 0 ? 'All credits − Spending' : 'Overspent this month'}
             />
           </div>
 
+          {/* Bank-card styled running balance */}
           <div className="animate-in animate-in-delay-2">
-            <StatCard
-              icon="📊"
-              label="Cumulative Net Cash Flow"
-              value={isFuture ? '—' : `₹${financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}`}
-              valueColor={isFuture ? design.colors.textTertiary : financeTotals.cumulativeNetCashFlow > 0 ? design.colors.success : design.colors.textSecondary}
-              hint={isFuture ? 'Not calculated for future' : 'Running balance since first expense'}
-            />
+            <div className="glass-card" style={{
+              padding: '16px 20px', height: '100%', minWidth: 0, overflow: 'hidden',
+              background: design.colors.primaryGradient, border: 'none',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px',
+              boxSizing: 'border-box',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <CardChip width={30} />
+                <ContactlessMark size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+                  Net Balance · Cumulative
+                </p>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'white', margin: '4px 0 0 0', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {isFuture ? '—' : `₹${financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}`}
+                </h2>
+                <p style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.75)', margin: '5px 0 0 0', fontWeight: 500, flexWrap: 'wrap' }}>
+                  {isFuture ? 'Not calculated for future' : 'Running balance since first expense'}
+                  {!isFuture && prevSummary && (
+                    <DeltaBadge current={financeTotals.cumulativeNetCashFlow} previous={prevSummary.runningBalance} light />
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -218,9 +257,9 @@ const DashboardWeb: React.FC = () => {
               <div style={{
                 width: '40px', height: '40px', borderRadius: '12px',
                 background: hasDeficit ? design.colors.danger : design.colors.success,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: 'white', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0,
               }}>
-                {hasDeficit ? '⚠' : '✓'}
+                {hasDeficit ? <AlertIcon size={20} color="white" /> : <CheckCircleIcon size={20} color="white" />}
               </div>
               <div>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
@@ -251,7 +290,7 @@ const DashboardWeb: React.FC = () => {
                 <button onClick={() => setShowDebtDetails(false)} aria-label="Close" style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', color: design.colors.textSecondary }}>×</button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: 'rgba(30, 64, 175, 0.05)', borderRadius: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: `rgba(${design.colors.primaryRgb}, 0.05)`, borderRadius: '12px' }}>
                 <div style={{ textAlign: 'center' }}>
                   <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Earned</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.totalEarnings.toLocaleString('en-IN')}</p>
@@ -308,7 +347,9 @@ const DashboardWeb: React.FC = () => {
           <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Quick Transaction</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <RupeeIcon size={15} color={design.colors.primary} /> Quick Transaction
+                </h3>
                 <span className="badge-pill">Instant Ledger Update</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -336,7 +377,9 @@ const DashboardWeb: React.FC = () => {
 
           <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Expense Allocation</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <PieIcon size={15} color={design.colors.primary} /> Expense Allocation
+              </h3>
               <div className="tab-container" style={{ padding: '3px' }}>
                 <button onClick={() => setActiveView('total')} className={`tab ${activeView === 'total' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>Total Expenses</button>
                 <button onClick={() => setActiveView('monthly')} className={`tab ${activeView === 'monthly' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>Monthly Expenses</button>
@@ -388,9 +431,11 @@ const DashboardWeb: React.FC = () => {
         {/* Transaction History */}
         <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '20px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>📒 Transaction History</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <LedgerIcon size={15} color={design.colors.primary} /> Account Statement
+            </h3>
             <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>
-              {historyExpenses.length + historyIncome.length} items · {historyLabel}
+              {historyExpenses.length + historyIncome.length} entries · {historyLabel}
             </span>
           </div>
           <div style={{ marginBottom: '14px', paddingBottom: '14px', borderBottom: `1px solid ${design.colors.primary}12` }}>

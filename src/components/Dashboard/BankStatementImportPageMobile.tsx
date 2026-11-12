@@ -96,7 +96,7 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
             </div>
 
             {salaryRowsTotal > 0 && (
-              <div className="glass-card animate-in" style={{ padding: '12px 14px', marginBottom: '12px', background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.08) 0%, rgba(30, 64, 175, 0.08) 100%)', border: `1px solid ${design.colors.success}30` }}>
+              <div className="glass-card animate-in" style={{ padding: '12px 14px', marginBottom: '12px', background: `linear-gradient(135deg, rgba(${design.colors.successRgb}, 0.08) 0%, rgba(${design.colors.primaryRgb}, 0.08) 100%)`, border: `1px solid ${design.colors.success}30` }}>
                 <p style={{ fontSize: '12px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
                   💰 ₹{salaryRowsTotal.toLocaleString('en-IN')} in salary-looking credits — included in Income below.
                 </p>
@@ -131,7 +131,7 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
                           </span>
                         )}
                         {row.uncertain && (
-                          <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'rgba(30, 64, 175, 0.15)', color: design.colors.primary, fontWeight: 600 }}>
+                          <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: `rgba(${design.colors.primaryRgb}, 0.15)`, color: design.colors.primary, fontWeight: 600 }}>
                             Review
                           </span>
                         )}
@@ -188,7 +188,7 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
                         </span>
                       )}
                       {row.uncertain && (
-                        <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'rgba(30, 64, 175, 0.15)', color: design.colors.primary, fontWeight: 600 }}>
+                        <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: `rgba(${design.colors.primaryRgb}, 0.15)`, color: design.colors.primary, fontWeight: 600 }}>
                           Review
                         </span>
                       )}

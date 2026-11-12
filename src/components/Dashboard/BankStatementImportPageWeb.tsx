@@ -116,7 +116,7 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
             </div>
 
             {salaryRowsTotal > 0 && (
-              <div className="glass-card animate-in" style={{ padding: '14px 24px', marginBottom: '16px', background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.08) 0%, rgba(30, 64, 175, 0.08) 100%)', border: `1px solid ${design.colors.success}30` }}>
+              <div className="glass-card animate-in" style={{ padding: '14px 24px', marginBottom: '16px', background: `linear-gradient(135deg, rgba(${design.colors.successRgb}, 0.08) 0%, rgba(${design.colors.primaryRgb}, 0.08) 100%)`, border: `1px solid ${design.colors.success}30` }}>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
                   💰 Detected ₹{salaryRowsTotal.toLocaleString('en-IN')} in salary-looking credits — included in the Income list below.
                 </p>
@@ -148,7 +148,7 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(20, 184, 166, 0.04)' }}>
+                      <tr style={{ background: `rgba(${design.colors.successRgb}, 0.04)` }}>
                         <th style={{ padding: '10px 12px 10px 24px', width: '32px' }}>
                           <input type="checkbox" aria-label="Select all income" checked={allCreditsSelected} onChange={(e) => toggleSelectAllByType('credit', e.target.checked)} />
                         </th>
@@ -206,7 +206,7 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
                                 </span>
                               )}
                               {row.uncertain && (
-                                <span title={row.parseIssue ?? 'Low-confidence category'} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'rgba(30, 64, 175, 0.15)', color: design.colors.primary, fontWeight: 600 }}>
+                                <span title={row.parseIssue ?? 'Low-confidence category'} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: `rgba(${design.colors.primaryRgb}, 0.15)`, color: design.colors.primary, fontWeight: 600 }}>
                                   Review
                                 </span>
                               )}
@@ -292,7 +292,7 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
                               </span>
                             )}
                             {row.uncertain && (
-                              <span title={row.parseIssue ?? 'Low-confidence category'} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'rgba(30, 64, 175, 0.15)', color: design.colors.primary, fontWeight: 600 }}>
+                              <span title={row.parseIssue ?? 'Low-confidence category'} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: `rgba(${design.colors.primaryRgb}, 0.15)`, color: design.colors.primary, fontWeight: 600 }}>
                                 Review
                               </span>
                             )}

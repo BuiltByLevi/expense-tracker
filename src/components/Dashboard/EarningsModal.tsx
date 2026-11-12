@@ -75,7 +75,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
             </button>
           </div>
 
-          <div style={{ marginBottom: '16px', padding: '14px 16px', background: 'rgba(20, 184, 166, 0.08)', border: `1px solid ${theme.colors.success}30`, borderRadius: '12px' }}>
+          <div style={{ marginBottom: '16px', padding: '14px 16px', background: `rgba(${theme.colors.successRgb}, 0.08)`, border: `1px solid ${theme.colors.success}30`, borderRadius: '12px' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: theme.colors.textPrimary, margin: 0 }}>
               ₹{derived.amount.toLocaleString('en-IN')} earned this month
             </p>
@@ -86,7 +86,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '180px', overflowY: 'auto' }}>
             {derived.countedEntries.map((entry) => (
-              <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px', padding: '8px 10px', background: 'rgba(20, 184, 166, 0.06)', borderRadius: '8px' }}>
+              <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px', padding: '8px 10px', background: `rgba(${theme.colors.successRgb}, 0.06)`, borderRadius: '8px' }}>
                 <span style={{ color: theme.colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {format(entry.date, 'dd MMM')} · {entry.category} · {entry.description}
                 </span>
@@ -195,7 +195,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
             padding: '10px 12px',
             background: existingRecord.status === 'estimated'
               ? 'rgba(245, 158, 11, 0.1)'
-              : 'rgba(20, 184, 166, 0.1)',
+              : `rgba(${theme.colors.successRgb}, 0.1)`,
             borderRadius: '10px',
             fontSize: '12px',
             color: theme.colors.textSecondary,

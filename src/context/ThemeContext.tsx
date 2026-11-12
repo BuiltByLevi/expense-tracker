@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { applyColorTheme, type ColorTheme } from '../styles/theme';
 
 type Theme = 'light' | 'dark';
 
@@ -6,6 +7,8 @@ interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  colorTheme: ColorTheme;
+  setColorTheme: (colorTheme: ColorTheme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -26,17 +29,38 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return 'light';
   });
 
+  const [colorTheme, setColorThemeState] = useState<ColorTheme>(() => {
+    const saved = localStorage.getItem('colorTheme') as ColorTheme | null;
+    const initial = saved === 'original' ? 'original' : 'midnight';
+    // Mutates the static theme.colors tokens before the first render so
+    // inline styles are already in the chosen palette on initial paint.
+    applyColorTheme(initial);
+    return initial;
+  });
+
   useEffect(() => {
     // Apply to <html> so global CSS can react
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-color-theme', colorTheme);
+    localStorage.setItem('colorTheme', colorTheme);
+  }, [colorTheme]);
+
   const toggleTheme = () => setThemeState(prev => (prev === 'light' ? 'dark' : 'light'));
   const setTheme = (t: Theme) => setThemeState(t);
 
+  const setColorTheme = (ct: ColorTheme) => {
+    // Mutate tokens BEFORE the state change so the re-render it triggers
+    // already reads the new palette.
+    applyColorTheme(ct);
+    setColorThemeState(ct);
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, colorTheme, setColorTheme }}>
       {children}
     </ThemeContext.Provider>
   );

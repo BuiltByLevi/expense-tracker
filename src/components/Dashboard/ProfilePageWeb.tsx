@@ -1,6 +1,7 @@
 import React from 'react';
 import { theme as design } from '../../styles/theme';
 import { useProfileLogic } from '../../hooks/useProfileLogic';
+import { WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, GearIcon, LockIcon, AlertIcon } from '../common/FinanceIcons';
 
 interface Props {
   onBack: () => void;
@@ -8,7 +9,7 @@ interface Props {
 
 const ProfilePage: React.FC<Props> = ({ onBack }) => {
   const {
-    user, theme, toggleTheme, defaultEarnings, stats, totalSavings, initials,
+    user, theme, toggleTheme, colorTheme, setColorTheme, defaultEarnings, stats, totalSavings, initials,
     displayName, setDisplayName, savingName, handleSaveName,
     uploadingPhoto, fileInputRef, handlePhotoUpload,
     handleChangePassword, handleLogout, handleDeleteData, deletingData, handleDeleteAccount,
@@ -40,7 +41,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
         <div className="glass-card animate-in animate-in-delay-1" style={{
           display: 'flex', alignItems: 'center', gap: '24px',
           padding: '32px', marginBottom: '20px',
-          background: 'linear-gradient(135deg, rgba(30, 64, 175, 0.08) 0%, rgba(45, 212, 191, 0.08) 100%)',
+          background: `linear-gradient(135deg, rgba(${design.colors.primaryRgb}, 0.08) 0%, rgba(${design.colors.accentBrightRgb}, 0.08) 100%)`,
           border: `1px solid ${design.colors.primary}20`,
         }}>
 
@@ -48,10 +49,10 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
               width: '100px', height: '100px', borderRadius: '50%',
-              background: user?.photoURL ? `url(${user.photoURL}) center/cover` : 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
+              background: user?.photoURL ? `url(${user.photoURL}) center/cover` : design.colors.primaryGradient,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '36px', fontWeight: 700, color: 'white',
-              boxShadow: '0 8px 24px rgba(30, 64, 175, 0.35)',
+              boxShadow: `0 8px 24px rgba(${design.colors.primaryRgb}, 0.35)`,
               overflow: 'hidden',
             }}>
               {!user?.photoURL && initials}
@@ -91,10 +92,10 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
               {user?.email}
             </p>
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(20, 184, 166, 0.1)', color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', padding: '4px 10px', background: `rgba(${design.colors.successRgb}, 0.1)`, color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}>
                 ✓ Verified Account
               </span>
-              <span style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(30, 64, 175, 0.1)', color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', padding: '4px 10px', background: `rgba(${design.colors.primaryRgb}, 0.1)`, color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}>
                 📅 Member since {stats.memberSince}
               </span>
             </div>
@@ -104,7 +105,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
         {/* Profile Statistics */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
           <div className="glass-card animate-in animate-in-delay-1" style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', marginBottom: '8px' }}>💰</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><WalletIcon size={26} color={design.colors.primary} /></div>
             <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
               Total Tracked
             </p>
@@ -114,7 +115,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
           </div>
 
           <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', marginBottom: '8px' }}>📊</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><ChartLineIcon size={26} color={design.colors.primary} /></div>
             <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
               Transactions
             </p>
@@ -124,7 +125,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
           </div>
 
           <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', marginBottom: '8px' }}>🗓️</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><CalendarIcon size={26} color={design.colors.primary} /></div>
             <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
               Months Tracked
             </p>
@@ -134,7 +135,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
           </div>
 
           <div className="glass-card animate-in animate-in-delay-4" style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', marginBottom: '8px' }}>⚡</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><SavingsIcon size={26} color={design.colors.success} /></div>
             <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
               Total Savings
             </p>
@@ -147,7 +148,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
         {/* Personal Information */}
         <div className="glass-card animate-in animate-in-delay-2" style={{ padding: '24px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>👤</span> Personal Information
+            <UserIcon size={16} color={design.colors.primary} /> Personal Information
           </h3>
 
           <div style={{ marginBottom: '16px' }}>
@@ -189,8 +190,45 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
         {/* Preferences */}
         <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>⚙️</span> Preferences
+            <GearIcon size={16} color={design.colors.primary} /> Preferences
           </h3>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${design.colors.textTertiary}20` }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: design.colors.textPrimary, margin: 0 }}>
+                Theme
+              </p>
+              <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>
+                {colorTheme === 'original' ? 'Original Indigo & Violet' : 'Midnight Blue & Teal'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {([
+                { id: 'midnight', label: 'Midnight Teal', swatch: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)' },
+                { id: 'original', label: 'Original Indigo', swatch: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setColorTheme(opt.id)}
+                  className="btn btn-ghost"
+                  style={{
+                    padding: '8px 14px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    border: colorTheme === opt.id
+                      ? `2px solid ${design.colors.primary}`
+                      : '2px solid transparent',
+                    fontWeight: colorTheme === opt.id ? 700 : 500,
+                  }}
+                >
+                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: opt.swatch, flexShrink: 0 }} />
+                  {opt.label}
+                  {colorTheme === opt.id && <span style={{ fontSize: '11px' }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${design.colors.textTertiary}20` }}>
             <div>
@@ -235,7 +273,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
         {/* Security */}
         <div className="glass-card animate-in animate-in-delay-4" style={{ padding: '24px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>🔒</span> Security
+            <LockIcon size={16} color={design.colors.primary} /> Security
           </h3>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${design.colors.textTertiary}20` }}>
@@ -270,7 +308,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
         {/* Danger Zone */}
         <div className="glass-card animate-in" style={{ padding: '24px', border: `1px solid ${design.colors.danger}30`, background: 'rgba(239, 68, 68, 0.03)' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.danger, margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>⚠️</span> Danger Zone
+            <AlertIcon size={16} color={design.colors.danger} /> Danger Zone
           </h3>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${design.colors.danger}20` }}>

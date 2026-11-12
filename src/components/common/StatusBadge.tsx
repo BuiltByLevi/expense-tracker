@@ -9,7 +9,7 @@ interface StatusBadgeProps {
 }
 
 const STATUS_CONFIG: Record<EarningsStatus, { label: string; color: string; bg: string }> = {
-  confirmed: { label: '✓ Confirmed', color: design.colors.success, bg: 'rgba(20, 184, 166, 0.1)' },
+  confirmed: { label: '✓ Confirmed', color: design.colors.success, bg: `rgba(${design.colors.successRgb}, 0.1)` },
   estimated: { label: '⚠ Estimated', color: design.colors.warning, bg: 'rgba(245, 158, 11, 0.1)' },
   missing: { label: 'Default', color: design.colors.textSecondary, bg: 'rgba(0,0,0,0.05)' },
 };

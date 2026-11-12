@@ -838,3 +838,204 @@ body::after {
   background: linear-gradient(90deg, transparent, rgba(30, 64, 175, 0.15), transparent);
   margin: 16px 0;
 }
+
+/* ============ ORIGINAL THEME (Indigo & Violet) ============ */
+/* Selected via Profile → Preferences → Theme. Appended last so these
+   override the Midnight Blue & Teal defaults at equal-or-higher specificity. */
+
+[data-color-theme='original'] {
+  --bg-grad-1: #e0e7ff;
+  --bg-grad-2: #f0fdf4;
+  --bg-grad-3: #fef3c7;
+  --aurora-1: rgba(139, 92, 246, 0.15);
+  --aurora-2: rgba(16, 185, 129, 0.12);
+  --aurora-3: rgba(251, 191, 36, 0.1);
+
+  --glass-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+  --glass-shadow-hover: 0 12px 40px rgba(99, 102, 241, 0.15);
+
+  --scrollbar-thumb: rgba(99, 102, 241, 0.3);
+  --scrollbar-thumb-hover: rgba(99, 102, 241, 0.5);
+
+  --primary: #6366f1;
+  --teal: #8b5cf6;
+  --success: #10b981;
+}
+
+[data-theme='dark'][data-color-theme='original'] {
+  --bg-grad-1: #0a0e1a;
+  --bg-grad-2: #14172e;
+  --bg-grad-3: #0f1420;
+
+  --aurora-1: rgba(139, 92, 246, 0.35);
+  --aurora-2: rgba(16, 185, 129, 0.22);
+  --aurora-3: rgba(59, 130, 246, 0.28);
+
+  --glass-bg: rgba(30, 41, 59, 0.55);
+  --glass-bg-hover: rgba(45, 55, 80, 0.75);
+  --glass-shadow-hover: 0 12px 40px rgba(139, 92, 246, 0.25), 0 0 0 1px rgba(139, 92, 246, 0.2) inset;
+
+  --input-bg: rgba(15, 23, 42, 0.7);
+  --input-bg-focus: rgba(15, 23, 42, 0.95);
+
+  --scrollbar-thumb: rgba(139, 92, 246, 0.5);
+  --scrollbar-thumb-hover: rgba(139, 92, 246, 0.8);
+
+  --modal-bg: rgba(20, 25, 42, 0.95);
+  --modal-border: rgba(139, 92, 246, 0.15);
+
+  --primary: #818cf8;
+  --teal: #a78bfa;
+  --success: #34d399;
+}
+
+[data-theme='dark'][data-color-theme='original'] .glass-card {
+  background: linear-gradient(
+    180deg,
+    rgba(45, 55, 80, 0.55) 0%,
+    rgba(30, 41, 59, 0.5) 100%
+  );
+}
+
+[data-theme='dark'][data-color-theme='original'] .glass-card::before {
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.4), transparent);
+}
+
+[data-theme='dark'][data-color-theme='original'] .glass-card:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(55, 65, 95, 0.75) 0%,
+    rgba(40, 50, 75, 0.7) 100%
+  );
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.25), 0 0 0 1px rgba(139, 92, 246, 0.2) inset;
+}
+
+[data-color-theme='original'] .btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+
+[data-color-theme='original'] .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+}
+
+[data-color-theme='original'] .btn-ghost:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+[data-theme='dark'][data-color-theme='original'] .btn-primary {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.45), 0 0 20px rgba(139, 92, 246, 0.15);
+}
+
+[data-theme='dark'][data-color-theme='original'] .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.6), 0 0 30px rgba(139, 92, 246, 0.25);
+}
+
+[data-theme='dark'][data-color-theme='original'] .btn-ghost {
+  background: rgba(45, 55, 80, 0.5);
+}
+
+[data-theme='dark'][data-color-theme='original'] .btn-ghost:hover {
+  background: rgba(60, 70, 100, 0.7);
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+}
+
+[data-color-theme='original'] .input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+[data-theme='dark'][data-color-theme='original'] .input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), 0 0 20px rgba(139, 92, 246, 0.1);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+[data-color-theme='original'] .tab.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+[data-theme='dark'][data-color-theme='original'] .tab-container {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+[data-theme='dark'][data-color-theme='original'] .tab.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5), 0 0 12px rgba(139, 92, 246, 0.2);
+}
+
+[data-theme='dark'][data-color-theme='original'] .modal-content {
+  background: linear-gradient(
+    180deg,
+    rgba(30, 41, 59, 0.98) 0%,
+    rgba(20, 25, 42, 0.98) 100%
+  );
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 92, 246, 0.15) inset;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+[data-theme='dark'][data-color-theme='original'] .kpi-value {
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.15);
+}
+
+[data-color-theme='original'] .theme-toggle:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+[data-theme='dark'][data-color-theme='original'] .theme-toggle {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+}
+
+[data-theme='dark'][data-color-theme='original'] .theme-toggle:hover {
+  background: rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+}
+
+[data-color-theme='original'] .badge-pill {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+[data-color-theme='original'] .icon-box {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+[data-color-theme='original'] .switch input:checked + .switch-track {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+[data-color-theme='original'] .banner-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(52, 211, 153, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+[data-color-theme='original'] .tx-row:hover {
+  background: rgba(99, 102, 241, 0.06) !important;
+}
+
+[data-theme='dark'][data-color-theme='original'] .tx-row:hover {
+  background: rgba(139, 92, 246, 0.1) !important;
+}
+
+[data-color-theme='original'] .text-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme='dark'][data-color-theme='original'] .text-gradient {
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-color-theme='original'] .divider {
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.15), transparent);
+}

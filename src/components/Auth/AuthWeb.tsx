@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthForm } from '../../hooks/useAuthForm';
+import { theme } from '../../styles/theme';
 import LogoMark from '../common/LogoMark';
 import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
 
@@ -14,7 +15,7 @@ const AuthWeb: React.FC = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1e3a8a 0%, #0f766e 100%)',
+      background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.tealDark} 100%)`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -49,7 +50,7 @@ const AuthWeb: React.FC = () => {
       }}>
         {/* Left Side - Branding */}
         <div style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
+          background: theme.colors.primaryGradient,
           padding: '60px 48px',
           display: 'flex',
           flexDirection: 'column',
@@ -79,7 +80,7 @@ const AuthWeb: React.FC = () => {
             <span style={{
               fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
               padding: '3px 10px', borderRadius: '999px',
-              background: 'rgba(20, 184, 166, 0.25)', border: '1px solid rgba(20, 184, 166, 0.5)',
+              background: `rgba(${theme.colors.successRgb}, 0.25)`, border: `1px solid rgba(${theme.colors.successRgb}, 0.5)`,
             }}>Pro Expense Tracker</span>
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 16px 0', lineHeight: 1.3, opacity: 0.95 }}>
@@ -134,7 +135,7 @@ const AuthWeb: React.FC = () => {
                   outline: 'none', boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
-                onFocus={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#1e3a8a'; }}
+                onFocus={(e) => { if (!errors.email) e.currentTarget.style.borderColor = theme.colors.primary; }}
                 onBlur={(e) => { if (!errors.email) e.currentTarget.style.borderColor = '#e2e8f0'; }}
               />
               {errors.email && <p style={{ fontSize: '12px', color: '#ef4444', margin: '6px 0 0 0' }}>{errors.email}</p>}
@@ -156,7 +157,7 @@ const AuthWeb: React.FC = () => {
                   outline: 'none', boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
-                onFocus={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#1e3a8a'; }}
+                onFocus={(e) => { if (!errors.password) e.currentTarget.style.borderColor = theme.colors.primary; }}
                 onBlur={(e) => { if (!errors.password) e.currentTarget.style.borderColor = '#e2e8f0'; }}
               />
               {errors.password && <p style={{ fontSize: '12px', color: '#ef4444', margin: '6px 0 0 0' }}>{errors.password}</p>}
@@ -179,7 +180,7 @@ const AuthWeb: React.FC = () => {
                     outline: 'none', boxSizing: 'border-box',
                     transition: 'all 0.2s ease',
                   }}
-                  onFocus={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#1e3a8a'; }}
+                  onFocus={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = theme.colors.primary; }}
                   onBlur={(e) => { if (!errors.confirm) e.currentTarget.style.borderColor = '#e2e8f0'; }}
                 />
                 {errors.confirm && <p style={{ fontSize: '12px', color: '#ef4444', margin: '6px 0 0 0' }}>{errors.confirm}</p>}
@@ -191,11 +192,11 @@ const AuthWeb: React.FC = () => {
               disabled={loading}
               style={{
                 width: '100%', padding: '16px',
-                background: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)',
+                background: theme.colors.primaryGradient,
                 color: 'white', border: 'none', borderRadius: '12px',
                 fontSize: '15px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.7 : 1, transition: 'all 0.2s ease',
-                boxShadow: '0 4px 16px rgba(30, 64, 175, 0.3)',
+                boxShadow: `0 4px 16px rgba(${theme.colors.primaryRgb}, 0.3)`,
               }}
               onMouseEnter={(e) => { if (!loading) e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
@@ -210,7 +211,7 @@ const AuthWeb: React.FC = () => {
               <button
                 onClick={toggleMode}
                 style={{
-                  background: 'none', border: 'none', color: '#1e3a8a',
+                  background: 'none', border: 'none', color: theme.colors.primary,
                   fontWeight: 700, cursor: 'pointer', fontSize: '14px', padding: 0,
                 }}
               >
