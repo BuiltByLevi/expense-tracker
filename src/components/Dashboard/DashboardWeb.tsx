@@ -173,7 +173,8 @@ const DashboardWeb: React.FC = () => {
         <div className="kpi-grid" style={{ marginBottom: '20px' }}>
           <div className="animate-in animate-in-delay-1">
             <StatCard
-              icon={<WalletIcon size={14} />}
+              icon={<WalletIcon size={17} />}
+              wellColor={design.colors.success}
               label={
                 <>
                   Monthly Earnings
@@ -198,7 +199,8 @@ const DashboardWeb: React.FC = () => {
 
           <div className="animate-in animate-in-delay-1">
             <StatCard
-              icon={<TrendDownIcon size={14} />}
+              icon={<TrendDownIcon size={17} />}
+              wellColor={design.colors.danger}
               label="Monthly Spending"
               value={`₹${monthTotal.toLocaleString('en-IN')}`}
               trend={trendWindow.map(m => m.spent)}
@@ -210,7 +212,8 @@ const DashboardWeb: React.FC = () => {
 
           <div className="animate-in animate-in-delay-2">
             <StatCard
-              icon={<ExchangeIcon size={14} />}
+              icon={<ExchangeIcon size={17} />}
+              wellColor={monthNetCashFlow >= 0 ? design.colors.primary : design.colors.danger}
               label="Monthly Net Cash Flow"
               value={`₹${monthNetCashFlow.toLocaleString('en-IN')}`}
               valueColor={monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger}

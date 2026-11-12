@@ -8,6 +8,8 @@ interface StatCardProps {
   hint?: React.ReactNode;
   valueColor?: string;
   icon?: React.ReactNode;
+  /** Accent hex for the icon well and corner watermark (full-size cards). */
+  wellColor?: string;
   compact?: boolean;
   accent?: boolean;
   danger?: boolean;
@@ -30,6 +32,7 @@ const StatCard: React.FC<StatCardProps> = ({
   hint,
   valueColor,
   icon,
+  wellColor,
   compact = false,
   accent = false,
   danger = false,
@@ -47,6 +50,61 @@ const StatCard: React.FC<StatCardProps> = ({
   const onColor = (danger || accent) ? 'rgba(255,255,255,0.85)' : design.colors.textSecondary;
   const valueOnColor = (danger || accent) ? 'white' : (valueColor || design.colors.textPrimary);
 
+  if (compact) {
+    return (
+      <div
+        className="glass-card"
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        aria-label={ariaLabel}
+        style={{
+          padding: '12px 10px',
+          textAlign: 'center',
+          cursor: onClick ? 'pointer' : undefined,
+          background,
+          border: background ? 'none' : undefined,
+          minWidth: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <p style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          fontSize: '11px', fontWeight: 600, color: onColor,
+          textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {icon && <span style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>}
+          {label}
+        </p>
+        <h2 style={{
+          fontSize: '15px', fontWeight: 700, color: valueOnColor, margin: '6px 0 0 0',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', minWidth: 0,
+        }}>
+          {value}
+        </h2>
+        {(hint || badge) && (
+          <p style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            fontSize: '11px', color: onColor, margin: '6px 0 0 0', fontWeight: 500, flexWrap: 'wrap',
+          }}>
+            {hint}
+            {badge}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // Full-size cards mirror the bank-card KPI: icon well + sparkline on the
+  // top row, label/value/hint anchored to the bottom, a faint oversized icon
+  // as a corner watermark, and height:100% so grid rows stay even.
+  const onDark = danger || accent;
+  const well = wellColor || design.colors.primary;
+  const wellBg = onDark ? 'rgba(255,255,255,0.2)' : `${well}1F`;
+  const iconColor = onDark ? 'white' : well;
+
   return (
     <div
       className="glass-card"
@@ -55,74 +113,67 @@ const StatCard: React.FC<StatCardProps> = ({
       tabIndex={onClick ? 0 : undefined}
       aria-label={ariaLabel}
       style={{
-        padding: compact ? '12px 10px' : '20px',
-        textAlign: compact ? 'center' : undefined,
+        padding: '16px 20px',
+        height: '100%',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '12px',
         cursor: onClick ? 'pointer' : undefined,
         background,
         border: background ? 'none' : undefined,
         minWidth: 0,
         overflow: 'hidden',
+        position: 'relative',
       }}
     >
-      <p
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: compact ? 'center' : undefined,
-          gap: '6px',
-          fontSize: compact ? '11px' : '11px',
-          fontWeight: 600,
-          color: onColor,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          margin: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {icon && <span style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>}
-        {label}
-      </p>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: compact ? 'center' : 'space-between', gap: '10px', minWidth: 0 }}>
-        <h2
-          style={{
-            fontSize: compact ? '15px' : '22px',
-            fontWeight: 700,
-            color: valueOnColor,
-            margin: compact ? '6px 0 0 0' : '8px 0 0 0',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            letterSpacing: '-0.01em',
-            fontVariantNumeric: 'tabular-nums',
-            minWidth: 0,
-          }}
-        >
-          {value}
-        </h2>
-        {trend && trend.length >= 2 && !compact && (
+      {React.isValidElement(icon) && (
+        <div aria-hidden="true" style={{
+          position: 'absolute', right: '-14px', bottom: '-18px',
+          color: iconColor, opacity: onDark ? 0.14 : 0.07, pointerEvents: 'none',
+        }}>
+          {React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>, { size: 92, strokeWidth: 1.4, color: undefined })}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+        <div style={{
+          width: '36px', height: '36px', borderRadius: '11px', flexShrink: 0,
+          background: wellBg, color: iconColor,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {icon}
+        </div>
+        {trend && trend.length >= 2 && (
           <Sparkline data={trend} color={trendColor || valueOnColor} />
         )}
       </div>
-      {(hint || badge) && (
-        <p
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: compact ? 'center' : undefined,
-            gap: '8px',
-            fontSize: compact ? '11px' : '11px',
-            color: onColor,
-            margin: '6px 0 0 0',
-            fontWeight: 500,
-            flexWrap: 'wrap',
-          }}
-        >
+
+      <div style={{ minWidth: 0, position: 'relative' }}>
+        <p style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          fontSize: '11px', fontWeight: 600, color: onColor,
+          textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {label}
+        </p>
+        <h2 style={{
+          fontSize: '22px', fontWeight: 700, color: valueOnColor, margin: '6px 0 0 0',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', minWidth: 0,
+        }}>
+          {value}
+        </h2>
+        <p style={{
+          display: 'flex', alignItems: 'center', gap: '8px', minHeight: '24px',
+          fontSize: '11px', color: onColor, margin: '5px 0 0 0', fontWeight: 500, flexWrap: 'wrap',
+        }}>
           {hint}
           {badge}
         </p>
-      )}
+      </div>
     </div>
   );
 };
