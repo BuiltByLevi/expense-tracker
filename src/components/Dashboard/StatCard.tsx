@@ -48,7 +48,9 @@ const StatCard: React.FC<StatCardProps> = ({
       ? design.colors.primaryGradient
       : undefined;
   const onColor = (danger || accent) ? 'rgba(255,255,255,0.85)' : design.colors.textSecondary;
-  const valueOnColor = (danger || accent) ? 'white' : (valueColor || design.colors.textPrimary);
+  const valueOnColor = (danger || accent)
+    ? (valueColor || 'white')
+    : (valueColor || design.colors.textPrimary);
 
   if (compact) {
     return (

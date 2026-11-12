@@ -173,23 +173,23 @@ const DashboardWeb: React.FC = () => {
         <div className="kpi-grid" style={{ marginBottom: '20px' }}>
           <div className="animate-in animate-in-delay-1">
             <StatCard
+              accent
               icon={<WalletIcon size={17} />}
-              wellColor={design.colors.success}
               label={
                 <>
                   Monthly Earnings
-                  {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', color: design.colors.warning, display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}><AlertIcon size={10} color={design.colors.warning} strokeWidth={2.5} /> EST</span>}
-                  {selectedMonthEarnings.status === 'missing' && <span style={{ marginLeft: '6px', color: design.colors.textTertiary }}>(default)</span>}
+                  {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', color: '#fde68a', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}><AlertIcon size={10} color="#fde68a" strokeWidth={2.5} /> EST</span>}
+                  {selectedMonthEarnings.status === 'missing' && <span style={{ marginLeft: '6px', color: 'rgba(255,255,255,0.65)' }}>(default)</span>}
                 </>
               }
               value={`₹${selectedMonthEarnings.amount.toLocaleString('en-IN')}`}
               trend={trendWindow.map(m => m.earnings)}
-              trendColor={design.colors.success}
-              badge={prevSummary && <DeltaBadge current={selectedMonthEarnings.amount} previous={prevSummary.earnings} />}
+              trendColor="rgba(255,255,255,0.9)"
+              badge={prevSummary && <DeltaBadge current={selectedMonthEarnings.amount} previous={prevSummary.earnings} light />}
               hint={
                 <button
                   onClick={() => setShowEarningsModal(true)}
-                  style={{ fontSize: '11px', padding: '3px 10px', background: `${design.colors.primary}15`, border: 'none', borderRadius: '8px', color: design.colors.primary, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ fontSize: '11px', padding: '3px 10px', background: 'rgba(255,255,255,0.22)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, cursor: 'pointer' }}
                 >
                   ✎ Edit
                 </button>
@@ -199,26 +199,26 @@ const DashboardWeb: React.FC = () => {
 
           <div className="animate-in animate-in-delay-1">
             <StatCard
+              accent
               icon={<TrendDownIcon size={17} />}
-              wellColor={design.colors.danger}
               label="Monthly Spending"
               value={`₹${monthTotal.toLocaleString('en-IN')}`}
               trend={trendWindow.map(m => m.spent)}
-              trendColor={design.colors.danger}
-              badge={prevSummary && <DeltaBadge current={monthTotal} previous={prevSummary.spent} goodWhenDown />}
+              trendColor="rgba(255,255,255,0.9)"
+              badge={prevSummary && <DeltaBadge current={monthTotal} previous={prevSummary.spent} goodWhenDown light />}
               hint={`${monthExpenses.length} transactions`}
             />
           </div>
 
           <div className="animate-in animate-in-delay-2">
             <StatCard
+              accent
               icon={<ExchangeIcon size={17} />}
-              wellColor={monthNetCashFlow >= 0 ? design.colors.primary : design.colors.danger}
               label="Monthly Net Cash Flow"
               value={`₹${monthNetCashFlow.toLocaleString('en-IN')}`}
-              valueColor={monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger}
+              valueColor={monthNetCashFlow >= 0 ? 'white' : '#fecaca'}
               trend={trendWindow.map(m => m.monthBalance)}
-              trendColor={monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger}
+              trendColor="rgba(255,255,255,0.9)"
               hint={monthNetCashFlow >= 0 ? 'All credits − Spending' : 'Overspent this month'}
             />
           </div>
