@@ -1,7 +1,7 @@
 import React from 'react';
 import { theme as design } from '../../styles/theme';
 import { useProfileLogic } from '../../hooks/useProfileLogic';
-import { WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, GearIcon, LockIcon, AlertIcon } from '../common/FinanceIcons';
+import { WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, GearIcon, LockIcon, AlertIcon, CameraIcon, MoonIcon, SunIcon, CheckIcon, ShieldCheckIcon } from '../common/FinanceIcons';
 
 interface Props {
   onBack: () => void;
@@ -72,7 +72,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
               }}
               title="Change profile picture"
             >
-              {uploadingPhoto ? '...' : '📷'}
+              {uploadingPhoto ? '...' : <CameraIcon size={15} color="white" />}
             </button>
 
             <input
@@ -92,11 +92,11 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
               {user?.email}
             </p>
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', padding: '4px 10px', background: `rgba(${design.colors.successRgb}, 0.1)`, color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}>
-                ✓ Verified Account
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', padding: '4px 10px', background: `rgba(${design.colors.successRgb}, 0.1)`, color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}>
+                <ShieldCheckIcon size={11} color={design.colors.success} /> Verified Account
               </span>
-              <span style={{ fontSize: '11px', padding: '4px 10px', background: `rgba(${design.colors.primaryRgb}, 0.1)`, color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}>
-                📅 Member since {stats.memberSince}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', padding: '4px 10px', background: `rgba(${design.colors.primaryRgb}, 0.1)`, color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}>
+                <CalendarIcon size={11} color={design.colors.primary} /> Member since {stats.memberSince}
               </span>
             </div>
           </div>
@@ -224,7 +224,7 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
                 >
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: opt.swatch, flexShrink: 0 }} />
                   {opt.label}
-                  {colorTheme === opt.id && <span style={{ fontSize: '11px' }}>✓</span>}
+                  {colorTheme === opt.id && <CheckIcon size={11} color={design.colors.primary} strokeWidth={2.5} />}
                 </button>
               ))}
             </div>
@@ -239,8 +239,10 @@ const ProfilePage: React.FC<Props> = ({ onBack }) => {
                 Currently using {theme} mode
               </p>
             </div>
-            <button onClick={toggleTheme} className="btn btn-ghost" style={{ padding: '8px 16px' }}>
-              {theme === 'light' ? '🌙 Switch to Dark' : '☀️ Switch to Light'}
+            <button onClick={toggleTheme} className="btn btn-ghost" style={{ padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              {theme === 'light'
+                ? <><MoonIcon size={13} /> Switch to Dark</>
+                : <><SunIcon size={13} /> Switch to Light</>}
             </button>
           </div>
 

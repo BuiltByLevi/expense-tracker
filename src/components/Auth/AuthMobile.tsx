@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuthForm } from '../../hooks/useAuthForm';
 import { theme } from '../../styles/theme';
 import LogoMark from '../common/LogoMark';
+import { LockIcon } from '../common/FinanceIcons';
 import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
 
 const AuthMobile: React.FC = () => {
@@ -169,6 +170,16 @@ const AuthMobile: React.FC = () => {
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>
           </p>
+        </div>
+
+        <div style={{
+          marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e2e8f0',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+        }}>
+          <LockIcon size={12} color="#94a3b8" />
+          <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>
+            Your data is encrypted in transit and at rest
+          </span>
         </div>
       </div>
     </div>

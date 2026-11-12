@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
+import { UploadIcon, AlertIcon, CheckCircleIcon, RupeeIcon } from '../common/FinanceIcons';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type ExpenseCategory, type IncomeCategory } from '../../types';
 import { useStatementImport } from '../../hooks/useStatementImport';
 
@@ -56,7 +57,13 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
             style={{ padding: '32px 16px', textAlign: 'center' }}
             onClick={() => fileInputRef.current?.click()}
           >
-            <div style={{ fontSize: '36px', marginBottom: '10px' }}>📄</div>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '18px', margin: '0 auto 14px auto',
+              background: `rgba(${design.colors.primaryRgb}, 0.1)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <UploadIcon size={28} color={design.colors.primary} strokeWidth={1.8} />
+            </div>
             <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Tap to choose a statement file</p>
             <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '8px 0 0 0' }}>
               .csv, .xlsx, .xls, or text-based .pdf — max 10MB. Scanned/image PDFs aren't supported yet.
@@ -79,7 +86,9 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
 
         {status === 'error' && (
           <div className="glass-card animate-in" style={{ padding: '24px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: design.colors.danger, margin: '0 0 8px 0' }}>⚠ Couldn't process this file</p>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: design.colors.danger, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <AlertIcon size={14} color={design.colors.danger} /> Couldn't process this file
+            </p>
             <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 0 16px 0' }}>{errorMessage}</p>
             <button onClick={reset} className="btn btn-primary" style={{ padding: '10px 20px', width: '100%' }}>Try another file</button>
           </div>
@@ -97,8 +106,8 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
 
             {salaryRowsTotal > 0 && (
               <div className="glass-card animate-in" style={{ padding: '12px 14px', marginBottom: '12px', background: `linear-gradient(135deg, rgba(${design.colors.successRgb}, 0.08) 0%, rgba(${design.colors.primaryRgb}, 0.08) 100%)`, border: `1px solid ${design.colors.success}30` }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-                  💰 ₹{salaryRowsTotal.toLocaleString('en-IN')} in salary-looking credits — included in Income below.
+                <p style={{ fontSize: '12px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <RupeeIcon size={13} color={design.colors.success} style={{ flexShrink: 0 }} /> ₹{salaryRowsTotal.toLocaleString('en-IN')} in salary-looking credits — included in Income below.
                 </p>
               </div>
             )}
@@ -238,7 +247,13 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
 
         {status === 'done' && importSummary && (
           <div className="glass-card animate-in" style={{ padding: '32px', textAlign: 'center' }}>
-            <div style={{ fontSize: '36px', marginBottom: '10px' }}>✅</div>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%', margin: '0 auto 14px auto',
+              background: `rgba(${design.colors.successRgb}, 0.12)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CheckCircleIcon size={30} color={design.colors.success} strokeWidth={1.8} />
+            </div>
             <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
               Imported {importSummary.imported} transaction{importSummary.imported === 1 ? '' : 's'}
             </p>

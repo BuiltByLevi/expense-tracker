@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { theme as design } from '../../styles/theme';
 import { useTransactionLedgerLogic } from '../../hooks/useTransactionLedgerLogic';
 import MonthYearPicker from '../common/MonthYearPicker';
+import { ClockIcon } from '../common/FinanceIcons';
 
 interface TransactionLedgerPageProps {
   onBack: () => void;
@@ -47,7 +48,7 @@ const TransactionLedgerPage: React.FC<TransactionLedgerPageProps> = ({ onBack })
 
         {isFutureMonth && (
           <div className="glass-card" style={{ padding: '12px', marginBottom: '16px', background: 'rgba(245, 158, 11, 0.1)', border: `1px solid ${design.colors.warning}30` }}>
-            <p style={{ fontSize: '12px', fontWeight: 700, margin: 0, color: design.colors.textPrimary }}>🔮 Future Month</p>
+            <p style={{ fontSize: '12px', fontWeight: 700, margin: 0, color: design.colors.textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}><ClockIcon size={13} color={design.colors.warning} /> Future Month</p>
             <p style={{ fontSize: '11px', margin: '2px 0 0 0', color: design.colors.textSecondary }}>Salary credits are not predicted.</p>
           </div>
         )}

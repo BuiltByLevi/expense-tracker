@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { theme, categoryColors, incomeCategoryColors } from '../../styles/theme';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import ConfirmDialog from '../common/ConfirmDialog';
+import { InboxIcon } from '../common/FinanceIcons';
 import { EMPTY_STATE_QUOTES, getRandomQuote } from '../../utils/quotes';
 
 interface ExpenseListProps {
@@ -81,7 +82,9 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, i
   if (rows.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '36px 20px', color: theme.colors.textTertiary }}>
-        <div style={{ fontSize: '36px', marginBottom: '10px' }}>📭</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+          <InboxIcon size={36} color={theme.colors.textTertiary} strokeWidth={1.5} />
+        </div>
         <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: theme.colors.textSecondary }}>{emptyStateLabel || 'No transactions yet for this month'}</p>
         <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Add one with Quick Transaction, or import a bank statement.</p>
         <p style={{ fontSize: '11px', fontStyle: 'italic', margin: '14px 0 0 0', opacity: 0.8 }}>“{emptyQuote.text}”</p>

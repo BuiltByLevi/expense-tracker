@@ -3,6 +3,7 @@ import { theme as design } from '../../styles/theme';
 import { format } from 'date-fns';
 import { useEarningsHistoryLogic } from '../../hooks/useEarningsHistoryLogic';
 import StatusBadge from '../common/StatusBadge';
+import { CheckIcon, AlertIcon } from '../common/FinanceIcons';
 
 interface Props {
   onBack: () => void;
@@ -124,8 +125,8 @@ const EarningsHistoryPageMobile: React.FC<Props> = ({ onBack }) => {
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => handleBulkStatus('confirmed')} disabled={bulkSaving} className="btn" style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: 600, background: `rgba(${design.colors.successRgb}, 0.15)`, color: design.colors.accentBright, border: `1px solid rgba(${design.colors.successRgb}, 0.3)`, borderRadius: '10px' }}>✓ Confirm</button>
-            <button onClick={() => handleBulkStatus('estimated')} disabled={bulkSaving} className="btn" style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: 600, background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px' }}>⚠ Est</button>
+            <button onClick={() => handleBulkStatus('confirmed')} disabled={bulkSaving} className="btn" style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: 600, background: `rgba(${design.colors.successRgb}, 0.15)`, color: design.colors.accentBright, border: `1px solid rgba(${design.colors.successRgb}, 0.3)`, borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><CheckIcon size={11} color={design.colors.accentBright} strokeWidth={2.5} /> Confirm</button>
+            <button onClick={() => handleBulkStatus('estimated')} disabled={bulkSaving} className="btn" style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: 600, background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><AlertIcon size={11} color="#fbbf24" strokeWidth={2.5} /> Est</button>
           </div>
         </div>
       )}

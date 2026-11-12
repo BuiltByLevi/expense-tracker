@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { theme as design } from '../../styles/theme';
+import { UserIcon, MoonIcon, LogoutIcon, ChevronDownIcon } from '../common/FinanceIcons';
 
 interface ProfileMenuProps {
   name: string;
@@ -50,7 +51,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ name, email, photoURL, theme,
           </div>
         )}
         <span style={{ fontSize: '13px', fontWeight: 600, color: design.colors.textPrimary }}>Profile</span>
-        <span style={{ fontSize: '10px', color: design.colors.textTertiary }}>{open ? '▲' : '▼'}</span>
+        <ChevronDownIcon size={12} color={design.colors.textTertiary} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
       </button>
 
       {open && (
@@ -61,11 +62,11 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ name, email, photoURL, theme,
           </div>
 
           <button className="dropdown-item" onClick={() => { setOpen(false); onViewProfile(); }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>👤 View Profile</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><UserIcon size={14} /> View Profile</span>
           </button>
 
           <div className="dropdown-item" style={{ cursor: 'default' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🌙 Dark Mode</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MoonIcon size={14} /> Dark Mode</span>
             <label className="switch">
               <input type="checkbox" checked={theme === 'dark'} onChange={onToggleTheme} aria-label="Toggle dark mode" />
               <span className="switch-track" />
@@ -73,7 +74,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ name, email, photoURL, theme,
           </div>
 
           <button className="dropdown-item danger" onClick={() => { setOpen(false); onLogout(); }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>⎋ Logout</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><LogoutIcon size={14} /> Logout</span>
           </button>
         </div>
       )}

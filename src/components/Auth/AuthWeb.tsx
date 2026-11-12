@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuthForm } from '../../hooks/useAuthForm';
 import { theme } from '../../styles/theme';
 import LogoMark from '../common/LogoMark';
+import { PieIcon, ChartLineIcon, SavingsIcon, ShieldCheckIcon, LockIcon, CardChip, ContactlessMark } from '../common/FinanceIcons';
 import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
 
 const AuthWeb: React.FC = () => {
@@ -58,11 +59,25 @@ const AuthWeb: React.FC = () => {
           color: 'white',
           position: 'relative',
         }}>
-          <div style={{
-            position: 'absolute', top: '30px', right: '30px',
-            fontSize: '48px', opacity: 0.2,
-          }}>💰</div>
-          
+          {/* Miniature debit-card mockup as the brand watermark */}
+          <div aria-hidden="true" style={{
+            position: 'absolute', top: '28px', right: '28px',
+            width: '150px', height: '92px', borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 100%)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            padding: '12px 14px', opacity: 0.85,
+            transform: 'rotate(6deg)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <CardChip width={26} />
+              <ContactlessMark size={16} />
+            </div>
+            <div style={{ fontSize: '11px', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.85)', fontVariantNumeric: 'tabular-nums' }}>
+              •••• •••• 2026
+            </div>
+          </div>
+
           <div style={{
             width: '72px', height: '72px', borderRadius: '20px',
             background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
@@ -91,10 +106,10 @@ const AuthWeb: React.FC = () => {
           </p>
 
           <div className="auth-features" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <FeatureItem icon="📊" text="Category-wise analytics" />
-            <FeatureItem icon="📈" text="Monthly & yearly reports" />
-            <FeatureItem icon="💰" text="Track earnings & savings" />
-            <FeatureItem icon="🔒" text="Secure cloud sync" />
+            <FeatureItem icon={<PieIcon size={19} color="white" />} text="Category-wise analytics" />
+            <FeatureItem icon={<ChartLineIcon size={19} color="white" />} text="Monthly & yearly reports" />
+            <FeatureItem icon={<SavingsIcon size={19} color="white" />} text="Track earnings & savings" />
+            <FeatureItem icon={<ShieldCheckIcon size={19} color="white" />} text="Secure cloud sync" />
           </div>
 
           <div style={{ marginTop: '40px', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
@@ -219,6 +234,16 @@ const AuthWeb: React.FC = () => {
               </button>
             </p>
           </div>
+
+          <div style={{
+            marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #e2e8f0',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          }}>
+            <LockIcon size={13} color="#94a3b8" />
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
+              Your data is encrypted in transit and at rest
+            </span>
+          </div>
         </div>
       </div>
 
@@ -232,7 +257,7 @@ const AuthWeb: React.FC = () => {
   );
 };
 
-const FeatureItem: React.FC<{ icon: string; text: string }> = ({ icon, text }) => (
+const FeatureItem: React.FC<{ icon: React.ReactNode; text: string }> = ({ icon, text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
     <div style={{
       width: '40px', height: '40px', borderRadius: '12px',

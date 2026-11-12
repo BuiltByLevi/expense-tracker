@@ -177,7 +177,7 @@ const DashboardWeb: React.FC = () => {
               label={
                 <>
                   Monthly Earnings
-                  {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', color: design.colors.warning }}>⚠ EST</span>}
+                  {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', color: design.colors.warning, display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}><AlertIcon size={10} color={design.colors.warning} strokeWidth={2.5} /> EST</span>}
                   {selectedMonthEarnings.status === 'missing' && <span style={{ marginLeft: '6px', color: design.colors.textTertiary }}>(default)</span>}
                 </>
               }
@@ -188,7 +188,7 @@ const DashboardWeb: React.FC = () => {
               hint={
                 <button
                   onClick={() => setShowEarningsModal(true)}
-                  style={{ fontSize: '11px', padding: '3px 10px', background: `${design.colors.primary}15`, border: 'none', borderRadius: '8px', color: design.colors.primaryDark, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ fontSize: '11px', padding: '3px 10px', background: `${design.colors.primary}15`, border: 'none', borderRadius: '8px', color: design.colors.primary, fontWeight: 600, cursor: 'pointer' }}
                 >
                   ✎ Edit
                 </button>

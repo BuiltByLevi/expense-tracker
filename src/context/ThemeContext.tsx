@@ -33,8 +33,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem('colorTheme') as ColorTheme | null;
     const initial = saved === 'original' ? 'original' : 'midnight';
     // Mutates the static theme.colors tokens before the first render so
-    // inline styles are already in the chosen palette on initial paint.
-    applyColorTheme(initial);
+    // inline styles are already in the chosen palette (and mode) on initial
+    // paint. `theme` is initialized by the useState above, so it is safe to
+    // read here.
+    applyColorTheme(initial, theme);
     return initial;
   });
 
@@ -49,13 +51,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('colorTheme', colorTheme);
   }, [colorTheme]);
 
-  const toggleTheme = () => setThemeState(prev => (prev === 'light' ? 'dark' : 'light'));
-  const setTheme = (t: Theme) => setThemeState(t);
+  // Mutate tokens BEFORE the state change so the re-render it triggers
+  // already reads the new palette/mode.
+  const toggleTheme = () => {
+    setThemeState(prev => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      applyColorTheme(colorTheme, next);
+      return next;
+    });
+  };
+  const setTheme = (t: Theme) => {
+    applyColorTheme(colorTheme, t);
+    setThemeState(t);
+  };
 
   const setColorTheme = (ct: ColorTheme) => {
-    // Mutate tokens BEFORE the state change so the re-render it triggers
-    // already reads the new palette.
-    applyColorTheme(ct);
+    applyColorTheme(ct, theme);
     setColorThemeState(ct);
   };
 

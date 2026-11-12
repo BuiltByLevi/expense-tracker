@@ -99,9 +99,18 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
-  background: #f8fafc;
   overflow-x: hidden;
   transition: color 0.3s ease;
+}
+
+/* Fallback ground color lives on <html> ONLY — body and #root must stay
+   transparent so the theme gradient painted by body::before shows through. */
+html {
+  background: #f8fafc;
+}
+
+html[data-theme='dark'] {
+  background: #0a0e1a;
 }
 
 /* ============ BACKGROUND MESH ============ */

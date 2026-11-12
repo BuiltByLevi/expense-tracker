@@ -1,6 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { theme as design } from '../../styles/theme';
+import { BankIcon } from '../common/FinanceIcons';
 import { useStatementImports } from '../../hooks/useStatementImports';
 
 interface Props {
@@ -22,9 +23,9 @@ const StatementUploadCard: React.FC<Props> = ({ onOpen }) => {
         <div style={{
           width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
           background: design.colors.primaryGradient, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: '20px',
+          justifyContent: 'center',
         }}>
-          🏦
+          <BankIcon size={22} color="white" />
         </div>
         <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>

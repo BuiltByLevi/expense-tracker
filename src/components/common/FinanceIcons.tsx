@@ -128,6 +128,101 @@ export const SavingsIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth
   </svg>
 );
 
+export const DocumentIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5Z" />
+    <path {...stroke(color, strokeWidth)} d="M14 3v5h5M9 13h6M9 17h4" />
+  </svg>
+);
+
+export const UploadIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M12 15V4m0 0L8 8m4-4 4 4" />
+    <path {...stroke(color, strokeWidth)} d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+  </svg>
+);
+
+export const CameraIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M4 8h2.5l1.5-2.5h8L17.5 8H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+    <circle {...stroke(color, strokeWidth)} cx="12" cy="13" r="3.2" />
+  </svg>
+);
+
+export const MoonIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" />
+  </svg>
+);
+
+export const SunIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <circle {...stroke(color, strokeWidth)} cx="12" cy="12" r="4" />
+    <path {...stroke(color, strokeWidth)} d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7 5.3 5.3" />
+  </svg>
+);
+
+export const ChevronDownIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+export const TrashIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M4 6h16M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6M6.5 6l1 14a1 1 0 0 0 1 .9h7a1 1 0 0 0 1-.9l1-14M10 10.5v6M14 10.5v6" />
+  </svg>
+);
+
+export const QuestionIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <circle {...stroke(color, strokeWidth)} cx="12" cy="12" r="9" />
+    <path {...stroke(color, strokeWidth)} d="M9.5 9.5a2.5 2.5 0 1 1 3.8 2.1c-.8.5-1.3 1-1.3 1.9v.5" />
+    <circle cx="12" cy="17" r="1" fill={color || 'currentColor'} stroke="none" />
+  </svg>
+);
+
+export const InfoIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <circle {...stroke(color, strokeWidth)} cx="12" cy="12" r="9" />
+    <path {...stroke(color, strokeWidth)} d="M12 11v5.5" />
+    <circle cx="12" cy="7.5" r="1" fill={color || 'currentColor'} stroke="none" />
+  </svg>
+);
+
+export const ClockIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <circle {...stroke(color, strokeWidth)} cx="12" cy="12" r="9" />
+    <path {...stroke(color, strokeWidth)} d="M12 7v5l3.5 2" />
+  </svg>
+);
+
+export const InboxIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M4 4h16v16H4V4Z" />
+    <path {...stroke(color, strokeWidth)} d="M4 13h4.5l1.5 2.5h4l1.5-2.5H20" />
+  </svg>
+);
+
+export const ShieldCheckIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M12 3 5 5.5v5.2c0 4.5 3 7.7 7 9.3 4-1.6 7-4.8 7-9.3V5.5L12 3Z" />
+    <path {...stroke(color, strokeWidth)} d="m9 12 2.2 2.2L15.5 9.5" />
+  </svg>
+);
+
+export const CheckIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="m4.5 12.5 5 5L19.5 6.5" />
+  </svg>
+);
+
+export const LogoutIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <path {...stroke(color, strokeWidth)} d="M14 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8M10 12h11m0 0-3.5-3.5M21 12l-3.5 3.5" />
+  </svg>
+);
+
 /** EMV-style chip for the bank-card KPI. Decorative. */
 export const CardChip: React.FC<{ width?: number }> = ({ width = 34 }) => (
   <svg width={width} height={width * 0.74} viewBox="0 0 34 25" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>

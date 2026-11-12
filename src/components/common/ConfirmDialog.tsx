@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { theme as design } from '../../styles/theme';
+import { TrashIcon, QuestionIcon } from './FinanceIcons';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -66,10 +67,12 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           style={{
             width: '52px', height: '52px', borderRadius: '16px', margin: '0 auto 16px auto',
             background: danger ? 'rgba(239, 68, 68, 0.12)' : `rgba(${design.colors.primaryRgb}, 0.12)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {danger ? '🗑️' : '❓'}
+          {danger
+            ? <TrashIcon size={24} color={design.colors.danger} strokeWidth={1.8} />
+            : <QuestionIcon size={24} color={design.colors.primary} strokeWidth={1.8} />}
         </div>
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 8px 0' }}>
           {title}

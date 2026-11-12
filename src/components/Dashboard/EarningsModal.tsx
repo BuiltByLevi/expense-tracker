@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { theme } from '../../styles/theme';
+import { CheckIcon, AlertIcon } from '../common/FinanceIcons';
 import { useEarnings } from '../../context/EarningsContext';
 import { useIncome } from '../../context/IncomeContext';
 import { deriveMonthlyEarnings } from '../../utils/earningsDerivation';
@@ -201,9 +202,9 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
             color: theme.colors.textSecondary,
           }}>
             {existingRecord.status === 'estimated' ? (
-              <>⚠ Currently <strong>estimated</strong> (migrated from default). Confirm to lock in this value.</>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><AlertIcon size={12} color={theme.colors.warning} style={{ flexShrink: 0 }} /><span>Currently <strong>estimated</strong> (migrated from default). Confirm to lock in this value.</span></span>
             ) : (
-              <>✓ Currently <strong>confirmed</strong>. Editing will update this month only.</>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckIcon size={12} color={theme.colors.success} strokeWidth={2.5} style={{ flexShrink: 0 }} /><span>Currently <strong>confirmed</strong>. Editing will update this month only.</span></span>
             )}
           </div>
         )}
@@ -219,7 +220,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
             color: theme.colors.danger,
             fontWeight: 500,
           }}>
-            ⚠ {saveError}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><AlertIcon size={12} color={theme.colors.danger} style={{ flexShrink: 0 }} /> {saveError}</span>
           </div>
         )}
 
@@ -269,7 +270,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
                   fontWeight: 600,
                 }}
               >
-                ✓ Confirmed
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><CheckIcon size={12} color={status === 'confirmed' ? 'white' : theme.colors.textSecondary} strokeWidth={2.5} /> Confirmed</span>
               </button>
               <button
                 type="button"
@@ -286,7 +287,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
                   fontWeight: 600,
                 }}
               >
-                ⚠ Estimated
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><AlertIcon size={12} color={status === 'estimated' ? 'white' : theme.colors.textSecondary} strokeWidth={2.5} /> Estimated</span>
               </button>
             </div>
           </div>

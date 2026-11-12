@@ -3,6 +3,7 @@ import { theme as design } from '../../styles/theme';
 import { format } from 'date-fns';
 import { useEarningsHistoryLogic } from '../../hooks/useEarningsHistoryLogic';
 import StatusBadge from '../common/StatusBadge';
+import { InfoIcon, CheckIcon, AlertIcon } from '../common/FinanceIcons';
 
 interface EarningsHistoryPageProps {
   onBack: () => void;
@@ -55,8 +56,9 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
           background: `linear-gradient(135deg, rgba(${design.colors.primaryRgb}, 0.05) 0%, rgba(${design.colors.accentBrightRgb}, 0.05) 100%)`,
           border: `1px solid ${design.colors.primary}20`,
         }}>
-          <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0 }}>
-            💡 <strong>Tip:</strong> Tick the checkboxes to select multiple months, then update amounts or status in bulk.
+          <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <InfoIcon size={14} color={design.colors.primary} style={{ flexShrink: 0 }} />
+            <span><strong>Tip:</strong> Tick the checkboxes to select multiple months, then update amounts or status in bulk.</span>
           </p>
         </div>
 
@@ -242,7 +244,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
               }}
               title="Mark selected as Confirmed without changing amounts"
             >
-              ✓ Mark Confirmed
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><CheckIcon size={11} color={design.colors.accentBright} strokeWidth={2.5} /> Mark Confirmed</span>
             </button>
             <button
               onClick={() => handleBulkStatus('estimated')}
@@ -260,7 +262,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
               }}
               title="Mark selected as Estimated without changing amounts"
             >
-              ⚠ Mark Estimated
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><AlertIcon size={11} color="#fbbf24" strokeWidth={2.5} /> Mark Estimated</span>
             </button>
           </div>
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { theme as design } from '../../styles/theme';
 import { useProfileLogic } from '../../hooks/useProfileLogic';
-import { WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, GearIcon, LockIcon, AlertIcon } from '../common/FinanceIcons';
+import { WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, GearIcon, LockIcon, AlertIcon, CameraIcon, CheckIcon, ShieldCheckIcon } from '../common/FinanceIcons';
 
 interface Props {
   onBack: () => void;
@@ -55,7 +55,7 @@ const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
                 cursor: uploadingPhoto ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px',
               }}
             >
-              {uploadingPhoto ? '...' : '📷'}
+              {uploadingPhoto ? '...' : <CameraIcon size={14} color="white" />}
             </button>
             <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" style={{ display: 'none' }} />
           </div>
@@ -64,8 +64,8 @@ const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 2px 0' }}>{displayName}</h2>
             <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{user?.email}</p>
             <div style={{ display: 'flex', gap: '6px', marginTop: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', padding: '3px 8px', background: `rgba(${design.colors.successRgb}, 0.1)`, color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}>✓ Verified</span>
-              <span style={{ fontSize: '11px', padding: '3px 8px', background: `rgba(${design.colors.primaryRgb}, 0.1)`, color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}>📅 {stats.memberSince}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '3px 8px', background: `rgba(${design.colors.successRgb}, 0.1)`, color: design.colors.success, borderRadius: '20px', fontWeight: 600 }}><ShieldCheckIcon size={10} color={design.colors.success} /> Verified</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '3px 8px', background: `rgba(${design.colors.primaryRgb}, 0.1)`, color: design.colors.primary, borderRadius: '20px', fontWeight: 600 }}><CalendarIcon size={10} color={design.colors.primary} /> {stats.memberSince}</span>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
                 >
                   <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: opt.swatch, flexShrink: 0 }} />
                   {opt.label}
-                  {colorTheme === opt.id && <span style={{ fontSize: '10px' }}>✓</span>}
+                  {colorTheme === opt.id && <CheckIcon size={10} color={design.colors.primary} strokeWidth={2.5} />}
                 </button>
               ))}
             </div>

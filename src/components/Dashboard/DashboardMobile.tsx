@@ -21,7 +21,7 @@ import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
-import { WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, RupeeIcon, AlertIcon, CalendarIcon, CardChip, ContactlessMark } from '../common/FinanceIcons';
+import { WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, RupeeIcon, AlertIcon, CalendarIcon, CardChip, ContactlessMark, MoonIcon, SunIcon, UserIcon, CheckCircleIcon } from '../common/FinanceIcons';
 
 type GraphType = 'total' | 'monthly';
 
@@ -80,8 +80,8 @@ const DashboardMobile: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr 1fr 1fr', gap: '4px' }}>
-            <button className="theme-toggle" onClick={toggleTheme} style={{ width: '34px', height: '34px', fontSize: '14px', flexShrink: 0, padding: 0 }} aria-label="Toggle theme">
-              {theme === 'light' ? '🌙' : '☀️'}
+            <button className="theme-toggle" onClick={toggleTheme} style={{ width: '34px', height: '34px', flexShrink: 0, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Toggle theme">
+              {theme === 'light' ? <MoonIcon size={15} color={design.colors.textPrimary} /> : <SunIcon size={15} color={design.colors.textPrimary} />}
             </button>
             <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost" style={{ padding: '6px 2px', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Earnings
@@ -102,7 +102,7 @@ const DashboardMobile: React.FC = () => {
                   style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
                 />
               ) : (
-                <span aria-hidden="true">👤</span>
+                <UserIcon size={13} color={design.colors.textPrimary} style={{ flexShrink: 0 }} />
               )}
               Profile
             </button>
@@ -139,7 +139,7 @@ const DashboardMobile: React.FC = () => {
           <StatCard
             compact
             icon={<WalletIcon size={12} />}
-            label={<>Earnings {selectedMonthEarnings.status === 'estimated' && <span style={{ color: design.colors.warning }}>⚠</span>}</>}
+            label={<>Earnings {selectedMonthEarnings.status === 'estimated' && <AlertIcon size={10} color={design.colors.warning} strokeWidth={2.5} style={{ display: 'inline-block', verticalAlign: 'middle' }} />}</>}
             value={`₹${selectedMonthEarnings.amount.toLocaleString('en-IN')}`}
             hint={
               <button onClick={() => setShowEarningsModal(true)} style={{ fontSize: '11px', padding: '2px 8px', background: design.colors.primaryLight, border: 'none', borderRadius: '8px', color: design.colors.primaryDark, fontWeight: 600, cursor: 'pointer' }}>
@@ -185,8 +185,11 @@ const DashboardMobile: React.FC = () => {
             style={{ padding: '12px', marginBottom: '10px', cursor: 'pointer', flexWrap: 'nowrap' }}
           >
             <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {hasDeficit ? '⚠ Cash-Flow Deficit' : '✓ Cash-Flow Deficit'}
+              <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {hasDeficit
+                  ? <AlertIcon size={11} color={design.colors.danger} strokeWidth={2.5} />
+                  : <CheckCircleIcon size={11} color={design.colors.success} strokeWidth={2.5} />}
+                {' '}Cash-Flow Deficit
               </p>
               <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '2px 0 0 0' }}>₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}</p>
             </div>

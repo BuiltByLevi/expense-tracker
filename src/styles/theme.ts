@@ -102,6 +102,53 @@ const originalColors: typeof midnightColors = {
   pastelPink: '#fce7f3',
 };
 
+// Dark-mode overlays — inline styles read `theme.colors` directly, so the
+// token object must also be re-pointed when light/dark mode flips (the CSS
+// variables only cover class-based styles). Values mirror the [data-theme=
+// 'dark'] sections of globals.css. Tokens that already work on both grounds
+// (gradients, pastels, *Light tints, primaryDark/tealDark) are not overlaid.
+const midnightDarkOverlay: Partial<typeof midnightColors> = {
+  glassBg: 'rgba(20, 30, 50, 0.55)',
+  glassBgHover: 'rgba(28, 42, 68, 0.75)',
+  glassBorder: 'rgba(148, 163, 184, 0.12)',
+  glassShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+  glassShadowHover: '0 12px 40px rgba(45, 212, 191, 0.22)',
+
+  primary: '#5b86d6',
+  teal: '#2dd4bf',
+  primaryRgb: '91, 134, 214',
+  successRgb: '45, 212, 191',
+
+  success: '#2dd4bf',
+  danger: '#f87171',
+  warning: '#fbbf24',
+
+  textPrimary: '#f1f5f9',
+  textSecondary: '#a5b4c8',
+  textTertiary: '#6b7a94',
+};
+
+const originalDarkOverlay: Partial<typeof midnightColors> = {
+  glassBg: 'rgba(30, 41, 59, 0.55)',
+  glassBgHover: 'rgba(45, 55, 80, 0.75)',
+  glassBorder: 'rgba(148, 163, 184, 0.12)',
+  glassShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+  glassShadowHover: '0 12px 40px rgba(139, 92, 246, 0.25)',
+
+  primary: '#818cf8',
+  teal: '#a78bfa',
+  primaryRgb: '129, 140, 248',
+  successRgb: '52, 211, 153',
+
+  success: '#34d399',
+  danger: '#f87171',
+  warning: '#fbbf24',
+
+  textPrimary: '#f1f5f9',
+  textSecondary: '#a5b4c8',
+  textTertiary: '#6b7a94',
+};
+
 export const theme = {
   colors: { ...midnightColors },
 
@@ -221,14 +268,20 @@ export const incomeCategoryColors: Record<string, string> = {
   'Other Income': theme.colors.textTertiary,
 };
 
-export function applyColorTheme(name: ColorTheme): void {
+export function applyColorTheme(name: ColorTheme, mode: 'light' | 'dark' = 'light'): void {
   const colors = name === 'original' ? originalColors : midnightColors;
   Object.assign(theme.colors, colors);
+  if (mode === 'dark') {
+    Object.assign(theme.colors, name === 'original' ? originalDarkOverlay : midnightDarkOverlay);
+  }
 
-  const cats = name === 'original' ? originalCategoryColors : midnightCategoryColors;
+  // The original theme had a single palette for both modes; midnight has a
+  // dark-surface re-step, so the active set follows the current mode.
+  const cats = name === 'original'
+    ? originalCategoryColors
+    : mode === 'dark' ? midnightCategoryColorsDark : midnightCategoryColors;
   categoryColors.splice(0, categoryColors.length, ...cats);
 
-  // The original theme had a single palette for both modes.
   const catsDark = name === 'original' ? originalCategoryColors : midnightCategoryColorsDark;
   categoryColorsDark.splice(0, categoryColorsDark.length, ...catsDark);
 

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
+import { UploadIcon, AlertIcon, CheckCircleIcon, RupeeIcon } from '../common/FinanceIcons';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type ExpenseCategory, type IncomeCategory } from '../../types';
 import { useStatementImport } from '../../hooks/useStatementImport';
 
@@ -73,7 +74,13 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
             }}
             onClick={() => fileInputRef.current?.click()}
           >
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>📄</div>
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '20px', margin: '0 auto 16px auto',
+              background: `rgba(${design.colors.primaryRgb}, 0.1)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <UploadIcon size={32} color={design.colors.primary} strokeWidth={1.8} />
+            </div>
             <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
               Drag and drop a statement here, or click to browse
             </p>
@@ -98,7 +105,9 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
 
         {status === 'error' && (
           <div className="glass-card animate-in" style={{ padding: '32px', textAlign: 'center' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.danger, margin: '0 0 8px 0' }}>⚠ Couldn't process this file</p>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.danger, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' }}>
+              <AlertIcon size={15} color={design.colors.danger} /> Couldn't process this file
+            </p>
             <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '0 0 20px 0' }}>{errorMessage}</p>
             <button onClick={reset} className="btn btn-primary" style={{ padding: '10px 24px' }}>Try another file</button>
           </div>
@@ -117,16 +126,16 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
 
             {salaryRowsTotal > 0 && (
               <div className="glass-card animate-in" style={{ padding: '14px 24px', marginBottom: '16px', background: `linear-gradient(135deg, rgba(${design.colors.successRgb}, 0.08) 0%, rgba(${design.colors.primaryRgb}, 0.08) 100%)`, border: `1px solid ${design.colors.success}30` }}>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-                  💰 Detected ₹{salaryRowsTotal.toLocaleString('en-IN')} in salary-looking credits — included in the Income list below.
+                <p style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <RupeeIcon size={14} color={design.colors.success} /> Detected ₹{salaryRowsTotal.toLocaleString('en-IN')} in salary-looking credits — included in the Income list below.
                 </p>
               </div>
             )}
 
             {invalidRows.length > 0 && (
               <div className="glass-card animate-in" style={{ padding: '12px 24px', marginBottom: '16px', background: 'rgba(245, 158, 11, 0.08)', border: `1px solid ${design.colors.warning}30` }}>
-                <p style={{ fontSize: '12px', color: design.colors.textPrimary, margin: 0 }}>
-                  ⚠ {invalidRows.length} line{invalidRows.length === 1 ? '' : 's'} couldn't be confidently parsed and {invalidRows.length === 1 ? "isn't" : "aren't"} shown below — nothing was imported from {invalidRows.length === 1 ? 'it' : 'them'}.
+                <p style={{ fontSize: '12px', color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <AlertIcon size={13} color={design.colors.warning} style={{ flexShrink: 0 }} /> {invalidRows.length} line{invalidRows.length === 1 ? '' : 's'} couldn't be confidently parsed and {invalidRows.length === 1 ? "isn't" : "aren't"} shown below — nothing was imported from {invalidRows.length === 1 ? 'it' : 'them'}.
                 </p>
               </div>
             )}
@@ -322,7 +331,13 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack }) => {
 
         {status === 'done' && importSummary && (
           <div className="glass-card animate-in" style={{ padding: '48px', textAlign: 'center' }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 16px auto',
+              background: `rgba(${design.colors.successRgb}, 0.12)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CheckCircleIcon size={34} color={design.colors.success} strokeWidth={1.8} />
+            </div>
             <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
               Imported {importSummary.imported} transaction{importSummary.imported === 1 ? '' : 's'}
             </p>
