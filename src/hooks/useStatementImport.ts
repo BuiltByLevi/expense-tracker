@@ -5,8 +5,7 @@ import { useStatementImports } from './useStatementImports';
 import { parseCsvFile } from '../utils/statementParsers/csvParser';
 import { parseExcelFile } from '../utils/statementParsers/excelParser';
 import { parsePdfFile } from '../utils/statementParsers/pdfParser';
-import { suggestCategory, suggestIncomeCategory } from '../utils/classification';
-import { findDuplicate } from '../utils/duplicateDetection';
+import { buildReviewTransactions } from '../../shared/statementReview';
 import type { NormalizedTransaction, ReviewTransaction } from '../utils/statementParsers/types';
 import type { IncomeCategory } from '../types';
 
@@ -19,36 +18,6 @@ function guessBankName(fileName: string, narrations: string[]): string | null {
   const haystack = `${fileName} ${narrations.slice(0, 20).join(' ')}`;
   const match = haystack.match(BANK_NAME_PATTERN);
   return match ? match[0].toUpperCase() : null;
-}
-
-function toReviewTransactions(
-  transactions: NormalizedTransaction[],
-  existingExpenses: ReturnType<typeof useExpenses>['expenses'],
-  existingIncome: ReturnType<typeof useIncome>['income']
-): ReviewTransaction[] {
-  return transactions.map((tx, idx) => {
-    const { category, uncertain: categoryUncertain } =
-      tx.type === 'credit' ? suggestIncomeCategory(tx.narration) : suggestCategory(tx.narration);
-    const duplicate =
-      tx.type === 'debit'
-        ? findDuplicate(tx, existingExpenses, tx.referenceNumber)
-        : tx.type === 'credit'
-          ? findDuplicate(tx, existingIncome, tx.referenceNumber)
-          : null;
-
-    return {
-      ...tx,
-      rowId: `row-${idx}-${tx.date?.getTime() ?? 0}-${tx.amount ?? 0}`,
-      category,
-      description: tx.narration,
-      isSalaryCandidate: tx.type === 'credit' && category === 'Salary',
-      uncertain: categoryUncertain || !!tx.parseIssue || tx.type === null || tx.date === null,
-      duplicateOf: duplicate?.duplicateOf ?? null,
-      duplicateConfidence: duplicate?.confidence ?? null,
-      // Don't pre-select rows we can't confidently place, or that look like duplicates.
-      included: tx.type !== null && tx.date !== null && !duplicate,
-    };
-  });
 }
 
 export function useStatementImport() {
@@ -125,7 +94,7 @@ export function useStatementImport() {
       return;
     }
 
-    setRows(toReviewTransactions(result.transactions, expenses, income));
+    setRows(buildReviewTransactions(result.transactions, expenses, income));
     setStatus('review');
   };
 

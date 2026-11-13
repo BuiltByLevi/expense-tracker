@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeFinanceTotals, type EarningsLookup } from './finance';
 import { deriveMonthlyEarnings } from './earningsDerivation';
-import type { Expense, Income, MonthlyEarnings } from '../types';
+import type { Expense, Income, MonthlyEarnings } from './types';
 
 function exp(id: string, amount: number, category: string, date: Date): Expense {
   return { id, amount, category, description: id, date, userId: 'u1' };

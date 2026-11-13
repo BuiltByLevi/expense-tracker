@@ -3,7 +3,7 @@ import { rowsToTransactions } from './statementParsers/columnMapper';
 import { suggestCategory, suggestIncomeCategory } from './classification';
 import { findDuplicate } from './duplicateDetection';
 import { deriveMonthlyEarnings } from './earningsDerivation';
-import type { Income, Expense } from '../types';
+import type { Income, Expense } from './types';
 
 /**
  * End-to-end reconciliation test for the bank-statement import pipeline:

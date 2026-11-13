@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { deriveMonthlyEarnings } from './earningsDerivation';
-import type { Income } from '../types';
+import type { Income } from './types';
 
 function inc(id: string, amount: number, category: Income['category'], date: Date): Income {
   return { id, amount, category, description: id, date, userId: 'u1' };
