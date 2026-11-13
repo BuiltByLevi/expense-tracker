@@ -60,11 +60,45 @@ and points the user to CSV/Excel or the web app.
 
 ## Android release
 
-`eas.json` defines `development`, `preview` and `production` profiles;
-`production` builds an AAB for Play. Before the first build:
+Application id: **`com.pratiq.expensetracker`** (Android package and iOS
+bundle id). This is permanent once published to Play — changing it later
+means a new listing.
 
-1. Set the real Android package id in `app.json` (`android.package`).
-2. `eas init` to populate `extra.eas.projectId`.
-3. Upload the Firebase env vars to EAS (`eas env:create`) — `.env` is
-   gitignored and is **not** uploaded to cloud builds, so without this the
-   production build ships without Firebase config and fails at startup.
+`eas.json` defines `development`, `preview` and `production` profiles;
+`production` builds an AAB for Play and pulls its variables from the EAS
+`production` environment.
+
+### First-time setup
+
+These need an Expo account, so they must be run by a human:
+
+```bash
+cd mobile
+npx eas-cli login          # interactive — cannot be scripted
+npx eas-cli init           # creates the EAS project, fills extra.eas.projectId
+npm run eas:push-env       # copies .env into all three EAS environments
+```
+
+`npm run eas:push-env` matters: `.env` is gitignored, so it never reaches a
+cloud build. Without it the build compiles with an empty Firebase config and
+the app throws at startup. The script prints variable names only, never
+values.
+
+### Building
+
+```bash
+npm run build:android:preview      # installable APK for testing on a device
+npm run build:android:production   # AAB for Play
+```
+
+Version codes come from EAS (`appVersionSource: "remote"` with
+`autoIncrement` on production), so `app.json` deliberately has no
+`versionCode` — setting one there would conflict.
+
+### Why there is no `.easignore`
+
+EAS archives the **git repository root**, not just `mobile/`, which is what
+lets `shared/` reach the build. Adding a `.easignore` would be tempting to
+trim the upload, but it **replaces every `.gitignore` rule** rather than
+adding to them — which would start copying `.env` and `dist/` into the build
+context. The default behaviour already excludes those correctly.

@@ -40,18 +40,21 @@
   "devDependencies": {
     "@types/papaparse": "^5.5.2",
     "@types/react": "~19.3.0",
+    "eas-cli": "^27.9.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "bundle:android": "expo export --platform android --output-dir .expo-export",
-    "test:shared": "npm --prefix .. test"
+    "test:shared": "npm --prefix .. test",
+    "eas:push-env": "bash scripts/push-env-to-eas.sh",
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:android:production": "eas build --platform android --profile production"
   },
   "private": true
 }

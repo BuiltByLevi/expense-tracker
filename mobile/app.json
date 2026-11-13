@@ -10,7 +10,6 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.pratiq.expensetracker",
-      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1e3a8a",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
