@@ -110,7 +110,7 @@ const DashboardWeb: React.FC = () => {
             <button onClick={() => setShowLedgerPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <LedgerIcon size={15} /> Monthly Ledger
             </button>
-            <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', color: design.colors.success }}>
+            <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost tint-green" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ChartLineIcon size={15} /> Manage Earnings
             </button>
             <ProfileMenu
