@@ -17,6 +17,7 @@ import ListSkeleton from '../common/ListSkeleton';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 import {
   WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, ChartLineIcon, PieIcon,
   RupeeIcon, AlertIcon, CheckCircleIcon, CalendarIcon, CardChip, ContactlessMark,
@@ -62,6 +63,7 @@ const MenuIcon: React.FC<{ size?: number }> = ({ size }) => <Svg size={size}><pa
 const CloseIcon: React.FC<{ size?: number }> = ({ size = 20 }) => <Svg size={size}><path d="M6 6l12 12M18 6L6 18" /></Svg>;
 const HomeIcon: React.FC<{ size?: number }> = ({ size }) => <Svg size={size}><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></Svg>;
 const PlusIcon: React.FC<{ size?: number }> = ({ size }) => <Svg size={size}><path d="M12 5v14M5 12h14" /></Svg>;
+const DownloadIcon: React.FC<{ size?: number }> = ({ size = 18 }) => <Svg size={size}><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></Svg>;
 const ArrowIcon: React.FC<{ up?: boolean }> = ({ up }) => (
   <Svg size={16}>{up ? <path d="M12 19V5M6 11l6-6 6 6" /> : <path d="M12 5v14M6 13l6 6 6-6" />}</Svg>
 );
@@ -127,6 +129,7 @@ const DashboardMobile: React.FC = () => {
 
   const [page, setPage] = useState<Page>(pageFromHash);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { canInstall, install } = useInstallPrompt();
   const [activeView, setActiveView] = useState<'total' | 'monthly'>('total');
 
   useEffect(() => {
@@ -616,6 +619,12 @@ const DashboardMobile: React.FC = () => {
         </div>
 
         <div style={{ padding: '8px 10px', borderTop: '1px solid var(--m-line)' }}>
+          {canInstall && (
+            <button type="button" className="m-nav-item" onClick={() => { setMenuOpen(false); install(); }}>
+              <span className="m-nav-icon"><DownloadIcon /></span>
+              Install app on this phone
+            </button>
+          )}
           <button type="button" className="m-nav-item" onClick={logout} style={{ color: design.colors.danger }}>
             <span className="m-nav-icon"><LogoutIcon size={18} /></span>
             Logout
