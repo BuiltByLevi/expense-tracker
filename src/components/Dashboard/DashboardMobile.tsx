@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
-import TransactionListMobile from '../ExpenseList/TransactionListMobile';
+import TransactionHistory from '../ExpenseList/TransactionHistory';
 import CategoryPieChart from '../Charts/CategoryPieChart';
 import TrendCharts from '../Charts/TrendCharts';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
@@ -399,7 +399,7 @@ const DashboardMobile: React.FC = () => {
       {loading ? (
         <div className="glass-card" style={{ padding: '16px' }}><ListSkeleton rows={6} /></div>
       ) : (
-        <TransactionListMobile
+        <TransactionHistory
           expenses={historyExpenses}
           income={historyIncome}
           onDelete={handleDeleteExpense}

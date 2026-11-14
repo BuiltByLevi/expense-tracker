@@ -6,13 +6,13 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { InboxIcon } from '../common/FinanceIcons';
 
 /**
- * Phone transaction history, styled like a banking app: period summary,
+ * Transaction history (phone and desktop), styled like a banking app: period summary,
  * search + Money in / Money out filter, entries grouped under day headers
  * with a day total, and a tap-to-open action strip (Edit / Delete) per row.
- * Same props and behaviour as ExpenseList, which renders this on phones.
+ * Same props and behaviour as the old ExpenseList table it replaced.
  */
 
-export interface TransactionListMobileProps {
+export interface TransactionHistoryProps {
   expenses: Expense[];
   onDelete: (id: string) => Promise<void>;
   onEdit: (expense: Expense) => void;
@@ -62,7 +62,7 @@ const ArrowOut = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg>
 );
 
-const TransactionListMobile: React.FC<TransactionListMobileProps> = ({
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   expenses, onDelete, onEdit, income = [], onDeleteIncome, onEditIncome, onBulkCategory, emptyStateLabel,
 }) => {
   const [search, setSearch] = useState('');
@@ -300,4 +300,4 @@ const TransactionListMobile: React.FC<TransactionListMobileProps> = ({
   );
 };
 
-export default TransactionListMobile;
+export default TransactionHistory;

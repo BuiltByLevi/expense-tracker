@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState } from 'react';
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
-import ExpenseList from '../ExpenseList/ExpenseList';
+import TransactionHistory from '../ExpenseList/TransactionHistory';
 import CategoryPieChart from '../Charts/CategoryPieChart';
 import TrendCharts from '../Charts/TrendCharts';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
@@ -107,7 +107,7 @@ const DashboardWeb: React.FC = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button onClick={() => setShowLedgerPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <LedgerIcon size={15} /> Statement
+              <LedgerIcon size={15} /> Monthly Ledger
             </button>
             <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', color: design.colors.success }}>
               <ChartLineIcon size={15} /> Manage Earnings
@@ -439,7 +439,7 @@ const DashboardWeb: React.FC = () => {
         </div>
 
         {/* Transaction History */}
-        <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '20px 24px' }}>
+        <div className="glass-card animate-in animate-in-delay-3 bank-ui tl-wide" style={{ padding: '20px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <LedgerIcon size={15} color={design.colors.primary} /> Account Statement
@@ -454,7 +454,8 @@ const DashboardWeb: React.FC = () => {
           {loading ? (
             <ListSkeleton rows={6} />
           ) : (
-            <ExpenseList
+            <div className="tl-stack">
+            <TransactionHistory
               expenses={historyExpenses}
               income={historyIncome}
               onDelete={handleDeleteExpense}
@@ -464,6 +465,7 @@ const DashboardWeb: React.FC = () => {
               onEdit={handleEdit}
               emptyStateLabel={dateRange ? 'No transactions in this date range' : `No transactions yet for ${monthName}`}
             />
+            </div>
           )}
         </div>
       </div>
