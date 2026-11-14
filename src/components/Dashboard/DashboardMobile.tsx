@@ -55,6 +55,10 @@ const PAGE_TITLES: Record<Page, string> = {
 
 const NAV: { section: string; items: { page: Page; label: string; icon: React.ReactNode }[] }[] = [
   {
+    section: 'Account',
+    items: [{ page: 'profile', label: 'My Profile', icon: <UserIcon size={18} /> }],
+  },
+  {
     section: 'Dashboard',
     items: [
       { page: 'overview', label: 'Overview', icon: <WalletIcon size={18} /> },
@@ -71,10 +75,6 @@ const NAV: { section: string; items: { page: Page; label: string; icon: React.Re
       { page: 'history', label: 'Financial History', icon: <ClockIcon size={18} /> },
       { page: 'import', label: 'Import Statement', icon: <UploadIcon size={18} /> },
     ],
-  },
-  {
-    section: 'Account',
-    items: [{ page: 'profile', label: 'My Profile', icon: <UserIcon size={18} /> }],
   },
 ];
 
