@@ -9,6 +9,7 @@ import { EarningsProvider } from '@/context/EarningsContext';
 import { ExpensesProvider } from '@/context/ExpensesContext';
 import { IncomeProvider } from '@/context/IncomeContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { ToastProvider } from '@/context/ToastContext';
 
 /**
  * Redirects between the authenticated tab group and the sign-in screen.
@@ -55,12 +56,14 @@ function RootNavigator() {
             contentStyle: { backgroundColor: palette.screenBg },
           }}
         >
-          <Stack.Screen name="(tabs)" />
+          {/* Same page set as the desktop dashboard: one scrolling dashboard
+              plus the sub-pages it opens, each with "← Back to Dashboard". */}
+          <Stack.Screen name="index" />
+          <Stack.Screen name="statement" />
+          <Stack.Screen name="earnings" />
+          <Stack.Screen name="profile" />
+          <Stack.Screen name="import" />
           <Stack.Screen name="sign-in" />
-          <Stack.Screen
-            name="import"
-            options={{ presentation: 'modal', headerShown: false }}
-          />
         </Stack>
       </AuthGate>
     </>
@@ -76,7 +79,9 @@ export default function RootLayout() {
             <ExpensesProvider>
               <IncomeProvider>
                 <EarningsProvider>
-                  <RootNavigator />
+                  <ToastProvider>
+                    <RootNavigator />
+                  </ToastProvider>
                 </EarningsProvider>
               </IncomeProvider>
             </ExpensesProvider>

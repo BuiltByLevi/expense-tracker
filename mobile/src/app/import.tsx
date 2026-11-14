@@ -10,11 +10,9 @@ import {
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card } from '@/components/Card';
+import { Card, GlassPage, PageHeader } from '@/components/Card';
 import { useStatementImport } from '@/hooks/useStatementImport';
 import { useTheme } from '@/context/ThemeContext';
-import { BankIcon } from '@/components/FinanceIcons';
 import { fontSize, radius, spacing } from '@/theme';
 import { formatCurrency } from '@/utils/format';
 
@@ -26,24 +24,16 @@ export default function ImportScreen() {
   const close = () => router.back();
 
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: palette.screenBg }]} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.flexShrink}>
-          <View style={styles.titleRow}>
-            <BankIcon size={18} color={palette.primary} />
-            <Text style={[styles.title, { color: palette.textPrimary }]}>Import Statement</Text>
-          </View>
-          {imp.fileName ? (
-            <Text style={[styles.sub, { color: palette.textSecondary }]} numberOfLines={1}>
-              {imp.fileName}
-            </Text>
-          ) : null}
-        </View>
-        <Pressable onPress={close} hitSlop={12}>
-          <Text style={{ color: palette.primary, fontWeight: '700', fontSize: fontSize.md }}>
-            Close
-          </Text>
-        </Pressable>
+    <GlassPage scroll={false}>
+      <View style={styles.headerWrap}>
+        <PageHeader
+          title="Import Bank Statement"
+          subtitle={
+            imp.fileName ??
+            'Upload a CSV or Excel statement — review before anything is imported.'
+          }
+          onBack={close}
+        />
       </View>
 
       {/* IDLE — format guidance + picker */}
@@ -262,7 +252,7 @@ export default function ImportScreen() {
           </Card>
         </View>
       )}
-    </SafeAreaView>
+    </GlassPage>
   );
 }
 
@@ -270,6 +260,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   flexShrink: { flexShrink: 1, flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
+  headerWrap: { padding: 12, paddingBottom: 0 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -279,26 +270,26 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  title: { fontSize: fontSize.xl, fontWeight: '700' },
+  title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
   sub: { fontSize: fontSize.sm, marginTop: 2 },
   body: { flex: 1, padding: spacing.lg },
-  card: { gap: spacing.md },
+  card: { gap: spacing.md, borderRadius: radius.xxl, padding: spacing.xl },
   cardTitle: { fontSize: fontSize.lg, fontWeight: '700' },
   cardBody: { fontSize: fontSize.md, lineHeight: 20 },
   formatRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.full },
   badgeText: { fontSize: fontSize.xs, fontWeight: '700' },
-  ctaWrap: { borderRadius: radius.md, overflow: 'hidden' },
-  cta: { height: 50, alignItems: 'center', justifyContent: 'center' },
+  ctaWrap: { borderRadius: radius.lg, overflow: 'hidden' },
+  cta: { height: 52, alignItems: 'center', justifyContent: 'center' },
   ctaText: { color: '#fff', fontSize: fontSize.md, fontWeight: '700' },
   secondary: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 50,
-    borderRadius: radius.md,
+    height: 52,
+    borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  statsCard: { marginHorizontal: spacing.lg, gap: spacing.sm },
+  statsCard: { marginHorizontal: spacing.lg, gap: spacing.sm, borderRadius: radius.xl },
   statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statsText: { fontSize: fontSize.sm, fontWeight: '600' },
   bulkRow: { flexDirection: 'row', gap: spacing.lg },
@@ -309,10 +300,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
   },
-  check: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  check: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   checkMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   rowLabel: { fontSize: fontSize.sm, fontWeight: '600' },
   rowMeta: { fontSize: fontSize.xs, marginTop: 2 },

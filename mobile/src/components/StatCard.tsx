@@ -6,9 +6,12 @@ import { Sparkline } from '@/components/FinanceIcons';
 import { radius, spacing } from '@/theme';
 
 interface StatCardProps {
-  label: string;
+  /** A string is rendered uppercase; an element (e.g. label + EST marker) as-is. */
+  label: React.ReactNode;
   value: string;
-  hint?: string;
+  hint?: React.ReactNode;
+  /** Extra element (e.g. a MoM DeltaBadge) rendered after the hint. */
+  badge?: React.ReactNode;
   valueColor?: string;
   /** Rendered at 18px inside the icon well, and again at 92px as a watermark. */
   icon?: React.ReactElement<{ size?: number; color?: string; strokeWidth?: number }>;
@@ -40,6 +43,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   accent = false,
   danger = false,
   trend,
+  badge,
   compact = false,
   style,
 }) => {
@@ -63,9 +67,13 @@ export const StatCard: React.FC<StatCardProps> = ({
     <View style={styles.compactInner}>
       <View style={styles.compactLabelRow}>
         {icon ? React.cloneElement(icon, { size: 12, color: onColor }) : null}
-        <Text style={[styles.label, { color: onColor }]} numberOfLines={1}>
-          {label.toUpperCase()}
-        </Text>
+        {typeof label === 'string' ? (
+          <Text style={[styles.label, { color: onColor }]} numberOfLines={1}>
+            {label.toUpperCase()}
+          </Text>
+        ) : (
+          label
+        )}
       </View>
       <Text
         style={[styles.compactValue, { color: valueOnColor }]}
@@ -75,11 +83,13 @@ export const StatCard: React.FC<StatCardProps> = ({
       >
         {value}
       </Text>
-      {hint ? (
+      {typeof hint === 'string' ? (
         <Text style={[styles.hint, { color: onColor, textAlign: 'center' }]} numberOfLines={1}>
           {hint}
         </Text>
-      ) : null}
+      ) : (
+        hint ?? null
+      )}
     </View>
   ) : (
     <>
@@ -104,9 +114,13 @@ export const StatCard: React.FC<StatCardProps> = ({
       </View>
 
       <View style={styles.bottom}>
-        <Text style={[styles.label, { color: onColor }]} numberOfLines={1}>
-          {label.toUpperCase()}
-        </Text>
+        {typeof label === 'string' ? (
+          <Text style={[styles.label, { color: onColor }]} numberOfLines={1}>
+            {label.toUpperCase()}
+          </Text>
+        ) : (
+          label
+        )}
         <Text
           style={[styles.value, { color: valueOnColor }]}
           numberOfLines={1}
@@ -115,9 +129,16 @@ export const StatCard: React.FC<StatCardProps> = ({
         >
           {value}
         </Text>
-        <Text style={[styles.hint, { color: onColor }]} numberOfLines={1}>
-          {hint ?? ' '}
-        </Text>
+        <View style={styles.hintRow}>
+          {typeof hint === 'string' ? (
+            <Text style={[styles.hint, { color: onColor }]} numberOfLines={1}>
+              {hint}
+            </Text>
+          ) : (
+            hint
+          )}
+          {badge}
+        </View>
       </View>
     </>
   );
@@ -127,9 +148,9 @@ export const StatCard: React.FC<StatCardProps> = ({
     ...(gradient
       ? {}
       : {
-          backgroundColor: palette.cardBg,
-          borderColor: palette.cardBorder,
-          borderWidth: StyleSheet.hairlineWidth,
+          borderWidth: 1,
+          backgroundColor: palette.glassBg,
+          borderColor: palette.glassBorder,
           ...(mode === 'light'
             ? {
                 shadowColor: '#1e3a8a',
@@ -183,7 +204,7 @@ const styles = StyleSheet.create({
   compactInner: { alignItems: 'center', width: '100%' },
   compactLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   compactValue: { fontSize: 15, fontWeight: '700', marginTop: 6 },
-  watermark: { position: 'absolute', right: -14, bottom: -18, opacity: 0.12 },
+  watermark: { position: 'absolute', right: -14, bottom: -18, opacity: 0.14 },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -200,5 +221,6 @@ const styles = StyleSheet.create({
   bottom: { minWidth: 0, marginTop: spacing.md },
   label: { fontSize: 11, fontWeight: '600', letterSpacing: 0.66 },
   value: { fontSize: 22, fontWeight: '700', marginTop: 6, letterSpacing: -0.2 },
-  hint: { fontSize: 11, fontWeight: '500', marginTop: 5 },
+  hint: { fontSize: 11, fontWeight: '500', flexShrink: 1 },
+  hintRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, minHeight: 24, marginTop: 5 },
 });

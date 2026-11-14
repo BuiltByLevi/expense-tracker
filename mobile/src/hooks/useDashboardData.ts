@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { endOfMonth, isWithinInterval, startOfMonth } from 'date-fns';
+import { endOfMonth, format, isWithinInterval, startOfMonth } from 'date-fns';
 import { useEarnings } from '@/context/EarningsContext';
 import { useExpenses } from '@/context/ExpensesContext';
 import { useIncome } from '@/context/IncomeContext';
 import { computeFinanceTotals } from '@shared/finance';
 import { deriveMonthlyEarnings } from '@shared/earningsDerivation';
 import { makeCashFlowLookup } from '@shared/cashFlowLookup';
+import { filterByDateRange, type DateRange } from '@shared/dateRangePresets';
 import type { Expense, MonthlyEarnings } from '@shared/types';
 
 function analyzeCategories(expenses: Expense[]) {
@@ -59,8 +60,14 @@ export function useDashboardData() {
   const loading = expensesLoading || incomeLoading;
   const error = expensesError ?? incomeError;
 
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  // Account Statement date-range filter. Independent of the month navigation
+  // that drives the KPI cards — same split as the web's useDashboardData.
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   const getEffectiveEarningsRecord = useCallback(
     (year: number, month: number): MonthlyEarnings | null => {
@@ -164,6 +171,25 @@ export function useDashboardData() {
     }
   };
 
+  const goToMonth = (year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month);
+  };
+
+  const historyExpenses = useMemo(
+    () => (dateRange ? filterByDateRange(expenses, dateRange) : monthExpenses),
+    [dateRange, expenses, monthExpenses]
+  );
+  const historyIncome = useMemo(
+    () => (dateRange ? filterByDateRange(income, dateRange) : monthIncome),
+    [dateRange, income, monthIncome]
+  );
+  const historyLabel = dateRange
+    ? `${format(dateRange.start, 'dd MMM yyyy')} – ${format(dateRange.end, 'dd MMM yyyy')}`
+    : format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
+
+  const topCategory = allTimeCategoryAnalysis[0];
+
   const goToCurrentMonth = () => {
     const now = new Date();
     setSelectedYear(now.getFullYear());
@@ -182,6 +208,9 @@ export function useDashboardData() {
     income,
     selectedYear,
     selectedMonth,
+    currentYear,
+    currentMonth,
+    goToMonth,
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
@@ -196,6 +225,14 @@ export function useDashboardData() {
     allTimeCategoryAnalysis,
     trendWindow,
     prevSummary,
+    dateRange,
+    setDateRange,
+    clearDateRange: () => setDateRange(null),
+    historyExpenses,
+    historyIncome,
+    historyLabel,
+    topCategoryName: topCategory?.category || 'N/A',
+    topCategoryAmount: topCategory?.amount || 0,
     hasDeficit: financeTotals.cashFlowDeficit > 0,
     isFuture: financeTotals.isSelectedMonthInFuture,
   };

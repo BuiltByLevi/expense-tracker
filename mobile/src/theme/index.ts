@@ -35,6 +35,20 @@ export interface Palette {
   textInverse: string;
   pastelBlue: string;
   pastelMint: string;
+  /** --glass-bg / --glass-border: the translucent .glass-card surface. */
+  glassBg: string;
+  glassBorder: string;
+  /** --input-bg / --input-border (.input, .btn-ghost). */
+  inputBg: string;
+  inputBorder: string;
+  /** --modal-bg / --modal-border / --modal-overlay. */
+  modalBg: string;
+  modalBorder: string;
+  modalOverlay: string;
+  /** --aurora-1..3: the three radial glows painted over the page gradient. */
+  aurora: readonly [string, string, string];
+  /** .btn-primary / .tab.active fill — reversed in dark mode on the web. */
+  actionGradient: readonly [string, string];
 }
 
 const midnightLight: Palette = {
@@ -62,6 +76,15 @@ const midnightLight: Palette = {
   textInverse: '#ffffff',
   pastelBlue: '#dbeafe',
   pastelMint: '#ccfbf1',
+  glassBg: 'rgba(255, 255, 255, 0.65)',
+  glassBorder: 'rgba(255, 255, 255, 0.6)',
+  inputBg: 'rgba(255, 255, 255, 0.7)',
+  inputBorder: 'rgba(0, 0, 0, 0.06)',
+  modalBg: 'rgba(255, 255, 255, 0.97)',
+  modalBorder: 'rgba(255, 255, 255, 0.8)',
+  modalOverlay: 'rgba(15, 23, 42, 0.4)',
+  aurora: ['rgba(20, 184, 166, 0.14)', 'rgba(30, 64, 175, 0.10)', 'rgba(212, 160, 23, 0.08)'],
+  actionGradient: ['#1e3a8a', '#14b8a6'],
 };
 
 const midnightDark: Palette = {
@@ -87,6 +110,15 @@ const midnightDark: Palette = {
   textPrimary: '#f1f5f9',
   textSecondary: '#a5b4c8',
   textTertiary: '#6b7a94',
+  glassBg: 'rgba(20, 30, 50, 0.55)',
+  glassBorder: 'rgba(148, 163, 184, 0.12)',
+  inputBg: 'rgba(10, 18, 36, 0.7)',
+  inputBorder: 'rgba(148, 163, 184, 0.15)',
+  modalBg: 'rgba(12, 20, 38, 0.97)',
+  modalBorder: 'rgba(45, 212, 191, 0.15)',
+  modalOverlay: 'rgba(0, 0, 0, 0.75)',
+  aurora: ['rgba(45, 212, 191, 0.32)', 'rgba(76, 123, 217, 0.26)', 'rgba(212, 160, 23, 0.14)'],
+  actionGradient: ['#2dd4bf', '#5b86d6'],
 };
 
 const originalLight: Palette = {
@@ -103,12 +135,15 @@ const originalLight: Palette = {
   accentBright: '#a78bfa',
   success: '#10b981',
   successLight: '#d1fae5',
+  aurora: ['rgba(139, 92, 246, 0.15)', 'rgba(16, 185, 129, 0.12)', 'rgba(251, 191, 36, 0.1)'],
+  actionGradient: ['#6366f1', '#8b5cf6'],
 };
 
 const originalDark: Palette = {
   ...originalLight,
-  screenBg: '#0f172a',
-  bgGradient: ['#1e1b4b', '#1e293b', '#0f172a'],
+  screenBg: '#0a0e1a',
+  // Same ground as the web's [data-theme=dark][data-color-theme=original].
+  bgGradient: ['#0a0e1a', '#14172e', '#0f1420'],
   cardBg: '#1e293b',
   cardBorder: 'rgba(148, 163, 184, 0.12)',
   primary: '#818cf8',
@@ -125,6 +160,15 @@ const originalDark: Palette = {
   textPrimary: '#f1f5f9',
   textSecondary: '#a5b4c8',
   textTertiary: '#6b7a94',
+  glassBg: 'rgba(30, 41, 59, 0.55)',
+  glassBorder: 'rgba(148, 163, 184, 0.12)',
+  inputBg: 'rgba(15, 23, 42, 0.7)',
+  inputBorder: 'rgba(148, 163, 184, 0.15)',
+  modalBg: 'rgba(20, 25, 42, 0.97)',
+  modalBorder: 'rgba(139, 92, 246, 0.15)',
+  modalOverlay: 'rgba(0, 0, 0, 0.75)',
+  aurora: ['rgba(139, 92, 246, 0.35)', 'rgba(16, 185, 129, 0.22)', 'rgba(59, 130, 246, 0.28)'],
+  actionGradient: ['#8b5cf6', '#6366f1'],
 };
 
 export function getPalette(name: ColorTheme, mode: ColorMode): Palette {
