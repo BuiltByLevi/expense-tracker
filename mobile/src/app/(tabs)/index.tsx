@@ -16,6 +16,7 @@ import { BankCardTile, DeltaBadge } from '@/components/BankCardTile';
 import { Card } from '@/components/Card';
 import { StatCard } from '@/components/StatCard';
 import { StatementUploadCard } from '@/components/StatementUploadCard';
+import { EarningsSheet } from '@/components/EarningsSheet';
 import {
   AlertIcon,
   CalendarIcon,
@@ -36,6 +37,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const d = useDashboardData();
   const [refreshing, setRefreshing] = React.useState(false);
+  const [editingEarnings, setEditingEarnings] = React.useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -112,6 +114,12 @@ export default function DashboardScreen() {
 
         {/* KPI grid — same cards, icons and order as the web dashboard */}
         <View style={styles.kpiRow}>
+          <Pressable
+            style={styles.flex}
+            onPress={() => setEditingEarnings(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Edit earnings for ${monthLabel}`}
+          >
           <StatCard
             accent
             icon={<WalletIcon />}
@@ -123,9 +131,10 @@ export default function DashboardScreen() {
                   : 'Monthly Earnings'
             }
             value={formatCurrency(d.selectedMonthEarnings.amount)}
-            hint={earningsStatus === 'confirmed' ? 'Confirmed from transactions' : 'Set in Earnings'}
+            hint="Tap to edit"
             trend={d.trendWindow.map((m) => m.earnings)}
           />
+          </Pressable>
           <StatCard
             accent
             icon={<TrendDownIcon />}
@@ -268,6 +277,14 @@ export default function DashboardScreen() {
           )}
         </Card>
       </ScrollView>
+      {editingEarnings && (
+      <EarningsSheet
+        visible
+        year={d.selectedYear}
+        month={d.selectedMonth}
+        onClose={() => setEditingEarnings(false)}
+      />
+      )}
     </SafeAreaView>
   );
 }

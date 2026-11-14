@@ -14,8 +14,11 @@ interface EarningsContextType {
     year: number,
     month: number,
     amount: number,
-    status?: 'confirmed' | 'estimated'
+    status?: 'confirmed' | 'estimated',
+    options?: { override?: boolean }
   ) => Promise<void>;
+  /** Drops a month's manual override so it goes back to its imported total. */
+  revertEarningsOverride: (year: number, month: number) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -79,7 +82,8 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     year: number,
     month: number,
     amount: number,
-    status: 'confirmed' | 'estimated' = 'confirmed'
+    status: 'confirmed' | 'estimated' = 'confirmed',
+    options: { override?: boolean } = {}
   ) => {
     if (!user) return;
     const key = monthKey(year, month);
@@ -90,7 +94,23 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       status,
       source: 'manual',
       updatedAt: new Date().toISOString(),
+      // Only stored when set, matching the web app's record shape.
+      ...(options.override && { override: true }),
     };
+    await setDoc(doc(db, 'userSettings', user.uid, 'earningsHistory', key), entry);
+    setEarningsHistory((prev) => ({ ...prev, [key]: entry }));
+  };
+
+  // Same behaviour as the web app: keep the record minus the flag, so the
+  // month still has this number if the imported income is ever removed.
+  const revertEarningsOverride = async (year: number, month: number) => {
+    if (!user) return;
+    const key = monthKey(year, month);
+    const existing = earningsHistory[key];
+    if (!existing?.override) return;
+    const { override: _drop, ...rest } = existing;
+    void _drop;
+    const entry: MonthlyEarnings = { ...rest, updatedAt: new Date().toISOString() };
     await setDoc(doc(db, 'userSettings', user.uid, 'earningsHistory', key), entry);
     setEarningsHistory((prev) => ({ ...prev, [key]: entry }));
   };
@@ -103,6 +123,7 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         loading,
         getEarningsForMonth,
         setEarningsForMonth,
+        revertEarningsOverride,
         refresh: load,
       }}
     >
