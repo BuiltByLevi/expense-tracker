@@ -84,5 +84,5 @@ export const useStatementImports = () => {
     }
   };
 
-  return { imports, loading, recordImport, deleteAllImports };
+  return { imports, loading, recordImport, deleteAllImports, refresh: loadImports };
 };

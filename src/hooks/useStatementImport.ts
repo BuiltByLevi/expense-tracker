@@ -175,20 +175,26 @@ export function useStatementImport() {
     const debitsTotal = rows.filter((r) => r.type === 'debit').reduce((s, r) => s + (r.amount ?? 0), 0);
     const imported = expensesImported + incomeImported;
 
-    await recordImport({
-      fileName,
-      bankGuess,
-      statementPeriodStart: statementPeriod.start?.toISOString() ?? null,
-      statementPeriodEnd: statementPeriod.end?.toISOString() ?? null,
-      uploadedAt: new Date().toISOString(),
-      transactionsExtracted: rows.length,
-      expensesImported,
-      incomeImported,
-      transactionsSkipped: rows.length - imported,
-      creditsTotal,
-      debitsTotal,
-      status: skipped === 0 ? 'completed' : imported > 0 ? 'partial' : 'failed',
-    });
+    // History is a log entry only; the transactions above are already saved,
+    // so a failure here must not leave the screen stuck on "Importing".
+    try {
+      await recordImport({
+        fileName,
+        bankGuess,
+        statementPeriodStart: statementPeriod.start?.toISOString() ?? null,
+        statementPeriodEnd: statementPeriod.end?.toISOString() ?? null,
+        uploadedAt: new Date().toISOString(),
+        transactionsExtracted: rows.length,
+        expensesImported,
+        incomeImported,
+        transactionsSkipped: rows.length - imported,
+        creditsTotal,
+        debitsTotal,
+        status: skipped === 0 ? 'completed' : imported > 0 ? 'partial' : 'failed',
+      });
+    } catch (err) {
+      console.error('Saving statement import history failed:', err);
+    }
 
     setImportSummary({ imported, skipped });
     setStatus('done');

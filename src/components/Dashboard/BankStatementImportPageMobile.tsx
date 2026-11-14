@@ -1,13 +1,24 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
-import { UploadIcon, AlertIcon, CheckCircleIcon, RupeeIcon } from '../common/FinanceIcons';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type ExpenseCategory, type IncomeCategory } from '../../types';
+import {
+  UploadIcon, AlertIcon, CheckCircleIcon, RupeeIcon, BankIcon, ShieldCheckIcon, DocumentIcon, CheckIcon,
+} from '../common/FinanceIcons';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type IncomeCategory } from '../../types';
 import { useStatementImport } from '../../hooks/useStatementImport';
+import { useStatementImports } from '../../hooks/useStatementImports';
+import type { ReviewTransaction } from '../../../shared/statementParsers/types';
 
 interface Props {
   onBack: () => void;
 }
+
+/**
+ * Mobile statement import, styled to match the banking-style shell:
+ * upload card + recent imports → review (Income / Expenses tabs, compact
+ * editable rows, fixed Import bar) → success summary. All parsing and
+ * saving logic lives in useStatementImport; this file is presentation only.
+ */
 
 const INCOME_CATEGORY_COLORS: Record<IncomeCategory, string> = {
   Salary: design.colors.success,
@@ -19,8 +30,76 @@ const INCOME_CATEGORY_COLORS: Record<IncomeCategory, string> = {
 
 function expenseCategoryColor(category: string): string {
   const idx = (EXPENSE_CATEGORIES as readonly string[]).indexOf(category);
-  return categoryColors[idx % categoryColors.length];
+  return categoryColors[Math.max(0, idx) % categoryColors.length];
 }
+
+const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+
+const Spinner: React.FC<{ label: string; sub?: string }> = ({ label, sub }) => (
+  <div className="glass-card si-state">
+    <span className="si-spinner" aria-hidden="true" />
+    <p className="si-state-title" role="status">{label}</p>
+    {sub && <p className="si-state-sub">{sub}</p>}
+  </div>
+);
+
+const Row: React.FC<{
+  row: ReviewTransaction;
+  onToggle: () => void;
+  onDescription: (v: string) => void;
+  onCategory: (v: string) => void;
+  onAmount: (v: number) => void;
+}> = ({ row, onToggle, onDescription, onCategory, onAmount }) => {
+  const isCredit = row.type === 'credit';
+  const categories = isCredit ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const dot = isCredit ? INCOME_CATEGORY_COLORS[row.category as IncomeCategory] ?? design.colors.success : expenseCategoryColor(row.category);
+  return (
+    <li className={`si-row ${row.included ? '' : 'off'}`}>
+      <button
+        type="button"
+        className={`si-check ${row.included ? 'on' : ''}`}
+        role="checkbox"
+        aria-checked={row.included}
+        aria-label={`Include ${row.description || 'transaction'}`}
+        onClick={onToggle}
+      >
+        {row.included && <CheckIcon size={14} color="white" strokeWidth={3} />}
+      </button>
+      <div className="si-row-main">
+        <input
+          className="si-desc"
+          value={row.description}
+          onChange={(e) => onDescription(e.target.value)}
+          aria-label="Description"
+        />
+        <div className="si-row-meta">
+          <span className="si-date">{row.date ? format(row.date, 'dd MMM') : '—'}</span>
+          <label className="si-cat">
+            <span className="si-cat-dot" style={{ background: dot }} aria-hidden="true" />
+            <select value={row.category} onChange={(e) => onCategory(e.target.value)} aria-label="Category">
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          {row.duplicateOf && (
+            <span className="si-badge warn">{row.duplicateConfidence === 'exact' ? 'Duplicate' : 'Possible dup'}</span>
+          )}
+          {row.uncertain && <span className="si-badge">Review</span>}
+        </div>
+      </div>
+      <label className={`si-amt ${isCredit ? 'in' : ''}`}>
+        <span aria-hidden="true">{isCredit ? '+₹' : '₹'}</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={row.amount ?? ''}
+          onChange={(e) => onAmount(parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0)}
+          style={{ width: `${Math.max(3, String(row.amount ?? '').length) + 1}ch` }}
+          aria-label="Amount"
+        />
+      </label>
+    </li>
+  );
+};
 
 const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
   const {
@@ -28,242 +107,193 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
     handleFile, toggleInclude, toggleSelectAllByType, updateCategory, updateDescription, updateAmount,
     confirmImport, reset,
   } = useStatementImport();
+  const { imports, loading: historyLoading, refresh: refreshHistory } = useStatementImports();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<'debit' | 'credit'>('debit');
 
   const debitRows = rows.filter((r) => r.type === 'debit');
   const creditRows = rows.filter((r) => r.type === 'credit');
-  const allDebitsSelected = debitRows.length > 0 && debitRows.every((r) => r.included);
-  const allCreditsSelected = creditRows.length > 0 && creditRows.every((r) => r.included);
-  const selectedDebitCount = debitRows.filter((r) => r.included).length;
-  const selectedCreditCount = creditRows.filter((r) => r.included).length;
-  const totalSelected = selectedDebitCount + selectedCreditCount;
+  const selDebits = debitRows.filter((r) => r.included);
+  const selCredits = creditRows.filter((r) => r.included);
+  const totalSelected = selDebits.length + selCredits.length;
+  const sum = (rs: ReviewTransaction[]) => rs.reduce((s, r) => s + (r.amount ?? 0), 0);
+  const shownRows = tab === 'debit' ? debitRows : creditRows;
+  const allShownSelected = shownRows.length > 0 && shownRows.every((r) => r.included);
+
+  const startOver = () => {
+    reset();
+    setTab('debit');
+    refreshHistory();
+  };
+
+  const pickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = ''; // allow choosing the same file again after an error
+    if (f) handleFile(f);
+  };
 
   return (
-    <div style={{ padding: '12px' }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+    <div className="si-page">
+      {status === 'idle' && (
+        <>
+          <button type="button" className="si-hero" style={{ background: design.colors.primaryGradient }} onClick={() => fileInputRef.current?.click()}>
+            <span className="si-hero-ico"><UploadIcon size={26} color="white" strokeWidth={1.8} /></span>
+            <span className="si-hero-title">Upload bank statement</span>
+            <span className="si-hero-sub">We read the transactions and let you check them before anything is saved.</span>
+            <span className="si-hero-btn">Choose file</span>
+            <span className="si-formats">
+              <span>CSV</span><span>Excel</span><span>PDF</span><span>Max 10 MB</span>
+            </span>
+          </button>
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,.pdf" style={{ display: 'none' }} onChange={pickFile} />
 
-        {/* Title and navigation live in the mobile shell's top bar. */}
-        <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 4px 10px' }}>CSV, Excel, or text-based PDF</p>
-
-        {status === 'idle' && (
-          <div
-            className="glass-card animate-in"
-            style={{ padding: '32px 16px', textAlign: 'center' }}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '18px', margin: '0 auto 14px auto',
-              background: `rgba(${design.colors.primaryRgb}, 0.1)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <UploadIcon size={28} color={design.colors.primary} strokeWidth={1.8} />
-            </div>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>Tap to choose a statement file</p>
-            <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '8px 0 0 0' }}>
-              .csv, .xlsx, .xls, or text-based .pdf — max 10MB. Scanned/image PDFs aren't supported yet.
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.xlsx,.xls,.pdf"
-              style={{ display: 'none' }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-            />
-          </div>
-        )}
-
-        {status === 'parsing' && (
-          <div className="glass-card animate-in" style={{ padding: '32px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: design.colors.textSecondary }}>Reading {fileName}...</p>
-          </div>
-        )}
-
-        {status === 'error' && (
-          <div className="glass-card animate-in" style={{ padding: '24px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: design.colors.danger, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <AlertIcon size={14} color={design.colors.danger} /> Couldn't process this file
-            </p>
-            <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 0 16px 0' }}>{errorMessage}</p>
-            <button onClick={reset} className="btn btn-primary" style={{ padding: '10px 20px', width: '100%' }}>Try another file</button>
-          </div>
-        )}
-
-        {status === 'review' && (
-          <>
-            <div className="glass-card animate-in" style={{ padding: '14px 16px', marginBottom: '12px' }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, margin: 0 }}>{fileName}</p>
-              <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>
-                {bankGuess ? `${bankGuess} · ` : ''}{rows.length} transactions
-                {statementPeriod.start && statementPeriod.end && ` · ${format(statementPeriod.start, 'dd MMM')} – ${format(statementPeriod.end, 'dd MMM yyyy')}`}
-              </p>
-            </div>
-
-            {salaryRowsTotal > 0 && (
-              <div className="glass-card animate-in" style={{ padding: '12px 14px', marginBottom: '12px', background: `linear-gradient(135deg, rgba(${design.colors.successRgb}, 0.08) 0%, rgba(${design.colors.primaryRgb}, 0.08) 100%)`, border: `1px solid ${design.colors.success}30` }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <RupeeIcon size={13} color={design.colors.success} style={{ flexShrink: 0 }} /> ₹{salaryRowsTotal.toLocaleString('en-IN')} in salary-looking credits — included in Income below.
-                </p>
+          <div className="glass-card si-steps">
+            {[
+              ['1', 'Upload', 'Statement from your bank app or net banking'],
+              ['2', 'Review', 'Fix categories, untick anything to skip'],
+              ['3', 'Import', 'Transactions are added to your account'],
+            ].map(([n, t, s]) => (
+              <div key={n} className="si-step">
+                <span className="si-step-n">{n}</span>
+                <div><strong>{t}</strong><small>{s}</small></div>
               </div>
-            )}
+            ))}
+          </div>
 
-            {/* Income cards */}
-            <div className="glass-card animate-in" style={{ padding: '12px 14px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700 }}>Income: {selectedCreditCount} of {creditRows.length} selected</span>
-              {creditRows.length > 0 && (
-                <button onClick={() => toggleSelectAllByType('credit', !allCreditsSelected)} className="btn btn-ghost" style={{ padding: '6px 10px', fontSize: '11px' }}>
-                  {allCreditsSelected ? 'Select none' : 'Select all'}
-                </button>
-              )}
-            </div>
+          <p className="si-note">
+            <ShieldCheckIcon size={14} color={design.colors.success} />
+            Your file is read on this device and never stored. Scanned or password-protected PDFs aren't supported yet.
+          </p>
 
-            {creditRows.length === 0 ? (
-              <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 0 12px 0', padding: '0 4px' }}>No credits found in this statement.</p>
+          <div className="m-section-head"><h2>Recent imports</h2></div>
+          <div className="glass-card si-history">
+            {historyLoading ? (
+              <p className="si-empty">Loading…</p>
+            ) : imports.length === 0 ? (
+              <p className="si-empty">No statements imported yet.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                {creditRows.map((row) => (
-                  <div key={row.rowId} className="glass-card" style={{ padding: '12px', opacity: row.included ? 1 : 0.5, borderLeft: `3px solid ${design.colors.success}40` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: 0 }}>
-                        <input type="checkbox" checked={row.included} onChange={() => toggleInclude(row.rowId)} style={{ width: '16px', height: '16px', flexShrink: 0 }} />
-                        <span style={{ fontSize: '11px', color: design.colors.textSecondary, flexShrink: 0 }}>{row.date ? format(row.date, 'dd MMM') : '—'}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {row.duplicateOf && (
-                          <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', color: design.colors.warning, fontWeight: 600 }}>
-                            {row.duplicateConfidence === 'exact' ? 'Duplicate' : 'Possible dup'}
-                          </span>
-                        )}
-                        {row.uncertain && (
-                          <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: `rgba(${design.colors.primaryRgb}, 0.15)`, color: design.colors.primary, fontWeight: 600 }}>
-                            Review
-                          </span>
-                        )}
-                      </div>
+              <ul>
+                {imports.slice(0, 5).map((imp) => (
+                  <li key={imp.id}>
+                    <span className="si-file-ico"><DocumentIcon size={18} color={design.colors.primary} /></span>
+                    <div className="si-file-main">
+                      <strong>{imp.bankGuess ?? imp.fileName}</strong>
+                      <small>
+                        {imp.statementPeriodStart && imp.statementPeriodEnd
+                          ? `${format(new Date(imp.statementPeriodStart), 'dd MMM')} – ${format(new Date(imp.statementPeriodEnd), 'dd MMM yyyy')}`
+                          : format(new Date(imp.uploadedAt), 'dd MMM yyyy')}
+                      </small>
                     </div>
-                    <input
-                      className="input"
-                      style={{ padding: '8px 10px', fontSize: '13px', marginBottom: '8px' }}
-                      value={row.description}
-                      onChange={(e) => updateDescription(row.rowId, e.target.value)}
-                    />
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: '8px' }}>
-                      <select
-                        className="input"
-                        style={{ padding: '8px', fontSize: '12px', color: INCOME_CATEGORY_COLORS[row.category as IncomeCategory] }}
-                        value={row.category}
-                        onChange={(e) => updateCategory(row.rowId, e.target.value as IncomeCategory)}
-                      >
-                        {INCOME_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <input
-                        type="number"
-                        className="input"
-                        style={{ padding: '8px', fontSize: '13px', textAlign: 'right' }}
-                        value={row.amount ?? ''}
-                        onChange={(e) => updateAmount(row.rowId, parseFloat(e.target.value) || 0)}
-                      />
+                    <div className="si-file-count">
+                      <strong>{imp.expensesImported + imp.incomeImported}</strong>
+                      <small>added</small>
                     </div>
-                  </div>
+                  </li>
                 ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+
+      {status === 'parsing' && <Spinner label={`Reading ${fileName}`} sub="Large PDFs can take a few seconds." />}
+      {status === 'importing' && <Spinner label={`Importing ${totalSelected} transactions`} />}
+
+      {status === 'error' && (
+        <div className="glass-card si-state">
+          <span className="si-state-ico err"><AlertIcon size={26} color={design.colors.danger} /></span>
+          <p className="si-state-title">Couldn't read this file</p>
+          <p className="si-state-sub">{errorMessage}</p>
+          <button onClick={startOver} className="btn btn-primary si-wide">Try another file</button>
+        </div>
+      )}
+
+      {status === 'review' && (
+        <>
+          <div className="si-summary" style={{ background: design.colors.primaryGradient }}>
+            <div className="si-summary-head">
+              <span className="si-hero-ico small"><BankIcon size={18} color="white" /></span>
+              <div style={{ minWidth: 0 }}>
+                <strong>{bankGuess ?? 'Bank statement'}</strong>
+                <small>
+                  {rows.length} transactions
+                  {statementPeriod.start && statementPeriod.end && ` · ${format(statementPeriod.start, 'dd MMM')} – ${format(statementPeriod.end, 'dd MMM yyyy')}`}
+                </small>
               </div>
-            )}
-
-            {/* Expense cards */}
-            <div className="glass-card animate-in" style={{ padding: '12px 14px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700 }}>Expenses: {selectedDebitCount} of {debitRows.length} selected</span>
-              <button onClick={() => toggleSelectAllByType('debit', !allDebitsSelected)} className="btn btn-ghost" style={{ padding: '6px 10px', fontSize: '11px' }}>
-                {allDebitsSelected ? 'Select none' : 'Select all'}
-              </button>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-              {debitRows.map((row) => (
-                <div key={row.rowId} className="glass-card" style={{ padding: '12px', opacity: row.included ? 1 : 0.5 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: 0 }}>
-                      <input type="checkbox" checked={row.included} onChange={() => toggleInclude(row.rowId)} style={{ width: '16px', height: '16px', flexShrink: 0 }} />
-                      <span style={{ fontSize: '11px', color: design.colors.textSecondary, flexShrink: 0 }}>{row.date ? format(row.date, 'dd MMM') : '—'}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {row.duplicateOf && (
-                        <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', color: design.colors.warning, fontWeight: 600 }}>
-                          {row.duplicateConfidence === 'exact' ? 'Duplicate' : 'Possible dup'}
-                        </span>
-                      )}
-                      {row.uncertain && (
-                        <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: `rgba(${design.colors.primaryRgb}, 0.15)`, color: design.colors.primary, fontWeight: 600 }}>
-                          Review
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <input
-                    className="input"
-                    style={{ padding: '8px 10px', fontSize: '13px', marginBottom: '8px' }}
-                    value={row.description}
-                    onChange={(e) => updateDescription(row.rowId, e.target.value)}
-                  />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: '8px' }}>
-                    <select
-                      className="input"
-                      style={{ padding: '8px', fontSize: '12px', color: expenseCategoryColor(row.category) }}
-                      value={row.category}
-                      onChange={(e) => updateCategory(row.rowId, e.target.value as ExpenseCategory)}
-                    >
-                      {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <input
-                      type="number"
-                      className="input"
-                      style={{ padding: '8px', fontSize: '13px', textAlign: 'right' }}
-                      value={row.amount ?? ''}
-                      onChange={(e) => updateAmount(row.rowId, parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </div>
-              ))}
+            <div className="si-summary-tiles">
+              <div><small>Money in</small><strong>{inr(sum(selCredits))}</strong><small>{selCredits.length} selected</small></div>
+              <div><small>Money out</small><strong>{inr(sum(selDebits))}</strong><small>{selDebits.length} selected</small></div>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button onClick={() => confirmImport()} disabled={totalSelected === 0} className="btn btn-primary" style={{ padding: '14px', width: '100%' }}>
-                Import {totalSelected} {totalSelected === 1 ? 'transaction' : 'transactions'}
-              </button>
-              <button onClick={reset} className="btn btn-ghost" style={{ padding: '12px', width: '100%' }}>Cancel</button>
-            </div>
-          </>
-        )}
-
-        {status === 'importing' && (
-          <div className="glass-card animate-in" style={{ padding: '32px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: design.colors.textSecondary }}>Importing transactions...</p>
           </div>
-        )}
 
-        {status === 'done' && importSummary && (
-          <div className="glass-card animate-in" style={{ padding: '32px', textAlign: 'center' }}>
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '50%', margin: '0 auto 14px auto',
-              background: `rgba(${design.colors.successRgb}, 0.12)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <CheckCircleIcon size={30} color={design.colors.success} strokeWidth={1.8} />
-            </div>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-              Imported {importSummary.imported} transaction{importSummary.imported === 1 ? '' : 's'}
+          {salaryRowsTotal > 0 && (
+            <p className="si-note">
+              <RupeeIcon size={14} color={design.colors.success} />
+              {inr(salaryRowsTotal)} looks like salary — it's in Money in.
             </p>
-            {importSummary.skipped > 0 && (
-              <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '6px 0 0 0' }}>
-                {importSummary.skipped} skipped.
-              </p>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
-              <button onClick={onBack} className="btn btn-primary" style={{ padding: '12px', width: '100%' }}>Back to Dashboard</button>
-              <button onClick={reset} className="btn btn-ghost" style={{ padding: '12px', width: '100%' }}>Import another</button>
+          )}
+
+          <div className="glass-card" style={{ padding: '4px' }}>
+            <div className="tab-container" style={{ width: '100%' }} role="tablist">
+              <button role="tab" aria-selected={tab === 'debit'} onClick={() => setTab('debit')} className={`tab ${tab === 'debit' ? 'active' : ''}`} style={{ fontSize: '13px', padding: '9px' }}>
+                Expenses · {debitRows.length}
+              </button>
+              <button role="tab" aria-selected={tab === 'credit'} onClick={() => setTab('credit')} className={`tab ${tab === 'credit' ? 'active' : ''}`} style={{ fontSize: '13px', padding: '9px' }}>
+                Income · {creditRows.length}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="m-section-head">
+            <h2>{(tab === 'debit' ? selDebits : selCredits).length} of {shownRows.length} selected</h2>
+            {shownRows.length > 0 && (
+              <button className="m-link" onClick={() => toggleSelectAllByType(tab, !allShownSelected)}>
+                {allShownSelected ? 'Select none' : 'Select all'}
+              </button>
+            )}
+          </div>
+
+          {shownRows.length === 0 ? (
+            <div className="glass-card"><p className="si-empty">No {tab === 'debit' ? 'expenses' : 'income'} found in this statement.</p></div>
+          ) : (
+            <ul className="glass-card si-list">
+              {shownRows.map((row) => (
+                <Row
+                  key={row.rowId}
+                  row={row}
+                  onToggle={() => toggleInclude(row.rowId)}
+                  onDescription={(v) => updateDescription(row.rowId, v)}
+                  onCategory={(v) => updateCategory(row.rowId, v)}
+                  onAmount={(v) => updateAmount(row.rowId, v)}
+                />
+              ))}
+            </ul>
+          )}
+
+          <div className="si-bar">
+            <button onClick={startOver} className="si-cancel">Cancel</button>
+            <button onClick={() => confirmImport()} disabled={totalSelected === 0} className="si-go" style={{ background: design.colors.primaryGradient }}>
+              Import {totalSelected} {totalSelected === 1 ? 'transaction' : 'transactions'}
+            </button>
+          </div>
+        </>
+      )}
+
+      {status === 'done' && importSummary && (
+        <div className="glass-card si-state">
+          <span className="si-state-ico ok"><CheckCircleIcon size={30} color={design.colors.success} strokeWidth={1.8} /></span>
+          <p className="si-state-title">
+            {importSummary.imported} transaction{importSummary.imported === 1 ? '' : 's'} imported
+          </p>
+          <p className="si-state-sub">
+            {importSummary.skipped > 0 ? `${importSummary.skipped} skipped. ` : ''}They now show in Transactions and your totals.
+          </p>
+          <button onClick={onBack} className="btn btn-primary si-wide">Go to Home</button>
+          <button onClick={startOver} className="btn btn-ghost si-wide">Import another statement</button>
+        </div>
+      )}
     </div>
   );
 };
