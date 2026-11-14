@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import RotatingQuote from '../common/RotatingQuote';
+import BudgetsPanel from '../Budgets/BudgetsPanel';
 import {
   WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, ChartLineIcon,
   PieIcon, RupeeIcon, AlertIcon, CheckCircleIcon, CalendarIcon,
@@ -428,6 +429,16 @@ const DashboardWeb: React.FC = () => {
                 <CategoryLegend data={monthCategoryAnalysis} />
               </>
             )}
+          </div>
+        </div>
+
+        {/* Budgets */}
+        <div className="glass-card bank-ui animate-in" style={{ padding: '20px 24px', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <WalletIcon size={15} color={design.colors.primary} /> Budgets
+          </h3>
+          <div className="bd-desktop">
+            <BudgetsPanel monthExpenses={monthExpenses} expenses={expenses} year={selectedYear} month={selectedMonth} monthName={monthName} />
           </div>
         </div>
 

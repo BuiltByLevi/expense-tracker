@@ -6,6 +6,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useIncome } from '../context/IncomeContext';
 import toast from 'react-hot-toast';
+import { useBudgets } from '../context/BudgetsContext';
+import { budgetCrossing, computeBudgetStatuses } from '../utils/budgets';
 import type { Expense, Income, MonthlyEarnings } from '../types';
 import { computeFinanceTotals } from '../utils/finance';
 import { resolveMonthlyEarnings } from '../utils/earningsResolution';
@@ -36,6 +38,7 @@ export function useDashboardData() {
   const { earnings, getEarningsForMonth } = useEarnings();
   const { theme, toggleTheme } = useTheme();
   const { expenses, loading: expensesLoading, addExpense, updateExpense, updateExpenses, deleteExpense } = useExpenses();
+  const { budgets } = useBudgets();
   const { income, loading: incomeLoading, addIncome, getIncomeForMonth, updateIncome, updateIncomes, deleteIncome: handleDeleteIncome } = useIncome();
   const loading = expensesLoading || incomeLoading;
 
@@ -203,7 +206,27 @@ export function useDashboardData() {
       throw new Error('bulk category update failed');
     }
   };
-  const handleAddExpense = async (expense: Parameters<typeof addExpense>[0]) => await addExpense(expense);
+  const handleAddExpense = async (expense: Parameters<typeof addExpense>[0]) => {
+    // Work out the category's budget status for that month before and after
+    // this expense, so we can warn the moment it crosses 80% or the limit.
+    const d = new Date(expense.date);
+    const sameMonth = expenses.filter((e) => {
+      const ed = new Date(e.date);
+      return ed.getFullYear() === d.getFullYear() && ed.getMonth() === d.getMonth() && e.category === expense.category;
+    });
+    const only = { [expense.category]: budgets[expense.category] };
+    const before = computeBudgetStatuses(only, sameMonth)[0];
+    const after = computeBudgetStatuses(only, [...sameMonth, { category: expense.category, amount: expense.amount }])[0];
+
+    await addExpense(expense);
+
+    const crossed = budgetCrossing(before, after);
+    if (crossed === 'over' && after) {
+      toast.error(`${expense.category} is over budget by ₹${Math.round(-after.remaining).toLocaleString('en-IN')} this month`, { duration: 5000 });
+    } else if (crossed === 'warning' && after) {
+      toast(`⚠ ${expense.category}: ${Math.round(after.percent)}% of this month's budget used`, { duration: 5000 });
+    }
+  };
   const handleAddIncome = async (entry: Parameters<typeof addIncome>[0]) => await addIncome(entry);
   const handleDeleteExpense = async (id: string) => await deleteExpense(id);
 

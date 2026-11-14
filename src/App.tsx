@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { EarningsProvider } from './context/EarningsContext';
 import { ExpensesProvider } from './context/ExpensesContext';
 import { IncomeProvider } from './context/IncomeContext';
+import { BudgetsProvider } from './context/BudgetsContext';
 // Signed-in and signed-out screens load separately: the sign-in page doesn't
 // pull in the dashboard (charts, statement import) and vice versa.
 const Dashboard = lazy(() => import('./components/Dashboard/Dashboard'));
@@ -32,11 +33,13 @@ function App() {
       <ExpensesProvider>
         <IncomeProvider>
           <EarningsProvider>
-            <FinanceBackdrop />
-            <div className="app-layer">
-              <AppContent />
-            </div>
-            <Toaster position="top-right" />
+            <BudgetsProvider>
+              <FinanceBackdrop />
+              <div className="app-layer">
+                <AppContent />
+              </div>
+              <Toaster position="top-right" />
+            </BudgetsProvider>
           </EarningsProvider>
         </IncomeProvider>
       </ExpensesProvider>

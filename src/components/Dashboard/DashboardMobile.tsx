@@ -14,6 +14,7 @@ import MonthYearPicker from '../common/MonthYearPicker';
 import DateRangeFilter from './DateRangeFilter';
 import LogoMark from '../common/LogoMark';
 import RotatingQuote from '../common/RotatingQuote';
+import BudgetsPanel from '../Budgets/BudgetsPanel';
 import ListSkeleton from '../common/ListSkeleton';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
@@ -41,7 +42,7 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageMobi
  */
 type Page =
   | 'overview' | 'add' | 'transactions' | 'analytics'
-  | 'ledger' | 'earnings' | 'history' | 'import' | 'profile';
+  | 'ledger' | 'earnings' | 'history' | 'import' | 'profile' | 'budgets';
 
 const PAGE_TITLES: Record<Page, string> = {
   overview: 'Home',
@@ -53,6 +54,7 @@ const PAGE_TITLES: Record<Page, string> = {
   history: 'Financial History',
   import: 'Import Statement',
   profile: 'My Profile',
+  budgets: 'Budgets',
 };
 
 const Svg: React.FC<{ size?: number; children: React.ReactNode }> = ({ size = 22, children }) => (
@@ -81,6 +83,7 @@ const NAV: { section: string; items: { page: Page; label: string; icon: React.Re
       { page: 'add', label: 'Add Transaction', icon: <RupeeIcon size={18} /> },
       { page: 'transactions', label: 'Transactions', icon: <LedgerIcon size={18} /> },
       { page: 'analytics', label: 'Analytics & Trends', icon: <ChartLineIcon size={18} /> },
+      { page: 'budgets', label: 'Budgets', icon: <WalletIcon size={18} /> },
     ],
   },
   {
@@ -335,6 +338,12 @@ const DashboardMobile: React.FC = () => {
       )}
 
       <div className="m-section-head">
+        <h2>Budgets</h2>
+        <button className="m-link" onClick={() => navigate('budgets')}>Manage</button>
+      </div>
+      <BudgetsPanel preview monthExpenses={monthExpenses} expenses={expenses} year={selectedYear} month={selectedMonth} monthName={monthName} onManage={() => navigate('budgets')} />
+
+      <div className="m-section-head">
         <h2>Top spending</h2>
         <button type="button" className="m-link" onClick={() => navigate('analytics')}>See all</button>
       </div>
@@ -520,6 +529,14 @@ const DashboardMobile: React.FC = () => {
     case 'transactions': body = <div className="m-content">{renderTransactions()}</div>; break;
     case 'analytics': body = <div className="m-content">{renderAnalytics()}</div>; break;
     case 'history': body = <div className="m-content">{renderHistory()}</div>; break;
+    case 'budgets':
+      body = (
+        <div className="m-content">
+          {monthBar}
+          <BudgetsPanel monthExpenses={monthExpenses} expenses={expenses} year={selectedYear} month={selectedMonth} monthName={monthName} />
+        </div>
+      );
+      break;
     default: body = <div className="m-content">{renderOverview()}</div>;
   }
 
