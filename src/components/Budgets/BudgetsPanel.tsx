@@ -117,6 +117,23 @@ const BudgetsPanel: React.FC<Props> = ({ monthExpenses, expenses, year, month, m
     );
   }
 
+  if (statuses.length === 0 && !adding) {
+    return (
+      <div className="bd-intro">
+        <div className="bd-intro-text">
+          <strong>Set a monthly limit for the categories you want to control</strong>
+          <small>
+            For example ₹8,000 for Food &amp; Dining. You'll see how much is left each month, the bar turns
+            amber at 80% and red when you go over, and you'll get a warning when an expense crosses either line.
+          </small>
+        </div>
+        <button type="button" className="bd-save bd-intro-btn" onClick={() => { setEditing(null); setAdding(true); setDraft(''); }}>
+          + Create your first budget
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bd-wrap">
       <div className="si-summary bd-hero">
@@ -127,7 +144,7 @@ const BudgetsPanel: React.FC<Props> = ({ monthExpenses, expenses, year, month, m
         <div className="lg-meter-track"><span style={{ width: `${Math.min(100, totals.percent)}%` }} /></div>
         <small className="bd-hero-sub">
           {statuses.length === 0
-            ? 'No budgets yet — add one below.'
+            ? 'Choose a category to start.'
             : overCount
               ? `${overCount} over budget${warnCount ? ` · ${warnCount} close to the limit` : ''}`
               : warnCount

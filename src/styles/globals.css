@@ -2034,3 +2034,8 @@ button.pf-row:disabled { cursor: default; }
 [data-theme='dark'] .au-field input { border-color: rgba(148, 163, 184, 0.28); background: rgba(255, 255, 255, 0.04); }
 .au-card-wrap { position: relative; z-index: 1; }
 .er-bulk { border: 1.5px solid var(--c-blue); box-shadow: 0 14px 34px rgba(15, 23, 42, 0.28); }
+.bd-intro { display: flex; align-items: center; gap: 16px 24px; flex-wrap: wrap; padding: 16px 18px; border-radius: 18px; background: var(--c-blue-bg); }
+.bd-intro-text { flex: 1 1 320px; min-width: 0; }
+.bd-intro-text strong { display: block; font-size: 15px; color: var(--text-primary); }
+.bd-intro-text small { display: block; margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+.bd-intro-btn { flex-shrink: 0; height: 44px; padding: 0 20px; }
