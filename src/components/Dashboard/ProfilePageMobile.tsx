@@ -4,10 +4,11 @@ import { useProfileLogic } from '../../hooks/useProfileLogic';
 import { WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, GearIcon, LockIcon, AlertIcon, CameraIcon, CheckIcon, ShieldCheckIcon } from '../common/FinanceIcons';
 
 interface Props {
-  onBack: () => void;
+  /** Unused: the mobile shell's menu handles navigation. Kept for API parity with the Web page. */
+  onBack?: () => void;
 }
 
-const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
+const ProfilePageMobile: React.FC<Props> = () => {
   const {
     user, theme, toggleTheme, colorTheme, setColorTheme, stats, totalSavings, initials,
     displayName, setDisplayName, savingName, handleSaveName,
@@ -16,17 +17,11 @@ const ProfilePageMobile: React.FC<Props> = ({ onBack }) => {
   } = useProfileLogic();
 
   return (
-    <div className="glass-page" style={{ padding: '10px' }}>
+    <div style={{ padding: '12px' }}>
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
 
-        {/* Header */}
-        <div className="glass-card animate-in" style={{ padding: '16px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div>
-            <h1 className="text-gradient" style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>My Profile</h1>
-            <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>Manage your account</p>
-          </div>
-          <button onClick={onBack} className="btn btn-ghost" style={{ padding: '8px', fontSize: '12px', width: '100%' }}>← Back to Dashboard</button>
-        </div>
+        {/* Title and navigation live in the mobile shell's top bar. */}
+        <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 4px 10px' }}>Manage your account</p>
 
         {/* Hero Card - Stacked for Mobile */}
         <div className="glass-card animate-in animate-in-delay-1" style={{

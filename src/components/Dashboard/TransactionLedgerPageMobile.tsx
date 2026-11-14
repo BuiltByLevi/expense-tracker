@@ -7,7 +7,8 @@ import MonthYearPicker from '../common/MonthYearPicker';
 import { ClockIcon } from '../common/FinanceIcons';
 
 interface Props {
-  onBack: () => void;
+  /** Unused: the mobile shell's menu handles navigation. Kept for API parity with the Web page. */
+  onBack?: () => void;
 }
 
 function getCategoryColor(category: string): string | null {
@@ -15,7 +16,7 @@ function getCategoryColor(category: string): string | null {
   return idx === -1 ? null : categoryColors[idx % categoryColors.length];
 }
 
-const TransactionLedgerPageMobile: React.FC<Props> = ({ onBack }) => {
+const TransactionLedgerPageMobile: React.FC<Props> = () => {
   const {
     selectedYear, selectedMonth, currentYear, currentMonth, isFutureMonth,
     goToPreviousMonth, goToNextMonth, goToCurrentMonth, goToMonth,
@@ -25,16 +26,11 @@ const TransactionLedgerPageMobile: React.FC<Props> = ({ onBack }) => {
   const monthName = format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
 
   return (
-    <div style={{ minHeight: '100vh', padding: '10px' }}>
+    <div style={{ padding: '12px' }}>
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
 
-        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', marginBottom: '16px' }}>
-          <div>
-            <h1 className="text-gradient" style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Account Statement</h1>
-            <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>Ledger with running balance.</p>
-          </div>
-          <button onClick={onBack} className="btn btn-ghost" style={{ padding: '8px', fontSize: '12px', width: '100%' }}>← Back to Dashboard</button>
-        </div>
+        {/* Title and navigation live in the mobile shell's top bar. */}
+        <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 4px 10px' }}>Ledger with running balance.</p>
 
         <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', marginBottom: '10px', gap: '6px', flexWrap: 'wrap' }}>
           <button onClick={goToPreviousMonth} className="btn btn-ghost" aria-label="Previous month" style={{ padding: '8px 12px', fontSize: '16px', flexShrink: 0 }}>◀</button>

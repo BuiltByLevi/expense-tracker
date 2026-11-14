@@ -40,16 +40,11 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack }) => {
   const totalSelected = selectedDebitCount + selectedCreditCount;
 
   return (
-    <div className="glass-page" style={{ padding: '10px' }}>
+    <div style={{ padding: '12px' }}>
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
 
-        <div className="glass-card animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px', marginBottom: '16px' }}>
-          <div>
-            <h1 className="text-gradient" style={{ fontSize: '19px', fontWeight: 700, margin: 0 }}>Import Statement</h1>
-            <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>CSV, Excel, or text-based PDF</p>
-          </div>
-          <button onClick={onBack} className="btn btn-ghost" style={{ padding: '8px', fontSize: '12px', width: '100%' }}>← Back to Dashboard</button>
-        </div>
+        {/* Title and navigation live in the mobile shell's top bar. */}
+        <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 4px 10px' }}>CSV, Excel, or text-based PDF</p>
 
         {status === 'idle' && (
           <div

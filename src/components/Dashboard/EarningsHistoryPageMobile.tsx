@@ -6,10 +6,11 @@ import StatusBadge from '../common/StatusBadge';
 import { CheckIcon, AlertIcon } from '../common/FinanceIcons';
 
 interface Props {
-  onBack: () => void;
+  /** Unused: the mobile shell's menu handles navigation. Kept for API parity with the Web page. */
+  onBack?: () => void;
 }
 
-const EarningsHistoryPageMobile: React.FC<Props> = ({ onBack }) => {
+const EarningsHistoryPageMobile: React.FC<Props> = () => {
   const {
     getDisplay, handleRevert, months, availableYears, yearFilter, setYearFilter,
     editingKey, setEditingKey, editValue, setEditValue, handleSave,
@@ -19,14 +20,11 @@ const EarningsHistoryPageMobile: React.FC<Props> = ({ onBack }) => {
   } = useEarningsHistoryLogic();
 
   return (
-    <div style={{ minHeight: '100vh', padding: '10px', paddingBottom: selectedMonths.size > 0 ? '180px' : '10px' }}>
+    <div style={{ padding: '12px', paddingBottom: selectedMonths.size > 0 ? '180px' : '12px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
-        <div className="glass-card animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', marginBottom: '16px' }}>
-          <div>
-            <h1 className="text-gradient" style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Earnings History</h1>
-            <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>Select months to update in bulk.</p>
-          </div>
+        <div className="glass-card animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '14px 16px', marginBottom: '12px' }}>
+          <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: 0 }}>Select months to update in bulk.</p>
           <select
             className="input"
             value={yearFilter}
@@ -37,7 +35,6 @@ const EarningsHistoryPageMobile: React.FC<Props> = ({ onBack }) => {
             <option value="All">All years</option>
             {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button onClick={onBack} className="btn btn-ghost" style={{ padding: '8px', fontSize: '12px', width: '100%' }}>← Back to Dashboard</button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
