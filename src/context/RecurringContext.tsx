@@ -16,6 +16,8 @@ interface RecurringContextType {
   addRule: (rule: NewRecurringRule) => Promise<void>;
   updateRule: (id: string, changes: Partial<NewRecurringRule>) => Promise<void>;
   deleteRule: (id: string) => Promise<void>;
+  /** Removes every rule (used by "Delete all data"). */
+  deleteAllRules: () => Promise<void>;
 }
 
 const RecurringContext = createContext<RecurringContextType | undefined>(undefined);
@@ -143,8 +145,15 @@ export const RecurringProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setRules((prev) => prev.filter((r) => r.id !== id));
   };
 
+  const deleteAllRules = async () => {
+    if (!user) return;
+    const snap = await getDocs(query(collection(db, 'recurring'), where('userid', '==', user.uid)));
+    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+    setRules([]);
+  };
+
   return (
-    <RecurringContext.Provider value={{ rules, loading, addRule, updateRule, deleteRule }}>
+    <RecurringContext.Provider value={{ rules, loading, addRule, updateRule, deleteRule, deleteAllRules }}>
       {children}
     </RecurringContext.Provider>
   );

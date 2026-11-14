@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useEarnings } from '../context/EarningsContext';
 import { useIncome } from '../context/IncomeContext';
+import { useExpenses } from '../context/ExpensesContext';
 import { deriveMonthlyEarnings, type DerivedEarnings } from '../utils/earningsDerivation';
 
 /**
@@ -11,7 +12,8 @@ import { deriveMonthlyEarnings, type DerivedEarnings } from '../utils/earningsDe
  */
 export function useEarningsHistoryLogic() {
   const { getEarningsForMonth, setEarningsForMonth, revertEarningsOverride, earnings: defaultEarnings, setEarnings: setDefaultEarnings } = useEarnings();
-  const { getIncomeForMonth } = useIncome();
+  const { getIncomeForMonth, income } = useIncome();
+  const { expenses } = useExpenses();
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -53,16 +55,35 @@ export function useEarningsHistoryLogic() {
   const [bulkAmount, setBulkAmount] = useState('');
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  // Last 36 months (3 years), newest first.
+  // Months from the first one with any data (an expense, income or saved
+  // earnings record) up to now — at most 36 — newest first. Months before
+  // someone started using the app aren't shown or counted, so totals aren't
+  // padded with the default figure.
+  const firstDataMonth = useMemo(() => {
+    let first = Infinity;
+    const consider = (d: Date) => { const k = d.getFullYear() * 12 + d.getMonth(); if (k < first) first = k; };
+    expenses.forEach((e) => consider(new Date(e.date)));
+    income.forEach((i) => consider(new Date(i.date)));
+    for (let i = 0; i < 36; i++) {
+      const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
+      // Auto-seeded placeholder records (source 'migrated') don't count as real data.
+      const rec = getEarningsForMonth(d.getFullYear(), d.getMonth());
+      if (rec && rec.source !== 'migrated') consider(d);
+    }
+    return first;
+  }, [expenses, income, getEarningsForMonth]);
+
   const months = useMemo(() => {
     const list = [];
     const now = new Date();
-    for (let i = 35; i >= 0; i--) {
+    const nowKey = now.getFullYear() * 12 + now.getMonth();
+    const span = Number.isFinite(firstDataMonth) ? Math.min(36, Math.max(1, nowKey - firstDataMonth + 1)) : 1;
+    for (let i = span - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       list.push({ year: d.getFullYear(), month: d.getMonth() });
     }
     return list.reverse();
-  }, []);
+  }, [firstDataMonth]);
 
   // Quick year filter so the 36-month list isn't one long scroll — 'All' keeps
   // the full history, any other value narrows it to just that year.

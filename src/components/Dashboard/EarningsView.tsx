@@ -67,7 +67,7 @@ const EarningsView: React.FC = () => {
   return (
     <div className="er-wrap">
       <section className="si-summary er-hero" style={{ background: design.colors.primaryGradient }}>
-        <small>Earned · {yearFilter === 'All' ? 'last 3 years' : yearFilter}</small>
+        <small>Earned · {yearFilter === 'All' ? `last ${pastRows.length} ${pastRows.length === 1 ? 'month' : 'months'}` : yearFilter}</small>
         <strong className="er-big">{inr(total)}</strong>
         <div className="si-summary-tiles">
           <div><small>Monthly average</small><strong>{inr(avg)}</strong></div>

@@ -41,6 +41,10 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
       toast.error('Please enter a valid amount');
       return;
     }
+    if (!date || Number.isNaN(parseLocalDateInput(date).getTime())) {
+      toast.error('Please pick a date');
+      return;
+    }
     setSubmitting(true);
     try {
       await onUpdate(expense.id, {

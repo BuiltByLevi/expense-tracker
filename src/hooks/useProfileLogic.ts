@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useIncome } from '../context/IncomeContext';
 import { useStatementImports } from './useStatementImports';
+import { useRecurring } from '../context/RecurringContext';
 import { useEarnings } from '../context/EarningsContext';
 import { useTheme } from '../context/ThemeContext';
 import { computeFinanceTotals } from '../utils/finance';
@@ -24,6 +25,7 @@ export function useProfileLogic() {
   const { expenses, deleteAllExpenses } = useExpenses();
   const { getIncomeForMonth, deleteAllIncome } = useIncome();
   const { deleteAllImports } = useStatementImports();
+  const { deleteAllRules } = useRecurring();
   const { earnings: defaultEarnings, getEarningsForMonth, resetEarningsHistory } = useEarnings();
   const { theme, toggleTheme, colorTheme, setColorTheme } = useTheme();
 
@@ -167,6 +169,7 @@ export function useProfileLogic() {
         deleteAllIncome(),
         resetEarningsHistory(),
         deleteAllImports(),
+        deleteAllRules(),
       ]);
       toast.success('All expense data deleted', { duration: 4000 });
     } catch (error) {

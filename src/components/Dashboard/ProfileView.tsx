@@ -171,7 +171,7 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
       <div className="glass-card pf-group pf-danger">
         <button type="button" className="pf-row" onClick={() => setConfirm('data')} disabled={deletingData}>
           <span className="pf-ico t-red"><TrashIcon size={16} /></span>
-          <span className="pf-text"><strong>{deletingData ? 'Deleting…' : 'Delete all data'}</strong><small>Expenses, income, earnings history and imports</small></span>
+          <span className="pf-text"><strong>{deletingData ? 'Deleting…' : 'Delete all data'}</strong><small>Expenses, income, earnings, recurring rules and imports</small></span>
           <Chevron />
         </button>
         <button type="button" className="pf-row" onClick={() => setConfirm('account')}>
@@ -193,7 +193,7 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
         open={confirm === 'data'}
         danger
         title="Delete all your data?"
-        message="This permanently deletes every expense, income entry, earnings record and import history. Your account and budgets stay. This cannot be undone."
+        message="This permanently deletes every expense, income entry, earnings record, recurring rule and import history. Your account and budgets stay. This cannot be undone."
         confirmLabel="Delete everything"
         requireText="DELETE"
         onConfirm={async () => { setConfirm(null); await handleDeleteData(); }}

@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../types';
 import { categoryColors, incomeCategoryColors, theme as design } from '../../styles/theme';
 import { useRecurring, type NewRecurringRule } from '../../context/RecurringContext';
-import { monthKeyOf, nextOccurrence, ordinal, type RecurringRule } from '../../utils/recurring';
+import { dueOccurrences, monthKeyOf, nextOccurrence, ordinal, type RecurringRule } from '../../utils/recurring';
 
 /**
  * Recurring transactions: rent, EMIs, subscriptions, salary… added
@@ -87,6 +87,11 @@ const RecurringPanel: React.FC = () => {
     }
   };
 
+  // What saving a new rule would add straight away (months already due).
+  const backfill = form && !editingId && valid
+    ? dueOccurrences({ id: 'draft', kind: form.kind, amount, category: form.category, description: '', dayOfMonth: form.dayOfMonth, startMonth: form.startMonth, endMonth: null, active: true, lastGenerated: null }, today)
+    : [];
+
   const categories: readonly string[] = form?.kind === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const formView = form && (
     <div className="glass-card rc-form">
@@ -134,10 +139,12 @@ const RecurringPanel: React.FC = () => {
           </label>
         )}
       </div>
-      <p className="rc-note">
+      <p className={`rc-note ${backfill.length > 1 ? 'rc-warn' : ''}`}>
         {editingId
           ? 'Changes apply from the next entry. Entries already added stay as they are.'
-          : 'Entries for past dates from the start month are added straight away, then one each month.'}
+          : backfill.length === 0
+            ? `Nothing is added today. The first entry comes on ${form.startMonth ? (() => { const n = nextOccurrence({ id: 'draft', kind: form.kind, amount: 1, category: '', description: '', dayOfMonth: form.dayOfMonth, startMonth: form.startMonth, endMonth: null, active: true, lastGenerated: null }, today); return n ? format(n, 'd MMM yyyy') : '—'; })() : '—'}.`
+            : `Saving adds ${backfill.length} ${backfill.length === 1 ? 'entry' : 'entries'} now (${backfill.map((o) => format(o.date, 'MMM')).join(', ')}).${backfill.length > 1 ? ' If you already entered any of these by hand, pick a later start month to avoid doubles.' : ''}`}
       </p>
       <div className="bd-edit">
         <button type="button" className="bd-save rc-save" disabled={!valid || saving} onClick={save}>

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { db } from '../utils/firebase';
@@ -29,6 +29,10 @@ export const BudgetsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user } = useAuth();
   const [budgets, setBudgets] = useState<CategoryBudgets>({});
   const [loading, setLoading] = useState(true);
+  // Latest map, so two quick saves build on each other instead of the second
+  // overwriting the first with a stale copy.
+  const latest = useRef<CategoryBudgets>({});
+  useEffect(() => { latest.current = budgets; }, [budgets]);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,10 +55,11 @@ export const BudgetsProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const setBudget = useCallback(async (category: string, amount: number | null) => {
     if (!user) return;
-    const next = { ...budgets };
+    const prev = latest.current;
+    const next = { ...prev };
     if (amount && amount > 0) next[category] = Math.round(amount * 100) / 100;
     else delete next[category];
-    const prev = budgets;
+    latest.current = next;
     setBudgets(next);
     try {
       // mergeFields replaces just this map, so removed categories really go away
@@ -62,11 +67,12 @@ export const BudgetsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await setDoc(doc(db, 'userSettings', user.uid), { categoryBudgets: next }, { mergeFields: ['categoryBudgets'] });
     } catch (err) {
       console.error('Error saving budget:', err);
+      latest.current = prev;
       setBudgets(prev);
       toast.error('Could not save the budget. Please try again.');
       throw err;
     }
-  }, [user, budgets]);
+  }, [user]);
 
   return (
     <BudgetsContext.Provider value={{ budgets, loading, setBudget }}>
