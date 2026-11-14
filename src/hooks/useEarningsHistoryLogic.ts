@@ -10,21 +10,43 @@ import { deriveMonthlyEarnings, type DerivedEarnings } from '../utils/earningsDe
  * truth and only differ in layout.
  */
 export function useEarningsHistoryLogic() {
-  const { getEarningsForMonth, setEarningsForMonth, earnings: defaultEarnings } = useEarnings();
+  const { getEarningsForMonth, setEarningsForMonth, revertEarningsOverride, earnings: defaultEarnings } = useEarnings();
   const { getIncomeForMonth } = useIncome();
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  // Months whose earnings come from an imported statement (see
-  // EarningsModal/useDashboardData) can't be manually edited here — editing
-  // the old single-number record would silently have no visible effect,
-  // which is exactly the "bulk update doesn't work" confusion this avoids.
+  // Months whose earnings come from an imported statement. Editing one of
+  // these saves an OVERRIDE record (record.override), which takes precedence
+  // over the imported sum everywhere — see shared/earningsResolution.ts.
+  // Saving a plain record would have no visible effect, because imported
+  // income otherwise wins.
   const getImportDerived = useCallback(
     (year: number, month: number): DerivedEarnings | null => {
       const { entries } = getIncomeForMonth(year, month);
       return deriveMonthlyEarnings(entries);
     },
     [getIncomeForMonth]
+  );
+
+  const isOverridden = useCallback(
+    (year: number, month: number) =>
+      !!getEarningsForMonth(year, month)?.override && !!getImportDerived(year, month),
+    [getEarningsForMonth, getImportDerived]
+  );
+
+  /** What the table shows for a month — override > imported > record > default. */
+  const getDisplay = useCallback(
+    (year: number, month: number) => {
+      const imported = getImportDerived(year, month);
+      const record = getEarningsForMonth(year, month);
+      if (imported && record?.override) {
+        return { amount: record.amount, status: record.status, imported, overridden: true };
+      }
+      if (imported) return { amount: imported.amount, status: 'confirmed' as const, imported, overridden: false };
+      if (record) return { amount: record.amount, status: record.status, imported: null, overridden: false };
+      return { amount: defaultEarnings, status: 'missing' as const, imported: null, overridden: false };
+    },
+    [getImportDerived, getEarningsForMonth, defaultEarnings]
   );
 
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
@@ -55,7 +77,6 @@ export function useEarningsHistoryLogic() {
   );
 
   const handleEditClick = (year: number, month: number, currentAmount: number) => {
-    if (getImportDerived(year, month)) return; // not editable — see getImportDerived
     setEditingKey(`${year}-${month}`);
     setEditValue(currentAmount.toString());
   };
@@ -67,22 +88,24 @@ export function useEarningsHistoryLogic() {
       return;
     }
     try {
-      await setEarningsForMonth(year, month, num, 'confirmed');
+      await setEarningsForMonth(year, month, num, 'confirmed', {
+        override: !!getImportDerived(year, month),
+      });
       setEditingKey(null);
     } catch {
       // error toast handled in context
     }
   };
 
-  // Only months without imported income can be selected for manual bulk edits.
-  const editableMonths = useMemo(
-    () => visibleMonths.filter((m) => !getImportDerived(m.year, m.month)),
-    [visibleMonths, getImportDerived]
-  );
+  // Every month can be selected: imported months are updated as overrides.
+  const editableMonths = visibleMonths;
+
+  const parseKey = (key: string) => {
+    const [yearStr, monthStr] = key.split('-');
+    return { year: parseInt(yearStr), month: parseInt(monthStr) };
+  };
 
   const toggleSelection = (key: string) => {
-    const [yearStr, monthStr] = key.split('-');
-    if (getImportDerived(parseInt(yearStr), parseInt(monthStr))) return;
     setSelectedMonths((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -115,12 +138,12 @@ export function useEarningsHistoryLogic() {
     let failCount = 0;
 
     for (const key of Array.from(selectedMonths)) {
-      const [yearStr, monthStr] = key.split('-');
-      const year = parseInt(yearStr);
-      const monthNum = parseInt(monthStr);
-      if (getImportDerived(year, monthNum)) continue; // defensive — shouldn't be selectable at all
+      const { year, month: monthNum } = parseKey(key);
       try {
-        await setEarningsForMonth(year, monthNum, num, 'confirmed');
+        await setEarningsForMonth(year, monthNum, num, 'confirmed', {
+          override: !!getImportDerived(year, monthNum),
+          silent: true,
+        });
         successCount++;
       } catch {
         failCount++;
@@ -147,17 +170,25 @@ export function useEarningsHistoryLogic() {
     setBulkSaving(true);
     let successCount = 0;
     let failCount = 0;
+    let skipped = 0;
 
     for (const key of Array.from(selectedMonths)) {
-      const [yearStr, monthStr] = key.split('-');
-      const year = parseInt(yearStr);
-      const month = parseInt(monthStr);
-      if (getImportDerived(year, month)) continue; // defensive — shouldn't be selectable at all
+      const { year, month } = parseKey(key);
+      const imported = getImportDerived(year, month);
       const record = getEarningsForMonth(year, month);
+      // An imported month's status is always "confirmed" by definition; only
+      // its override (if any) carries a status that can be changed.
+      if (imported && !record?.override) {
+        skipped++;
+        continue;
+      }
       const currentAmount = record ? record.amount : defaultEarnings;
 
       try {
-        await setEarningsForMonth(year, month, currentAmount, newStatus);
+        await setEarningsForMonth(year, month, currentAmount, newStatus, {
+          override: !!imported,
+          silent: true,
+        });
         successCount++;
       } catch {
         failCount++;
@@ -168,11 +199,46 @@ export function useEarningsHistoryLogic() {
     setSelectedMonths(new Set());
 
     const label = newStatus === 'confirmed' ? 'Confirmed' : 'Estimated';
+    const skippedNote = skipped > 0 ? ` (${skipped} imported ${skipped === 1 ? 'month' : 'months'} skipped — always confirmed)` : '';
     if (failCount === 0) {
-      toast.success(`${successCount} months marked as ${label}`);
+      toast.success(`${successCount} months marked as ${label}${skippedNote}`);
     } else {
       toast.error(`Updated ${successCount}, failed ${failCount}`);
     }
+  };
+
+  const handleRevert = async (year: number, month: number) => {
+    try {
+      await revertEarningsOverride(year, month);
+      if (editingKey === `${year}-${month}`) setEditingKey(null);
+    } catch {
+      // error toast handled in context
+    }
+  };
+
+  const selectedOverriddenKeys = Array.from(selectedMonths).filter((key) => {
+    const { year, month } = parseKey(key);
+    return isOverridden(year, month);
+  });
+
+  const handleBulkRevert = async () => {
+    if (selectedOverriddenKeys.length === 0) return;
+    setBulkSaving(true);
+    let successCount = 0;
+    let failCount = 0;
+    for (const key of selectedOverriddenKeys) {
+      const { year, month } = parseKey(key);
+      try {
+        await revertEarningsOverride(year, month, { silent: true });
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    setBulkSaving(false);
+    setSelectedMonths(new Set());
+    if (failCount === 0) toast.success(`${successCount} months reverted to their imported totals`);
+    else toast.error(`Reverted ${successCount}, failed ${failCount}`);
   };
 
   const allSelected = selectedMonths.size === editableMonths.length && editableMonths.length > 0;
@@ -181,6 +247,9 @@ export function useEarningsHistoryLogic() {
   return {
     getEarningsForMonth,
     getImportDerived,
+    isOverridden,
+    getDisplay,
+    handleRevert,
     defaultEarnings,
     months: visibleMonths,
     availableYears,
@@ -204,6 +273,8 @@ export function useEarningsHistoryLogic() {
     bulkSaving,
     handleBulkSaveAmount,
     handleBulkStatus,
+    handleBulkRevert,
+    selectedOverriddenCount: selectedOverriddenKeys.length,
     clearSelection: () => {
       setSelectedMonths(new Set());
       setBulkAmount('');

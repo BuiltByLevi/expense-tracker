@@ -4,7 +4,7 @@ import { useEarnings } from '@/context/EarningsContext';
 import { useExpenses } from '@/context/ExpensesContext';
 import { useIncome } from '@/context/IncomeContext';
 import { computeFinanceTotals } from '@shared/finance';
-import { deriveMonthlyEarnings } from '@shared/earningsDerivation';
+import { resolveMonthlyEarnings } from '@shared/earningsResolution';
 import { makeCashFlowLookup } from '@shared/cashFlowLookup';
 import type { Expense, MonthlyEarnings } from '@shared/types';
 
@@ -26,7 +26,7 @@ function analyzeCategories(expenses: Expense[]) {
  * Mobile counterpart of the web app's useDashboardData.
  *
  * The financial RULES are not reimplemented here — computeFinanceTotals,
- * deriveMonthlyEarnings and makeCashFlowLookup are imported from shared/ and
+ * resolveMonthlyEarnings and makeCashFlowLookup are imported from shared/ and
  * are the same tested modules the web app runs. This hook only wires them to
  * React Native state.
  *
@@ -64,19 +64,10 @@ export function useDashboardData() {
 
   const getEffectiveEarningsRecord = useCallback(
     (year: number, month: number): MonthlyEarnings | null => {
+      // Override > imported sum > stored record — the same rule the web app
+      // uses (shared/earningsResolution.ts), so both show the same figure.
       const { entries } = getIncomeForMonth(year, month);
-      const derived = deriveMonthlyEarnings(entries);
-      if (derived) {
-        return {
-          year,
-          month,
-          amount: derived.amount,
-          status: 'confirmed',
-          source: 'import',
-          updatedAt: derived.lastDate.toISOString(),
-        };
-      }
-      return getEarningsForMonth(year, month);
+      return resolveMonthlyEarnings(year, month, entries, getEarningsForMonth(year, month));
     },
     [getIncomeForMonth, getEarningsForMonth]
   );

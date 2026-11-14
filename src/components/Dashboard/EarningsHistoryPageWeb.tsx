@@ -11,10 +11,11 @@ interface EarningsHistoryPageProps {
 
 const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => {
   const {
-    getEarningsForMonth, getImportDerived, defaultEarnings, months, availableYears, yearFilter, setYearFilter,
+    getDisplay, handleRevert, months, availableYears, yearFilter, setYearFilter,
     editingKey, setEditingKey, editValue, setEditValue, handleEditClick, handleSave,
     selectedMonths, toggleSelection, toggleSelectAll, allSelected, someSelected,
     bulkAmount, setBulkAmount, bulkSaving, handleBulkSaveAmount, handleBulkStatus, clearSelection,
+    handleBulkRevert, selectedOverriddenCount,
   } = useEarningsHistoryLogic();
 
   return (
@@ -58,7 +59,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
         }}>
           <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <InfoIcon size={14} color={design.colors.primary} style={{ flexShrink: 0 }} />
-            <span><strong>Tip:</strong> Tick the checkboxes to select multiple months, then update amounts or status in bulk.</span>
+            <span><strong>Tip:</strong> Tick the checkboxes to select multiple months, then update amounts or status in bulk. Months from an imported statement can be edited too — the new amount overrides the imported total until you revert it.</span>
           </p>
         </div>
 
@@ -88,10 +89,7 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
             <tbody>
               {months.map(({ year, month }) => {
                 const key = `${year}-${month}`;
-                const imported = getImportDerived(year, month);
-                const record = getEarningsForMonth(year, month);
-                const amount = imported ? imported.amount : record ? record.amount : defaultEarnings;
-                const status = imported ? 'confirmed' : record ? record.status : 'missing';
+                const { amount, status, imported, overridden } = getDisplay(year, month);
                 const isEditing = editingKey === key;
                 const isCurrentMonth = year === new Date().getFullYear() && month === new Date().getMonth();
                 const isSelected = selectedMonths.has(key);
@@ -104,22 +102,25 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
                       : isCurrentMonth
                         ? `rgba(${design.colors.primaryRgb}, 0.04)`
                         : 'transparent',
-                    opacity: imported ? 0.85 : 1,
                   }}>
                     <td style={{ padding: '16px 12px 16px 24px' }}>
                       <input
                         type="checkbox"
                         aria-label={`Select ${format(new Date(year, month), 'MMMM yyyy')}`}
                         checked={isSelected}
-                        disabled={!!imported}
                         onChange={() => toggleSelection(key)}
-                        style={{ cursor: imported ? 'not-allowed' : 'pointer', width: '16px', height: '16px' }}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
                       />
                     </td>
                     <td style={{ padding: '16px 12px', fontWeight: 600, color: design.colors.textPrimary }}>
                       {format(new Date(year, month), 'MMMM yyyy')}
                       {isCurrentMonth && <span style={{ marginLeft: '8px', fontSize: '10px', color: design.colors.primary, fontWeight: 700 }}>CURRENT</span>}
-                      {imported && <span style={{ marginLeft: '8px', fontSize: '10px', color: design.colors.success, fontWeight: 700 }}>FROM IMPORT</span>}
+                      {imported && !overridden && <span style={{ marginLeft: '8px', fontSize: '10px', color: design.colors.success, fontWeight: 700 }}>FROM IMPORT</span>}
+                      {overridden && imported && (
+                        <span title={`Imported total: ₹${imported.amount.toLocaleString('en-IN')}`} style={{ marginLeft: '8px', fontSize: '10px', color: design.colors.warning, fontWeight: 700 }}>
+                          OVERRIDDEN · imported ₹{imported.amount.toLocaleString('en-IN')}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '16px 12px', textAlign: 'right' }}>
                       {isEditing ? (
@@ -142,19 +143,27 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
                       <StatusBadge status={status} />
                     </td>
                     <td style={{ padding: '16px 24px 16px 12px', textAlign: 'center' }}>
-                      {imported ? (
-                        <span title="Earnings come from your imported bank statement — edit the source transaction to change this" style={{ fontSize: '11px', color: design.colors.textTertiary }}>
-                          Not editable
-                        </span>
-                      ) : isEditing ? (
+                      {isEditing ? (
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                           <button onClick={() => handleSave(year, month)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }}>Save</button>
                           <button onClick={() => setEditingKey(null)} className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '12px' }}>Cancel</button>
                         </div>
                       ) : (
-                        <button onClick={() => handleEditClick(year, month, amount)} className="btn btn-ghost" style={{ padding: '6px 16px', fontSize: '12px' }}>
-                          Edit
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => handleEditClick(year, month, amount)}
+                            className="btn btn-ghost"
+                            style={{ padding: '6px 16px', fontSize: '12px' }}
+                            title={imported && !overridden ? 'Override the imported total for this month' : undefined}
+                          >
+                            {imported && !overridden ? 'Override' : 'Edit'}
+                          </button>
+                          {overridden && (
+                            <button onClick={() => handleRevert(year, month)} className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '12px' }} title="Go back to the imported total">
+                              Revert
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -265,6 +274,18 @@ const EarningsHistoryPage: React.FC<EarningsHistoryPageProps> = ({ onBack }) => 
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><AlertIcon size={11} color="#fbbf24" strokeWidth={2.5} /> Mark Estimated</span>
             </button>
           </div>
+
+          {selectedOverriddenCount > 0 && (
+            <button
+              onClick={handleBulkRevert}
+              disabled={bulkSaving}
+              className="btn"
+              style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, background: 'rgba(255,255,255,0.05)', color: '#cbd5e1', border: '1px solid rgba(148, 163, 184, 0.3)', borderRadius: '10px', cursor: 'pointer', flexShrink: 0 }}
+              title="Remove the manual override and use the imported total again"
+            >
+              ↺ Revert {selectedOverriddenCount} to imported
+            </button>
+          )}
 
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>

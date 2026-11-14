@@ -3,6 +3,7 @@ import ExpenseForm from '../ExpenseForm/ExpenseForm';
 import ExpenseList from '../ExpenseList/ExpenseList';
 import CategoryPieChart from '../Charts/CategoryPieChart';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
+import EditIncomeModal from '../ExpenseList/EditIncomeModal';
 import EarningsModal from './EarningsModal';
 import EarningsHistoryPage from './EarningsHistoryPageMobile';
 import TransactionLedgerPage from './TransactionLedgerPageMobile';
@@ -37,7 +38,7 @@ const DashboardMobile: React.FC = () => {
     financeTotals, selectedMonthEarnings, totalAllTime, expenses, monthTotal,
     monthCategoryAnalysis, allTimeCategoryAnalysis, monthNetCashFlow,
     dateRange, setDateRange, clearDateRange, historyExpenses, historyIncome, historyLabel,
-    handleEdit, handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
+    handleEdit, handleEditIncome, handleBulkCategory, editingIncome, setEditingIncome, updateIncome, handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
     topCategoryAmount, topCategoryName, hasDeficit, isFuture,
   } = useDashboardData();
 
@@ -248,6 +249,8 @@ const DashboardMobile: React.FC = () => {
                   income={historyIncome}
                   onDelete={handleDeleteExpense}
                   onDeleteIncome={handleDeleteIncome}
+                  onEditIncome={handleEditIncome}
+                  onBulkCategory={handleBulkCategory}
                   onEdit={handleEdit}
                   emptyStateLabel={dateRange ? 'No transactions in this date range' : `No transactions yet for ${monthName}`}
                 />
@@ -361,6 +364,7 @@ const DashboardMobile: React.FC = () => {
 
         <EarningsModal isOpen={showEarningsModal} onClose={() => setShowEarningsModal(false)} year={selectedYear} month={selectedMonth} />
         <EditExpenseModal expense={editingExpense} isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} onUpdate={updateExpense} />
+        <EditIncomeModal income={editingIncome} onClose={() => setEditingIncome(null)} onUpdate={updateIncome} />
       </div>
     </div>
   );

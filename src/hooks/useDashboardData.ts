@@ -5,9 +5,10 @@ import { useEarnings } from '../context/EarningsContext';
 import { useTheme } from '../context/ThemeContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useIncome } from '../context/IncomeContext';
-import type { Expense, MonthlyEarnings } from '../types';
+import toast from 'react-hot-toast';
+import type { Expense, Income, MonthlyEarnings } from '../types';
 import { computeFinanceTotals } from '../utils/finance';
-import { deriveMonthlyEarnings } from '../utils/earningsDerivation';
+import { resolveMonthlyEarnings } from '../utils/earningsResolution';
 import { makeCashFlowLookup } from '../utils/cashFlowLookup';
 import { filterByDateRange, type DateRange } from '../utils/dateRangePresets';
 
@@ -34,15 +35,16 @@ export function useDashboardData() {
   const { user, logout } = useAuth();
   const { earnings, getEarningsForMonth } = useEarnings();
   const { theme, toggleTheme } = useTheme();
-  const { expenses, loading: expensesLoading, addExpense, updateExpense, deleteExpense } = useExpenses();
-  const { income, loading: incomeLoading, addIncome, getIncomeForMonth, deleteIncome: handleDeleteIncome } = useIncome();
+  const { expenses, loading: expensesLoading, addExpense, updateExpense, updateExpenses, deleteExpense } = useExpenses();
+  const { income, loading: incomeLoading, addIncome, getIncomeForMonth, updateIncome, updateIncomes, deleteIncome: handleDeleteIncome } = useIncome();
   const loading = expensesLoading || incomeLoading;
 
   // "Monthly Earnings" for any month with an imported statement is the sum
   // of every eligible credit that month — salary, interest, Razorpay/Payload
   // settlements, or any other genuine income — regardless of which day it
   // landed on (see deriveMonthlyEarnings). Months with no itemized income
-  // fall back to the manually-set/estimated single number. This is a LABEL
+  // fall back to the manually-set/estimated single number, and a month the
+  // user explicitly overrode uses the override. This is a LABEL
   // ONLY — "what did I earn this month" — and deliberately excludes
   // refunds/transfers. It must NOT be used for cash-flow arithmetic (see
   // getMonthlyCashFlowCredits below):
@@ -52,12 +54,9 @@ export function useDashboardData() {
   // the exact same month by the refund/transfer amount.
   const getEffectiveEarningsRecord = useCallback(
     (year: number, month: number): MonthlyEarnings | null => {
+      // Override > imported sum > stored record — see resolveMonthlyEarnings.
       const { entries } = getIncomeForMonth(year, month);
-      const derived = deriveMonthlyEarnings(entries);
-      if (derived) {
-        return { year, month, amount: derived.amount, status: 'confirmed', source: 'import', updatedAt: derived.lastDate.toISOString() };
-      }
-      return getEarningsForMonth(year, month);
+      return resolveMonthlyEarnings(year, month, entries, getEarningsForMonth(year, month));
     },
     [getIncomeForMonth, getEarningsForMonth]
   );
@@ -76,6 +75,7 @@ export function useDashboardData() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [showEarningsModal, setShowEarningsModal] = useState(false);
   const [showEarningsPage, setShowEarningsPage] = useState(false);
   const [showLedgerPage, setShowLedgerPage] = useState(false);
@@ -190,6 +190,19 @@ export function useDashboardData() {
   };
 
   const handleEdit = (expense: Expense) => setEditingExpense(expense);
+  const handleEditIncome = (entry: Income) => setEditingIncome(entry);
+
+  // Bulk category change from the Account Statement's Select mode.
+  const handleBulkCategory = async (kind: 'expense' | 'income', ids: string[], category: string) => {
+    try {
+      if (kind === 'income') await updateIncomes(ids, { category: category as Income['category'] });
+      else await updateExpenses(ids, { category });
+      toast.success(`${ids.length} ${ids.length === 1 ? 'transaction' : 'transactions'} moved to ${category}`);
+    } catch {
+      toast.error('Failed to update categories');
+      throw new Error('bulk category update failed');
+    }
+  };
   const handleAddExpense = async (expense: Parameters<typeof addExpense>[0]) => await addExpense(expense);
   const handleAddIncome = async (entry: Parameters<typeof addIncome>[0]) => await addIncome(entry);
   const handleDeleteExpense = async (id: string) => await deleteExpense(id);
@@ -219,6 +232,9 @@ export function useDashboardData() {
     goToMonth,
 
     editingExpense,
+    editingIncome,
+    setEditingIncome,
+    updateIncome,
     setEditingExpense,
     showEarningsModal,
     setShowEarningsModal,
@@ -252,6 +268,8 @@ export function useDashboardData() {
     historyLabel,
 
     handleEdit,
+    handleEditIncome,
+    handleBulkCategory,
     handleAddExpense,
     handleAddIncome,
     handleDeleteExpense,

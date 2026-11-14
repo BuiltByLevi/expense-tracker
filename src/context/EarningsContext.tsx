@@ -25,8 +25,11 @@ interface EarningsContextType {
     year: number,
     month: number,
     amount: number,
-    status?: 'confirmed' | 'estimated'
+    status?: 'confirmed' | 'estimated',
+    options?: { override?: boolean; silent?: boolean }
   ) => Promise<void>;
+  /** Drops a month's manual override so it goes back to its imported total. */
+  revertEarningsOverride: (year: number, month: number, options?: { silent?: boolean }) => Promise<void>;
   resetEarningsHistory: () => Promise<void>;
   loading: boolean;
 }
@@ -112,6 +115,7 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           status: data.status || 'confirmed',
           source: data.source || 'manual',
           updatedAt: data.updatedAt || new Date().toISOString(),
+          ...(data.override === true && { override: true }),
         };
       });
 
@@ -180,7 +184,8 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     year: number,
     month: number,
     amount: number,
-    status: 'confirmed' | 'estimated' = 'confirmed'
+    status: 'confirmed' | 'estimated' = 'confirmed',
+    options: { override?: boolean; silent?: boolean } = {}
   ) => {
     if (!user) {
       toast.error('No user logged in');
@@ -194,12 +199,14 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       status,
       source: 'manual',
       updatedAt: new Date().toISOString(),
+      // Only stored when set, so ordinary records keep their existing shape.
+      ...(options.override && { override: true }),
     };
     try {
       const docRef = doc(db, 'userSettings', user.uid, 'earningsHistory', key);
       await setDoc(docRef, entry);
       setEarningsHistory((prev) => ({ ...prev, [key]: entry }));
-      toast.success(
+      if (!options.silent) toast.success(
         `Earnings for ${new Date(year, month).toLocaleString('en-IN', {
           month: 'short',
           year: 'numeric',
@@ -208,6 +215,32 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error: unknown) {
       console.error('Error saving monthly earnings:', error);
       toast.error(`Failed to save: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  };
+
+  const revertEarningsOverride = async (
+    year: number,
+    month: number,
+    options: { silent?: boolean } = {}
+  ) => {
+    if (!user) return;
+    const key = monthKey(year, month);
+    const existing = earningsHistory[key];
+    if (!existing?.override) return;
+    // Keep the record (minus the flag) rather than deleting it: if the
+    // imported transactions are ever removed, the month falls back to this
+    // number instead of silently becoming "default".
+    const { override: _drop, ...rest } = existing;
+    void _drop;
+    const entry: MonthlyEarnings = { ...rest, updatedAt: new Date().toISOString() };
+    try {
+      await setDoc(doc(db, 'userSettings', user.uid, 'earningsHistory', key), entry);
+      setEarningsHistory((prev) => ({ ...prev, [key]: entry }));
+      if (!options.silent) toast.success('Reverted to the imported total');
+    } catch (error: unknown) {
+      console.error('Error reverting earnings override:', error);
+      toast.error(`Failed to revert: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   };
@@ -246,6 +279,7 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setEarnings,
         getEarningsForMonth,
         setEarningsForMonth,
+        revertEarningsOverride,
         resetEarningsHistory,
         loading,
       }}

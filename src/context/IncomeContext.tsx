@@ -7,6 +7,7 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  updateDoc,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -18,9 +19,23 @@ interface IncomeContextType {
   loading: boolean;
   addIncome: (entry: Omit<Income, 'id' | 'userId'>) => Promise<void>;
   addIncomes: (entries: Omit<Income, 'id' | 'userId'>[]) => Promise<void>;
+  /** Edits one income entry — including entries saved from a statement import. */
+  updateIncome: (id: string, data: Partial<Pick<Income, 'amount' | 'category' | 'description' | 'date'>>) => Promise<void>;
+  /** Applies the same edit (e.g. a category) to many entries in batched writes. */
+  updateIncomes: (ids: string[], data: Partial<Pick<Income, 'category'>>) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
   deleteAllIncome: () => Promise<void>;
   getIncomeForMonth: (year: number, month: number) => { entries: Income[]; total: number };
+}
+
+/** Firestore rejects `undefined`, so only fields actually provided are written. */
+function editableFields<T extends { amount?: number; category?: string; description?: string; date?: Date }>(data: T) {
+  return {
+    ...(data.amount !== undefined && { amount: data.amount }),
+    ...(data.category !== undefined && { category: data.category }),
+    ...(data.description !== undefined && { description: data.description }),
+    ...(data.date !== undefined && { date: data.date.toISOString() }),
+  };
 }
 
 const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
@@ -130,6 +145,41 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  // Import traceability (source, importId, originalNarration, reference) is
+  // deliberately left untouched, so an edited imported entry still shows
+  // where it came from and still participates in duplicate detection.
+  const updateIncome = async (
+    id: string,
+    data: Partial<Pick<Income, 'amount' | 'category' | 'description' | 'date'>>
+  ) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, 'income', id), editableFields(data));
+      await loadIncome();
+    } catch (error) {
+      console.error('Error updating income:', error);
+      throw error;
+    }
+  };
+
+  const updateIncomes = async (ids: string[], data: Partial<Pick<Income, 'category'>>) => {
+    if (!user || ids.length === 0) return;
+    const BATCH_LIMIT = 500;
+    try {
+      for (let i = 0; i < ids.length; i += BATCH_LIMIT) {
+        const batch = writeBatch(db);
+        for (const id of ids.slice(i, i + BATCH_LIMIT)) {
+          batch.update(doc(db, 'income', id), editableFields(data));
+        }
+        await batch.commit();
+      }
+      await loadIncome();
+    } catch (error) {
+      console.error('Error bulk-updating income:', error);
+      throw error;
+    }
+  };
+
   const deleteIncome = async (id: string) => {
     if (!user) return;
     try {
@@ -178,6 +228,8 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         loading,
         addIncome,
         addIncomes,
+        updateIncome,
+        updateIncomes,
         deleteIncome,
         deleteAllIncome,
         getIncomeForMonth,

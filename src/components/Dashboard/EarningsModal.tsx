@@ -15,7 +15,7 @@ interface EarningsModalProps {
 }
 
 const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, month }) => {
-  const { getEarningsForMonth, setEarningsForMonth, earnings: defaultEarnings } = useEarnings();
+  const { getEarningsForMonth, setEarningsForMonth, revertEarningsOverride, earnings: defaultEarnings } = useEarnings();
   const { getIncomeForMonth } = useIncome();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>('');
@@ -23,9 +23,20 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
 
   const existingRecord = getEarningsForMonth(year, month);
   const monthKey = `${isOpen ? 'open' : 'closed'}:${year}:${month}`;
-  const initialAmount = existingRecord
-    ? String(existingRecord.amount)
-    : String(defaultEarnings || 0);
+  const { entries: importedIncome } = getIncomeForMonth(year, month);
+  const derived = deriveMonthlyEarnings(importedIncome);
+  // An imported month the user has replaced with a manual total.
+  const isOverridden = !!derived && !!existingRecord?.override;
+  // Which month (if any) the user switched from the read-only imported
+  // breakdown into the override form; keyed so it resets per month/open.
+  const [overrideFor, setOverrideFor] = useState<string | null>(null);
+  const initialAmount = isOverridden
+    ? String(existingRecord!.amount)
+    : derived
+      ? String(derived.amount)
+      : existingRecord
+        ? String(existingRecord.amount)
+        : String(defaultEarnings || 0);
   const initialStatus = existingRecord?.status ?? 'estimated';
   const [draft, setDraft] = useState(() => ({
     monthKey,
@@ -50,13 +61,14 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
     }));
   };
 
+  // Reset the override form whenever the modal closes, so reopening starts
+  // from the imported breakdown again (render-phase reset of own state).
+  if (!isOpen && overrideFor !== null) setOverrideFor(null);
   if (!isOpen) return null;
 
   const monthLabel = format(new Date(year, month), 'MMMM yyyy');
-  const { entries: importedIncome } = getIncomeForMonth(year, month);
-  const derived = deriveMonthlyEarnings(importedIncome);
 
-  if (derived) {
+  if (derived && !isOverridden && overrideFor !== monthKey) {
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -81,7 +93,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
               ₹{derived.amount.toLocaleString('en-IN')} earned this month
             </p>
             <p style={{ fontSize: '12px', color: theme.colors.textSecondary, margin: '4px 0 0 0' }}>
-              Counted as this month's earnings — every imported credit this month (salary, interest, Razorpay/Payload settlements, etc.), excluding refunds and transfers. Can't be manually overridden here; delete or edit the source transaction to change it.
+              Counted as this month's earnings — every imported credit this month (salary, interest, Razorpay/Payload settlements, etc.), excluding refunds and transfers. To change it, edit the transactions in the Account Statement, or override this month's total.
             </p>
           </div>
 
@@ -114,13 +126,38 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
             </div>
           )}
 
-          <button onClick={onClose} className="btn btn-primary" style={{ width: '100%', padding: '14px' }}>
-            Close
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={onClose} className="btn btn-ghost" style={{ flex: 1, padding: '14px' }}>
+              Close
+            </button>
+            <button
+              onClick={() => {
+                setOverrideFor(monthKey);
+                setDraft({ monthKey, amount: String(derived.amount), status: 'confirmed' });
+              }}
+              className="btn btn-primary"
+              style={{ flex: 1, padding: '14px' }}
+            >
+              Override total
+            </button>
+          </div>
         </div>
       </div>
     );
   }
+
+  const handleRevert = async () => {
+    setSaving(true);
+    try {
+      await revertEarningsOverride(year, month);
+      setOverrideFor(null);
+      onClose();
+    } catch {
+      // toast handled in context
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const validate = (): boolean => {
     const num = parseFloat(amount);
@@ -149,7 +186,9 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
     setSaving(true);
     setSaveError('');
     try {
-      await setEarningsForMonth(year, month, parseFloat(amount), status);
+      // On a month with imported income, a manual amount is stored as an
+      // override — otherwise the imported sum would keep winning.
+      await setEarningsForMonth(year, month, parseFloat(amount), status, { override: !!derived });
       onClose(); // close modal on success
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to save earnings';
@@ -166,7 +205,7 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div>
             <h2 style={{ fontSize: '22px', fontWeight: 700, color: theme.colors.textPrimary, marginBottom: '6px' }}>
-              Set Earnings
+              {derived ? 'Override Earnings' : 'Set Earnings'}
             </h2>
             <p style={{ fontSize: '14px', color: theme.colors.textSecondary, margin: 0 }}>
               {monthLabel} — only affects this month
@@ -190,7 +229,42 @@ const EarningsModal: React.FC<EarningsModalProps> = ({ isOpen, onClose, year, mo
           </button>
         </div>
 
-        {existingRecord && (
+        {derived && (
+          <div style={{
+            marginBottom: '16px',
+            padding: '10px 12px',
+            background: 'rgba(245, 158, 11, 0.1)',
+            borderRadius: '10px',
+            fontSize: '12px',
+            color: theme.colors.textSecondary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px' }}>
+              <AlertIcon size={12} color={theme.colors.warning} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>
+                {isOverridden ? 'Overriding' : 'This will override'} the imported total of{' '}
+                <strong>₹{derived.amount.toLocaleString('en-IN')}</strong>. Net cash flow and balance use this amount; the
+                Account Statement still lists the real transactions.
+              </span>
+            </span>
+            {isOverridden && (
+              <button
+                type="button"
+                onClick={handleRevert}
+                disabled={saving}
+                className="btn btn-ghost"
+                style={{ padding: '6px 10px', fontSize: '11px', flexShrink: 0 }}
+              >
+                ↺ Revert
+              </button>
+            )}
+          </div>
+        )}
+
+        {!derived && existingRecord && (
           <div style={{
             marginBottom: '16px',
             padding: '10px 12px',

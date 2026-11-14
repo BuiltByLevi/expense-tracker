@@ -21,6 +21,8 @@ interface ExpensesContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'userId'>) => Promise<void>;
   addExpenses: (expenses: Omit<Expense, 'id' | 'userId'>[]) => Promise<void>;
   updateExpense: (id: string, updatedData: Partial<Expense>) => Promise<void>;
+  /** Applies the same edit (e.g. a category) to many expenses in batched writes. */
+  updateExpenses: (ids: string[], data: Partial<Pick<Expense, 'category'>>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   deleteAllExpenses: () => Promise<void>;
   getYearlyTotal: (year: number) => number;
@@ -150,6 +152,24 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const updateExpenses = async (ids: string[], data: Partial<Pick<Expense, 'category'>>) => {
+    if (!user || ids.length === 0 || data.category === undefined) return;
+    const BATCH_LIMIT = 500;
+    try {
+      for (let i = 0; i < ids.length; i += BATCH_LIMIT) {
+        const batch = writeBatch(db);
+        for (const id of ids.slice(i, i + BATCH_LIMIT)) {
+          batch.update(doc(db, 'expenses', id), { category: data.category });
+        }
+        await batch.commit();
+      }
+      await loadExpenses();
+    } catch (error) {
+      console.error('Error bulk-updating expenses:', error);
+      throw error;
+    }
+  };
+
   const updateExpense = async (id: string, updatedData: Partial<Expense>) => {
     if (!user) return;
 
@@ -260,6 +280,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addExpense,
         addExpenses,
         updateExpense,
+        updateExpenses,
         deleteExpense,
         deleteAllExpenses,
         getYearlyTotal,

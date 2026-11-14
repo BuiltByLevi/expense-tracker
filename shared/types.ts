@@ -47,6 +47,11 @@ export interface MonthlyEarnings {
   // (see useDashboardData's getEffectiveEarningsRecord), not stored as-is.
   source: 'manual' | 'migrated' | 'import';
   updatedAt: string;   // ISO string
+  // A manual total the user set for a month that HAS imported income. It
+  // takes precedence over the imported sum for both "Monthly Earnings" and
+  // the cash-flow basis (see shared/earningsResolution.ts). Absent/false on
+  // every ordinary record.
+  override?: boolean;
 }
 
 export interface MonthlyExpense {
