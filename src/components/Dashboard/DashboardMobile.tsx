@@ -13,6 +13,7 @@ import ProfilePage from './ProfilePageMobile';
 import MonthYearPicker from '../common/MonthYearPicker';
 import DateRangeFilter from './DateRangeFilter';
 import LogoMark from '../common/LogoMark';
+import RotatingQuote from '../common/RotatingQuote';
 import ListSkeleton from '../common/ListSkeleton';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
@@ -259,6 +260,8 @@ const DashboardMobile: React.FC = () => {
           <span className="ico"><DocumentIcon size={22} /></span><span>Ledger</span>
         </button>
       </div>
+
+      <RotatingQuote variant="card" />
 
       {selectedMonthEarnings.status === 'estimated' && !isFuture && (
         <Notice icon={<AlertIcon size={18} color="white" />} title={`Estimated earnings for ${monthName}`}>

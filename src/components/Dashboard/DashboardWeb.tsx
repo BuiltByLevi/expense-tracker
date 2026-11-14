@@ -24,7 +24,7 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageWeb'
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
-import { FINANCIAL_QUOTES, getDailyQuote } from '../../utils/quotes';
+import RotatingQuote from '../common/RotatingQuote';
 import {
   WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, ChartLineIcon,
   PieIcon, RupeeIcon, AlertIcon, CheckCircleIcon, CalendarIcon,
@@ -50,7 +50,6 @@ const DashboardWeb: React.FC = () => {
   } = useDashboardData();
 
   const [activeView, setActiveView] = useState<GraphType>('total');
-  const [quote] = useState(() => getDailyQuote(FINANCIAL_QUOTES));
 
   const monthName = format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
 
@@ -101,9 +100,7 @@ const DashboardWeb: React.FC = () => {
               <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>
                 Welcome back, {user?.email?.split('@')[0]}
               </p>
-              <p style={{ fontSize: '11px', fontStyle: 'italic', color: design.colors.textTertiary, margin: '3px 0 0 0' }}>
-                “{quote.text}” — {quote.author}
-              </p>
+              <RotatingQuote variant="inline" />
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
