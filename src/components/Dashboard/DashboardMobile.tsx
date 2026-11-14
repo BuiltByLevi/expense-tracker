@@ -414,8 +414,6 @@ const DashboardMobile: React.FC = () => {
 
   const renderAnalytics = () => (
     <>
-      <TrendCharts expenses={expenses} financeTotals={financeTotals} />
-      <div className="m-section-head"><h2>Expense allocation</h2></div>
       {activeView === 'monthly' && monthBar}
       <div className="glass-card" style={{ padding: '4px' }}>
         <div className="tab-container" style={{ width: '100%' }}>
@@ -448,6 +446,8 @@ const DashboardMobile: React.FC = () => {
           </div>
         )}
       </div>
+      <div className="m-section-head"><h2>Trends</h2></div>
+      <TrendCharts expenses={expenses} financeTotals={financeTotals} />
     </>
   );
 
