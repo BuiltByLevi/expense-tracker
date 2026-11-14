@@ -112,7 +112,7 @@ const EarningsHistoryPageMobile: React.FC<Props> = () => {
 
       {selectedMonths.size > 0 && (
         <div style={{
-          position: 'fixed', bottom: '10px', left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', bottom: 'calc(76px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)',
           width: 'calc(100% - 20px)', maxWidth: '600px',
           background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
           borderRadius: '20px', padding: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
