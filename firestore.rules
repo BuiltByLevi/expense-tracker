@@ -2,35 +2,75 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // EXPENSES: Users can only read/write their own expenses
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function ownsExisting() { return signedIn() && request.auth.uid == resource.data.userid; }
+    function ownsNew() { return signedIn() && request.auth.uid == request.resource.data.userid; }
+    // An edit may never move a record to a different account.
+    function ownerUnchanged() { return request.resource.data.userid == resource.data.userid; }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    function validAmount(v) { return v is number && v >= 0 && v < 100000000000; }
+    function validText(v, max) { return v is string && v.size() <= max; }
+    function validDate(v) { return v is string && v.size() >= 10 && v.size() <= 40; }
+
+    // Fields every expense / income document is saved with (web + Android app).
+    function validTransaction(d) {
+      return d.keys().hasAll(['amount', 'category', 'description', 'userid', 'date'])
+        && d.keys().hasOnly(['amount', 'category', 'description', 'userid', 'date',
+                             'source', 'importId', 'originalNarration', 'referenceNumber'])
+        && validAmount(d.amount)
+        && validText(d.category, 60)
+        && validText(d.description, 500)
+        && validDate(d.date)
+        && (!('source' in d) || d.source in ['manual', 'import'])
+        && (!('importId' in d) || validText(d.importId, 100))
+        && (!('originalNarration' in d) || validText(d.originalNarration, 1000))
+        && (!('referenceNumber' in d) || validText(d.referenceNumber, 100));
+    }
+
+    // Edits may only touch the user-editable fields, and each must stay valid.
+    // Only changed fields are checked, so older documents remain editable.
+    function validTransactionEdit() {
+      let d = request.resource.data;
+      return changed().hasOnly(['amount', 'category', 'description', 'date'])
+        && (!('amount' in changed()) || validAmount(d.amount))
+        && (!('category' in changed()) || validText(d.category, 60))
+        && (!('description' in changed()) || validText(d.description, 500))
+        && (!('date' in changed()) || validDate(d.date));
+    }
+
+    // EXPENSES: users can only read/write their own expenses
     match /expenses/{expenseId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userid;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userid;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userid;
+      allow read, delete: if ownsExisting();
+      allow create: if ownsNew() && validTransaction(request.resource.data);
+      allow update: if ownsExisting() && ownerUnchanged() && validTransactionEdit();
     }
 
-    // INCOME: Users can only read/write their own income transactions
+    // INCOME: users can only read/write their own income transactions
     match /income/{incomeId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userid;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userid;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userid;
+      allow read, delete: if ownsExisting();
+      allow create: if ownsNew() && validTransaction(request.resource.data);
+      allow update: if ownsExisting() && ownerUnchanged() && validTransactionEdit();
     }
 
-    // STATEMENT IMPORTS: Users can only read/write their own import records
-    // (metadata only — the original uploaded file is never stored)
+    // STATEMENT IMPORTS: metadata only — the original uploaded file is never stored
     match /statementImports/{importId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userid;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userid;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userid;
+      allow read, delete: if ownsExisting();
+      allow create: if ownsNew()
+        && request.resource.data.keys().hasAll(['fileName', 'uploadedAt', 'status', 'userid'])
+        && validText(request.resource.data.fileName, 300)
+        && request.resource.data.status in ['completed', 'partial', 'failed'];
+      allow update: if ownsExisting() && ownerUnchanged();
     }
 
-    // USER SETTINGS: Users can only access their own settings
+    // USER SETTINGS: users can only access their own settings
     match /userSettings/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if signedIn() && request.auth.uid == userId;
 
       // EARNINGS HISTORY subcollection (per-month earnings)
       match /earningsHistory/{monthKey} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if signedIn() && request.auth.uid == userId;
       }
     }
   }
