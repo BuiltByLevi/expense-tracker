@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type Expense, type Income } from '../../types';
 import { categoryColors, incomeCategoryColors, theme } from '../../styles/theme';
-import ConfirmDialog from '../common/ConfirmDialog';
 import { InboxIcon } from '../common/FinanceIcons';
 
 /**
@@ -69,7 +68,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   const [flow, setFlow] = useState<Flow>('all');
   const [category, setCategory] = useState('All');
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState('');
@@ -132,13 +130,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
     } finally {
       setBulkSaving(false);
     }
-  };
-  const confirmDelete = async () => {
-    if (!pendingDelete) return;
-    if (pendingDelete.kind === 'income') { if (onDeleteIncome) await onDeleteIncome(pendingDelete.id); }
-    else await onDelete(pendingDelete.id);
-    setPendingDelete(null);
-    setOpenKey(null);
   };
 
   const summary = (
@@ -257,7 +248,10 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                       )}
                       <span className="tl-text">
                         <strong>{r.description || r.category}</strong>
-                        <small><i style={{ background: color }} aria-hidden="true" />{r.category}</small>
+                        <small>
+                          <i style={{ background: color }} aria-hidden="true" />{r.category}
+                          {r.source.source === 'recurring' && <b className="tl-tag">↻ Monthly</b>}
+                        </small>
                       </span>
                       <span className={`tl-amt ${isIn ? 'in' : ''}`}>
                         {isIn ? '+' : '−'}{inr(r.amount)}
@@ -271,7 +265,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                           <button type="button" onClick={() => (isIn ? onEditIncome?.(r.source as Income) : onEdit(r.source as Expense))}>Edit</button>
                         )}
                         {canDelete && (
-                          <button type="button" className="danger" onClick={() => setPendingDelete(r)}>Delete</button>
+                          <button type="button" className="danger" onClick={() => { setOpenKey(null); if (r.kind === 'income') onDeleteIncome?.(r.id); else onDelete(r.id); }}>Delete</button>
                         )}
                       </div>
                     )}
@@ -282,20 +276,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
           </section>
         ))
       )}
-
-      <ConfirmDialog
-        open={!!pendingDelete}
-        danger
-        title={pendingDelete?.kind === 'income' ? 'Delete this income entry?' : 'Delete this expense?'}
-        message={
-          pendingDelete
-            ? `"${pendingDelete.description.length > 60 ? pendingDelete.description.slice(0, 60) + '…' : pendingDelete.description}" will be permanently removed and all totals will update.`
-            : ''
-        }
-        confirmLabel="Delete"
-        onConfirm={confirmDelete}
-        onCancel={() => setPendingDelete(null)}
-      />
     </>
   );
 };

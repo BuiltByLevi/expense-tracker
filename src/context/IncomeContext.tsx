@@ -9,6 +9,7 @@ import {
   doc,
   updateDoc,
   writeBatch,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from './AuthContext';
@@ -24,6 +25,10 @@ interface IncomeContextType {
   /** Applies the same edit (e.g. a category) to many entries in batched writes. */
   updateIncomes: (ids: string[], data: Partial<Pick<Income, 'category'>>) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
+  /** Puts back a just-deleted entry under its original id (used by Undo). */
+  restoreIncome: (entry: Income) => Promise<void>;
+  /** Writes entries under fixed ids (recurring entries use one id per month, so repeats can't duplicate). */
+  setIncomesWithIds: (entries: { id: string; data: Omit<Income, 'id' | 'userId'> }[]) => Promise<void>;
   deleteAllIncome: () => Promise<void>;
   getIncomeForMonth: (year: number, month: number) => { entries: Income[]; total: number };
 }
@@ -112,6 +117,7 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     ...(entry.importId !== undefined && { importId: entry.importId }),
     ...(entry.originalNarration !== undefined && { originalNarration: entry.originalNarration }),
     ...(entry.referenceNumber !== undefined && { referenceNumber: entry.referenceNumber }),
+    ...(entry.recurringId !== undefined && { recurringId: entry.recurringId }),
   });
 
   const addIncome = async (entry: Omit<Income, 'id' | 'userId'>) => {
@@ -221,6 +227,25 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return { entries, total };
   };
 
+
+  const restoreIncome = async (entry: Income) => {
+    if (!user) return;
+    const { id, userId: _u, ...data } = entry;
+    void _u;
+    await setDoc(doc(db, 'income', id), toIncomeDoc({ ...data, date: new Date(entry.date) }));
+    await loadIncome();
+  };
+
+  const setIncomesWithIds = async (entries: { id: string; data: Omit<Income, 'id' | 'userId'> }[]) => {
+    if (!user || entries.length === 0) return;
+    for (let i = 0; i < entries.length; i += 500) {
+      const batch = writeBatch(db);
+      for (const e of entries.slice(i, i + 500)) batch.set(doc(db, 'income', e.id), toIncomeDoc(e.data));
+      await batch.commit();
+    }
+    await loadIncome();
+  };
+
   return (
     <IncomeContext.Provider
       value={{
@@ -231,6 +256,8 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateIncome,
         updateIncomes,
         deleteIncome,
+        restoreIncome,
+        setIncomesWithIds,
         deleteAllIncome,
         getIncomeForMonth,
       }}

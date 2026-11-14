@@ -18,15 +18,16 @@ service cloud.firestore {
     function validTransaction(d) {
       return d.keys().hasAll(['amount', 'category', 'description', 'userid', 'date'])
         && d.keys().hasOnly(['amount', 'category', 'description', 'userid', 'date',
-                             'source', 'importId', 'originalNarration', 'referenceNumber'])
+                             'source', 'importId', 'originalNarration', 'referenceNumber', 'recurringId'])
         && validAmount(d.amount)
         && validText(d.category, 60)
         && validText(d.description, 500)
         && validDate(d.date)
-        && (!('source' in d) || d.source in ['manual', 'import'])
+        && (!('source' in d) || d.source in ['manual', 'import', 'recurring'])
         && (!('importId' in d) || validText(d.importId, 100))
         && (!('originalNarration' in d) || validText(d.originalNarration, 1000))
-        && (!('referenceNumber' in d) || validText(d.referenceNumber, 100));
+        && (!('referenceNumber' in d) || validText(d.referenceNumber, 100))
+        && (!('recurringId' in d) || validText(d.recurringId, 100));
     }
 
     // Edits may only touch the user-editable fields, and each must stay valid.
@@ -52,6 +53,26 @@ service cloud.firestore {
       allow read, delete: if ownsExisting();
       allow create: if ownsNew() && validTransaction(request.resource.data);
       allow update: if ownsExisting() && ownerUnchanged() && validTransactionEdit();
+    }
+
+    // RECURRING RULES: monthly templates that create expenses/income
+    function validRecurring(d) {
+      return d.keys().hasOnly(['userid', 'kind', 'amount', 'category', 'description', 'dayOfMonth',
+                               'startMonth', 'endMonth', 'active', 'lastGenerated', 'createdAt'])
+        && d.kind in ['expense', 'income']
+        && validAmount(d.amount) && d.amount > 0
+        && validText(d.category, 60)
+        && validText(d.description, 500)
+        && d.dayOfMonth is int && d.dayOfMonth >= 1 && d.dayOfMonth <= 31
+        && validText(d.startMonth, 7)
+        && (d.endMonth == null || validText(d.endMonth, 7))
+        && d.active is bool
+        && (d.lastGenerated == null || validText(d.lastGenerated, 7));
+    }
+    match /recurring/{ruleId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsNew() && validRecurring(request.resource.data);
+      allow update: if ownsExisting() && ownerUnchanged() && validRecurring(request.resource.data);
     }
 
     // STATEMENT IMPORTS: metadata only — the original uploaded file is never stored

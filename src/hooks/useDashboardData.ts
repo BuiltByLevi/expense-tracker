@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useIncome } from '../context/IncomeContext';
 import toast from 'react-hot-toast';
+import { showUndoToast } from '../components/common/undoToast';
 import { useBudgets } from '../context/BudgetsContext';
 import { budgetCrossing, computeBudgetStatuses } from '../utils/budgets';
 import type { Expense, Income, MonthlyEarnings } from '../types';
@@ -37,9 +38,9 @@ export function useDashboardData() {
   const { user, logout } = useAuth();
   const { earnings, getEarningsForMonth } = useEarnings();
   const { theme, toggleTheme } = useTheme();
-  const { expenses, loading: expensesLoading, addExpense, updateExpense, updateExpenses, deleteExpense } = useExpenses();
+  const { expenses, loading: expensesLoading, addExpense, updateExpense, updateExpenses, deleteExpense, restoreExpense } = useExpenses();
   const { budgets } = useBudgets();
-  const { income, loading: incomeLoading, addIncome, getIncomeForMonth, updateIncome, updateIncomes, deleteIncome: handleDeleteIncome } = useIncome();
+  const { income, loading: incomeLoading, addIncome, getIncomeForMonth, updateIncome, updateIncomes, deleteIncome, restoreIncome } = useIncome();
   const loading = expensesLoading || incomeLoading;
 
   // "Monthly Earnings" for any month with an imported statement is the sum
@@ -228,7 +229,18 @@ export function useDashboardData() {
     }
   };
   const handleAddIncome = async (entry: Parameters<typeof addIncome>[0]) => await addIncome(entry);
-  const handleDeleteExpense = async (id: string) => await deleteExpense(id);
+  // Deletes happen straight away; a 6-second "Undo" message can put the
+  // entry back under its original id.
+  const handleDeleteExpense = async (id: string) => {
+    const removed = expenses.find((e) => e.id === id);
+    await deleteExpense(id);
+    if (removed) showUndoToast(`Deleted “${removed.description || removed.category}”`, () => restoreExpense(removed));
+  };
+  const handleDeleteIncome = async (id: string) => {
+    const removed = income.find((i) => i.id === id);
+    await deleteIncome(id);
+    if (removed) showUndoToast(`Deleted “${removed.description || removed.category}”`, () => restoreIncome(removed));
+  };
 
   const topCategory = allTimeCategoryAnalysis[0];
   const topCategoryAmount = topCategory?.amount || 0;

@@ -2039,3 +2039,25 @@ button.pf-row:disabled { cursor: default; }
 .bd-intro-text strong { display: block; font-size: 15px; color: var(--text-primary); }
 .bd-intro-text small { display: block; margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
 .bd-intro-btn { flex-shrink: 0; height: 44px; padding: 0 20px; }
+.undo-toast { display: inline-flex; align-items: center; gap: 14px; }
+.undo-toast button { border: none; border-radius: 999px; padding: 6px 14px; background: var(--c-blue-bg); color: var(--c-blue); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* ============ RECURRING ============ */
+.rc-tiles .pf-tile-ico { width: 30px; height: 30px; }
+.rc-form { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.rc-kind { margin-bottom: 0; }
+.rc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rc-wide { grid-column: 1 / -1; }
+.rc-select { width: 100%; height: 50px; padding: 0 12px; border-radius: 14px; border: 1.5px solid rgba(15, 23, 42, 0.14); background: var(--input-bg-focus, #fff); font: inherit; font-size: 15px; color: var(--text-primary); }
+[data-theme='dark'] .rc-select { border-color: rgba(148, 163, 184, 0.28); background: rgba(255, 255, 255, 0.04); }
+.rc-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+.rc-save { flex: 1; }
+.rc-paused { opacity: 0.6; }
+.tl-actions span { min-width: 0; }
+.rc-desktop .bd-wrap { max-width: 860px; }
+@media (max-width: 380px) { .rc-grid { grid-template-columns: 1fr; } }
+.rc-actions { flex-wrap: wrap; padding-top: 2px; }
+.rc-actions > span { flex: 1 1 100%; margin-bottom: 4px; }
+.rc-actions > button { flex: 1 1 0; }
+.rc-list .tl-text small { white-space: normal; }
+.tl-tag { margin-left: 4px; padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: var(--c-violet-bg); color: var(--c-violet); }

@@ -9,7 +9,8 @@ import {
   deleteDoc,
   doc,
   updateDoc,
-  writeBatch
+  writeBatch,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from './AuthContext';
@@ -24,6 +25,10 @@ interface ExpensesContextType {
   /** Applies the same edit (e.g. a category) to many expenses in batched writes. */
   updateExpenses: (ids: string[], data: Partial<Pick<Expense, 'category'>>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
+  /** Puts back a just-deleted entry under its original id (used by Undo). */
+  restoreExpense: (entry: Expense) => Promise<void>;
+  /** Writes entries under fixed ids (recurring entries use one id per month, so repeats can't duplicate). */
+  setExpensesWithIds: (entries: { id: string; data: Omit<Expense, 'id' | 'userId'> }[]) => Promise<void>;
   deleteAllExpenses: () => Promise<void>;
   getYearlyTotal: (year: number) => number;
   getCategoryAnalysis: () => CategoryTotal[];
@@ -112,6 +117,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     ...(expense.importId !== undefined && { importId: expense.importId }),
     ...(expense.originalNarration !== undefined && { originalNarration: expense.originalNarration }),
     ...(expense.referenceNumber !== undefined && { referenceNumber: expense.referenceNumber }),
+    ...(expense.recurringId !== undefined && { recurringId: expense.recurringId }),
   });
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'userId'>) => {
@@ -272,6 +278,25 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }));
   };
 
+
+  const restoreExpense = async (entry: Expense) => {
+    if (!user) return;
+    const { id, userId: _u, ...data } = entry;
+    void _u;
+    await setDoc(doc(db, 'expenses', id), toExpenseDoc({ ...data, date: new Date(entry.date) }));
+    await loadExpenses();
+  };
+
+  const setExpensesWithIds = async (entries: { id: string; data: Omit<Expense, 'id' | 'userId'> }[]) => {
+    if (!user || entries.length === 0) return;
+    for (let i = 0; i < entries.length; i += 500) {
+      const batch = writeBatch(db);
+      for (const e of entries.slice(i, i + 500)) batch.set(doc(db, 'expenses', e.id), toExpenseDoc(e.data));
+      await batch.commit();
+    }
+    await loadExpenses();
+  };
+
   return (
     <ExpensesContext.Provider
       value={{
@@ -282,6 +307,8 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateExpense,
         updateExpenses,
         deleteExpense,
+        restoreExpense,
+        setExpensesWithIds,
         deleteAllExpenses,
         getYearlyTotal,
         getCategoryAnalysis,

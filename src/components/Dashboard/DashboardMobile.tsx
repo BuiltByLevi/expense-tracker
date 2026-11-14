@@ -15,6 +15,7 @@ import DateRangeFilter from './DateRangeFilter';
 import LogoMark from '../common/LogoMark';
 import RotatingQuote from '../common/RotatingQuote';
 import BudgetsPanel from '../Budgets/BudgetsPanel';
+import RecurringPanel from '../Recurring/RecurringPanel';
 import ListSkeleton from '../common/ListSkeleton';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
@@ -42,7 +43,7 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageMobi
  */
 type Page =
   | 'overview' | 'add' | 'transactions' | 'analytics'
-  | 'ledger' | 'earnings' | 'history' | 'import' | 'profile' | 'budgets';
+  | 'ledger' | 'earnings' | 'history' | 'import' | 'profile' | 'budgets' | 'recurring';
 
 const PAGE_TITLES: Record<Page, string> = {
   overview: 'Home',
@@ -55,6 +56,7 @@ const PAGE_TITLES: Record<Page, string> = {
   import: 'Import Statement',
   profile: 'My Profile',
   budgets: 'Budgets',
+  recurring: 'Recurring',
 };
 
 const Svg: React.FC<{ size?: number; children: React.ReactNode }> = ({ size = 22, children }) => (
@@ -84,6 +86,7 @@ const NAV: { section: string; items: { page: Page; label: string; icon: React.Re
       { page: 'transactions', label: 'Transactions', icon: <LedgerIcon size={18} /> },
       { page: 'analytics', label: 'Analytics & Trends', icon: <ChartLineIcon size={18} /> },
       { page: 'budgets', label: 'Budgets', icon: <WalletIcon size={18} /> },
+      { page: 'recurring', label: 'Recurring', icon: <ClockIcon size={18} /> },
     ],
   },
   {
@@ -529,6 +532,7 @@ const DashboardMobile: React.FC = () => {
     case 'transactions': body = <div className="m-content">{renderTransactions()}</div>; break;
     case 'analytics': body = <div className="m-content">{renderAnalytics()}</div>; break;
     case 'history': body = <div className="m-content">{renderHistory()}</div>; break;
+    case 'recurring': body = <div className="m-content"><RecurringPanel /></div>; break;
     case 'budgets':
       body = (
         <div className="m-content">

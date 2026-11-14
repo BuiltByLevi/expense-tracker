@@ -7,7 +7,9 @@ export interface Expense {
   userId: string;
   // Traceability for expenses created via bank statement import — optional so
   // existing manually-entered expenses (which lack these) keep working.
-  source?: 'manual' | 'import';
+  source?: 'manual' | 'import' | 'recurring';
+  /** Set when the entry was created by a recurring rule. */
+  recurringId?: string;
   importId?: string;
   originalNarration?: string;
   referenceNumber?: string;
@@ -32,7 +34,9 @@ export interface Income {
   userId: string;
   // Traceability for income created via bank statement import — optional so
   // manually-entered income (if any) keeps working without these.
-  source?: 'manual' | 'import';
+  source?: 'manual' | 'import' | 'recurring';
+  /** Set when the entry was created by a recurring rule. */
+  recurringId?: string;
   importId?: string;
   originalNarration?: string;
   referenceNumber?: string;
