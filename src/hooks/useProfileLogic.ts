@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useExpenses } from '../context/ExpensesContext';
@@ -21,7 +23,7 @@ const CLOUDINARY_UPLOAD_PRESET = 'levihere';
  * source of truth and only differ in layout.
  */
 export function useProfileLogic() {
-  const { user, logout, updateUserProfile, resetPassword } = useAuth();
+  const { user, logout, updateUserProfile, resetPassword, reauthenticate, deleteAccount } = useAuth();
   const { expenses, deleteAllExpenses } = useExpenses();
   const { getIncomeForMonth, deleteAllIncome } = useIncome();
   const { deleteAllImports } = useStatementImports();
@@ -180,6 +182,34 @@ export function useProfileLogic() {
     }
   };
 
+  /**
+   * Closes the account: checks the password, deletes every piece of data
+   * (including settings and budgets), then deletes the login itself.
+   * Returns an error message for the dialog, or null on success.
+   */
+  const handleDeleteAccount = async (password: string): Promise<string | null> => {
+    if (!user) return 'Not signed in';
+    try {
+      await reauthenticate(password);
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') return 'That password is not correct.';
+      if (code === 'auth/too-many-requests') return 'Too many attempts. Please wait a few minutes and try again.';
+      return 'Could not confirm your password. Check your connection and try again.';
+    }
+    try {
+      await Promise.all([deleteAllExpenses(), deleteAllIncome(), deleteAllImports(), deleteAllRules()]);
+      await resetEarningsHistory();
+      await deleteDoc(doc(db, 'userSettings', user.uid));
+      await deleteAccount();
+      toast.success('Your account has been deleted.', { duration: 5000 });
+      return null;
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      return 'Something went wrong part-way. Some data may already be deleted — please try again.';
+    }
+  };
+
   return {
     user,
     theme,
@@ -204,5 +234,6 @@ export function useProfileLogic() {
     handleLogout,
     handleDeleteData,
     deletingData,
+    handleDeleteAccount,
   };
 }

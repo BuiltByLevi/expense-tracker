@@ -6,6 +6,7 @@ import {
   query,
   where,
   getDocs,
+  onSnapshot,
   deleteDoc,
   doc,
   updateDoc,
@@ -53,56 +54,51 @@ export const useExpenses = () => {
 };
 
 export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-
-  const loadExpenses = async () => {
-    if (!user) {
-      setExpenses([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const q = query(
-        collection(db, 'expenses'),
-        where('userid', '==', user.uid)
-      );
-
-      const snapshot = await getDocs(q);
-
-      const expensesData: Expense[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        expensesData.push({
-          id: doc.id,
-          amount: data.amount,
-          category: data.category,
-          description: data.description,
-          date: new Date(data.date),
-          userId: data.userid,
-          source: data.source,
-          importId: data.importId,
-          originalNarration: data.originalNarration,
-          referenceNumber: data.referenceNumber,
-        } as Expense);
-      });
-
-      expensesData.sort((a, b) => b.date.getTime() - a.date.getTime());
-      setExpenses(expensesData);
-    } catch (error) {
-      console.error('Error loading expenses:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Live: a Firestore listener keeps this list current, so changes made on
+  // another device (or by a recurring rule) appear without a refresh.
+  // State is tagged with the uid it belongs to, so a sign-out/sign-in never
+  // shows the previous user's data and "loading" is derived, not stored.
+  const [live, setLive] = useState<{ uid: string | null; items: Expense[] }>({ uid: null, items: [] });
 
   useEffect(() => {
-    loadExpenses();
+    if (!user) return;
+    const uid = user.uid;
+    const q = query(collection(db, 'expenses'), where('userid', '==', uid));
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const items: Expense[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            amount: data.amount,
+            category: data.category,
+            description: data.description,
+            date: new Date(data.date),
+            userId: data.userid,
+            source: data.source,
+            importId: data.importId,
+            originalNarration: data.originalNarration,
+            referenceNumber: data.referenceNumber,
+            recurringId: data.recurringId,
+          } as Expense;
+        });
+        items.sort((a, b) => b.date.getTime() - a.date.getTime());
+        setLive({ uid, items });
+      },
+      (error) => {
+        console.error('Error loading expenses:', error);
+        setLive({ uid, items: [] });
+      },
+    );
   }, [user]);
+
+  const expenses = user && live.uid === user.uid ? live.items : [];
+  const loading = !!user && live.uid !== user.uid;
+
+  /** Kept for callers that refresh after a write; the live listener already has the change. */
+  const loadExpenses = async () => {};
 
   // Firestore rejects explicit `undefined` field values, so optional
   // traceability fields (source/importId/originalNarration/referenceNumber)

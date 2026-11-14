@@ -3,7 +3,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { db } from '../utils/firebase';
 import { useAuth } from './AuthContext';
-import { cleanBudgets, type CategoryBudgets } from '../utils/budgets';
+import { cleanBudgets, computeBudgetStatuses, type BudgetLevel, type CategoryBudgets } from '../utils/budgets';
+import { useExpenses } from './ExpensesContext';
 
 interface BudgetsContextType {
   budgets: CategoryBudgets;
@@ -52,6 +53,37 @@ export const BudgetsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     })();
     return () => { cancelled = true; };
   }, [user]);
+
+  // Warn when this month's spending pushes a category to 80% or over its
+  // limit — whatever added it (typed, imported, or a recurring rule). Only
+  // reacts to spending changes, not to editing a budget.
+  const { expenses, loading: expensesLoading } = useExpenses();
+  const seen = useRef<{ month: string; levels: Map<string, BudgetLevel>; expenses: unknown } | null>(null);
+  useEffect(() => {
+    if (loading || expensesLoading) return;
+    const now = new Date();
+    const month = `${now.getFullYear()}-${now.getMonth()}`;
+    const monthExpenses = expenses.filter((e) => {
+      const d = new Date(e.date);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    });
+    const levels = new Map(computeBudgetStatuses(budgets, monthExpenses).map((s) => [s.category, s.level] as const));
+    const prev = seen.current;
+    const spendingChanged = !!prev && prev.month === month && prev.expenses !== expenses;
+    if (spendingChanged) {
+      const rank: Record<BudgetLevel, number> = { ok: 0, warning: 1, over: 2 };
+      for (const st of computeBudgetStatuses(budgets, monthExpenses)) {
+        const before = prev.levels.get(st.category) ?? 'ok';
+        if (rank[st.level] <= rank[before]) continue;
+        if (st.level === 'over') {
+          toast.error(`${st.category} is over budget by ₹${Math.round(-st.remaining).toLocaleString('en-IN')} this month`, { duration: 5000, id: `budget-${st.category}` });
+        } else {
+          toast(`⚠ ${st.category}: ${Math.round(st.percent)}% of this month's budget used`, { duration: 5000, id: `budget-${st.category}` });
+        }
+      }
+    }
+    seen.current = { month, levels, expenses };
+  }, [expenses, expensesLoading, budgets, loading]);
 
   const setBudget = useCallback(async (category: string, amount: number | null) => {
     if (!user) return;

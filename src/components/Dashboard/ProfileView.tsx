@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { theme as design } from '../../styles/theme';
 import { useProfileLogic } from '../../hooks/useProfileLogic';
 import ConfirmDialog from '../common/ConfirmDialog';
+import DeleteAccountDialog from './DeleteAccountDialog';
 import {
   WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, LockIcon, LogoutIcon,
   CameraIcon, CheckIcon, ShieldCheckIcon, MoonIcon, ClockIcon, TrashIcon, RupeeIcon,
@@ -23,7 +24,7 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
     user, theme, toggleTheme, colorTheme, setColorTheme, defaultEarnings, stats, totalSavings, initials,
     displayName, setDisplayName, savingName, handleSaveName,
     uploadingPhoto, fileInputRef, handlePhotoUpload,
-    handleChangePassword, handleLogout, handleDeleteData, deletingData,
+    handleChangePassword, handleLogout, handleDeleteData, deletingData, handleDeleteAccount,
   } = useProfileLogic();
 
   const [editingName, setEditingName] = useState(false);
@@ -176,7 +177,7 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
         </button>
         <button type="button" className="pf-row" onClick={() => setConfirm('account')}>
           <span className="pf-ico t-red"><UserIcon size={16} /></span>
-          <span className="pf-text"><strong>Delete account</strong><small>Close your PRATIQ account</small></span>
+          <span className="pf-text"><strong>Delete account</strong><small>Permanently close your account and erase everything</small></span>
           <Chevron />
         </button>
       </div>
@@ -199,13 +200,11 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
         onConfirm={async () => { setConfirm(null); await handleDeleteData(); }}
         onCancel={() => setConfirm(null)}
       />
-      <ConfirmDialog
+      <DeleteAccountDialog
         open={confirm === 'account'}
-        title="Delete account"
-        message="Closing an account isn't available inside the app yet. You can delete all your data from the option above, then stop using the account."
-        confirmLabel="OK"
-        onConfirm={() => setConfirm(null)}
+        email={user?.email}
         onCancel={() => setConfirm(null)}
+        onConfirm={handleDeleteAccount}
       />
     </div>
   );
