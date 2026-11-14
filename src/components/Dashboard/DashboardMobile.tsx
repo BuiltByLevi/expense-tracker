@@ -517,7 +517,7 @@ const DashboardMobile: React.FC = () => {
   switch (page) {
     case 'ledger': body = <TransactionLedgerPage onBack={goHome} />; break;
     case 'earnings': body = <EarningsHistoryPage onBack={goHome} />; break;
-    case 'profile': body = <ProfilePage onBack={goHome} />; break;
+    case 'profile': body = <ProfilePage onBack={goHome} onOpenEarnings={() => navigate('earnings')} />; break;
     case 'import':
       body = (
         <Suspense fallback={<div style={{ padding: '12px' }}><ListSkeleton rows={4} /></div>}>

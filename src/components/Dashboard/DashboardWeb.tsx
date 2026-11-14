@@ -68,7 +68,7 @@ const DashboardWeb: React.FC = () => {
     return <TransactionLedgerPage onBack={() => setShowLedgerPage(false)} />;
   }
   if (showProfilePage) {
-    return <ProfilePage onBack={() => setShowProfilePage(false)} />;
+    return <ProfilePage onBack={() => setShowProfilePage(false)} onOpenEarnings={() => { setShowProfilePage(false); setShowEarningsPage(true); }} />;
   }
   if (showImportPage) {
     return (

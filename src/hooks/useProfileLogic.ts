@@ -20,7 +20,7 @@ const CLOUDINARY_UPLOAD_PRESET = 'levihere';
  * source of truth and only differ in layout.
  */
 export function useProfileLogic() {
-  const { user, logout, updateUserProfile } = useAuth();
+  const { user, logout, updateUserProfile, resetPassword } = useAuth();
   const { expenses, deleteAllExpenses } = useExpenses();
   const { getIncomeForMonth, deleteAllIncome } = useIncome();
   const { deleteAllImports } = useStatementImports();
@@ -140,22 +140,26 @@ export function useProfileLogic() {
     }
   };
 
-  const handleChangePassword = () => {
-    toast.success('Password reset email sent to ' + user?.email, { duration: 4000 });
-  };
-
-  const handleLogout = async () => {
-    if (window.confirm('This will sign you out from all devices. Continue?')) {
-      await logout();
+  const handleChangePassword = async () => {
+    if (!user?.email) return;
+    try {
+      await resetPassword(user.email);
+      toast.success(`Password reset link sent to ${user.email}`, { duration: 5000 });
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      toast.error('Could not send the reset email. Please try again later.');
     }
   };
 
-  const handleDeleteData = async () => {
-    const confirmText = window.prompt(
-      'Type "DELETE" (all caps) to permanently delete all your expenses, income, and earnings history. This cannot be undone:'
-    );
-    if (confirmText !== 'DELETE') return;
+  /** Signs out of this device. */
+  const handleLogout = async () => {
+    await logout();
+  };
 
+  /** Deletes all expenses, income, earnings history and import records.
+   *  Callers must confirm with the user first (the profile page asks the
+   *  user to type DELETE). */
+  const handleDeleteData = async () => {
     setDeletingData(true);
     try {
       await Promise.all([
@@ -170,15 +174,6 @@ export function useProfileLogic() {
       toast.error('Something went wrong deleting your data — some of it may remain. Please try again.', { duration: 5000 });
     } finally {
       setDeletingData(false);
-    }
-  };
-
-  const handleDeleteAccount = () => {
-    const confirmText = window.prompt(
-      'Type "DELETE ACCOUNT" to permanently delete your account:'
-    );
-    if (confirmText === 'DELETE ACCOUNT') {
-      toast.error('Contact support to delete your account', { duration: 4000 });
     }
   };
 
@@ -206,6 +201,5 @@ export function useProfileLogic() {
     handleLogout,
     handleDeleteData,
     deletingData,
-    handleDeleteAccount,
   };
 }

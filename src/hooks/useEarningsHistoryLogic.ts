@@ -10,7 +10,7 @@ import { deriveMonthlyEarnings, type DerivedEarnings } from '../utils/earningsDe
  * truth and only differ in layout.
  */
 export function useEarningsHistoryLogic() {
-  const { getEarningsForMonth, setEarningsForMonth, revertEarningsOverride, earnings: defaultEarnings } = useEarnings();
+  const { getEarningsForMonth, setEarningsForMonth, revertEarningsOverride, earnings: defaultEarnings, setEarnings: setDefaultEarnings } = useEarnings();
   const { getIncomeForMonth } = useIncome();
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -251,6 +251,7 @@ export function useEarningsHistoryLogic() {
     getDisplay,
     handleRevert,
     defaultEarnings,
+    setDefaultEarnings,
     months: visibleMonths,
     availableYears,
     yearFilter,

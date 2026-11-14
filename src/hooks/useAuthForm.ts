@@ -19,7 +19,8 @@ export function useAuthForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<AuthFormErrors>({});
-  const { login, signup } = useAuth();
+  const [resetting, setResetting] = useState(false);
+  const { login, signup, resetPassword } = useAuth();
 
   const clearFieldError = (field: keyof AuthFormErrors) => {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -61,11 +62,32 @@ export function useAuthForm() {
         ? 'Invalid email or password'
         : authError.code === 'auth/email-already-in-use'
         ? 'An account with this email already exists'
+        : authError.code === 'auth/too-many-requests'
+        ? 'Too many attempts. Please wait a few minutes and try again.'
+        : authError.code === 'auth/network-request-failed'
+        ? 'No internet connection. Check your network and try again.'
         : authError.message ?? 'An unexpected error occurred';
       toast.error(message);
     } finally {
       setLoading(false);
     }
+  };
+
+  /** Emails a reset link to the address typed in the Email field. */
+  const handleForgotPassword = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrors({ email: 'Enter your email above, then tap “Forgot password?” again' });
+      return;
+    }
+    setResetting(true);
+    try {
+      await resetPassword(email);
+    } catch {
+      // Don't reveal whether an account exists; the message below covers both.
+    } finally {
+      setResetting(false);
+    }
+    toast.success(`If an account exists for ${email}, a reset link is on its way.`, { duration: 6000 });
   };
 
   const toggleMode = () => {
@@ -88,5 +110,7 @@ export function useAuthForm() {
     clearFieldError,
     handleSubmit,
     toggleMode,
+    handleForgotPassword,
+    resetting,
   };
 }

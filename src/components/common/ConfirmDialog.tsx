@@ -12,6 +12,8 @@ interface ConfirmDialogProps {
   danger?: boolean;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
+  /** When set, the confirm button stays disabled until this exact text is typed. */
+  requireText?: string;
 }
 
 /**
@@ -30,8 +32,11 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   danger = false,
   onConfirm,
   onCancel,
+  requireText,
 }) => {
   const [busy, setBusy] = useState(false);
+  const [typed, setTyped] = useState('');
+  const textOk = !requireText || typed === requireText;
 
   useEffect(() => {
     if (!open) return;
@@ -44,17 +49,20 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   if (!open) return null;
 
+  const cancel = () => { setTyped(''); onCancel(); };
+
   const handleConfirm = async () => {
     setBusy(true);
     try {
       await onConfirm();
     } finally {
       setBusy(false);
+      setTyped('');
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={busy ? undefined : onCancel}>
+    <div className="modal-overlay" onClick={busy ? undefined : cancel}>
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
@@ -77,16 +85,29 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 8px 0' }}>
           {title}
         </h2>
-        <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '0 0 24px 0', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: requireText ? '0 0 14px 0' : '0 0 24px 0', lineHeight: 1.5 }}>
           {message}
         </p>
+        {requireText && (
+          <label style={{ display: 'block', textAlign: 'left', margin: '0 0 20px 0', fontSize: '12px', fontWeight: 600, color: design.colors.textSecondary }}>
+            Type <strong style={{ color: design.colors.textPrimary }}>{requireText}</strong> to confirm
+            <input
+              className="input"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              style={{ marginTop: '6px' }}
+            />
+          </label>
+        )}
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={onCancel} disabled={busy} className="btn btn-ghost" style={{ flex: 1, padding: '12px' }}>
+          <button onClick={cancel} disabled={busy} className="btn btn-ghost" style={{ flex: 1, padding: '12px' }}>
             {cancelLabel}
           </button>
           <button
             onClick={handleConfirm}
-            disabled={busy}
+            disabled={busy || !textOk}
             className={danger ? 'btn btn-danger' : 'btn btn-primary'}
             style={{ flex: 1, padding: '12px' }}
           >

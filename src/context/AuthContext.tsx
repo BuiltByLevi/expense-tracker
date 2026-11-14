@@ -7,6 +7,7 @@ import {
   updateProfile,
   setPersistence,
   browserSessionPersistence,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../utils/firebase';
 
@@ -17,6 +18,8 @@ interface AuthContextType {
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfile: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
+  /** Emails a Firebase password-reset link to the given address. */
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,8 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser({ ...auth.currentUser });
   };
 
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfile, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
