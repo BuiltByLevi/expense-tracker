@@ -1,7 +1,13 @@
-import * as pdfjsLib from 'pdfjs-dist';
+// The LEGACY build, deliberately: pdf.js's default build uses JS built-ins
+// only the very newest browsers ship (Map.getOrInsert, Math.sumPrecise,
+// Promise.try, Uint8Array.fromBase64). On a phone browser even slightly
+// behind, the default build never finishes and the import sits on
+// "Reading <file>..." forever. The legacy build bundles its own polyfills.
+// Both the library and its worker must come from legacy/ — they are a pair.
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 // Vite ?url import bundles the worker as a same-origin asset, satisfying the
 // app's strict `script-src 'self'` CSP (no CDN worker loading).
-import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import pdfWorkerSrc from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { parseStatementAmount, parseStatementDate } from './normalize';
 import type { NormalizedTransaction, ParserError } from './types';
 
@@ -134,6 +140,8 @@ export async function parsePdfFile(file: File): Promise<
     if (name === 'PasswordException') {
       return { error: { code: 'ENCRYPTED_PDF', message: 'This PDF is password-protected. Please remove the password and re-upload.' } };
     }
+    // Keep the real cause visible — the message above the user sees is generic.
+    console.error('PDF statement parse failed:', err);
     return { error: { code: 'PARSE_FAILED', message: 'Failed to read this PDF file.' } };
   }
 
