@@ -1761,3 +1761,74 @@ body::after {
 .rq-dots i.on { width: 16px; opacity: 0.9; }
 .rq-pause { width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.55); color: var(--c-violet); font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 [data-theme='dark'] .rq-pause { background: rgba(255, 255, 255, 0.08); }
+
+/* ============ FINANCE BACKDROP (whole app) ============ */
+.fx-bg {
+  --fx-line: #2563eb;
+  --fx-up: #0d9488;
+  --fx-down: #e11d48;
+  --fx-coin: #1e3a8a;
+  --fx-grid: rgba(30, 58, 138, 0.05);
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+}
+[data-theme='dark'] .fx-bg {
+  --fx-line: #60a5fa;
+  --fx-up: #2dd4bf;
+  --fx-down: #fb7185;
+  --fx-coin: #93c5fd;
+  --fx-grid: rgba(148, 163, 184, 0.05);
+}
+.app-layer { position: relative; z-index: 1; }
+
+.fx-grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(var(--fx-grid) 1px, transparent 1px), linear-gradient(90deg, var(--fx-grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent);
+}
+
+.fx-trend { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 38vh; opacity: 0.7; }
+.fx-line { fill: none; stroke: var(--fx-line); stroke-width: 2.5; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: 0.5;
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation: fx-draw 14s ease-in-out infinite; }
+.fx-area { opacity: 0.6; animation: fx-area 14s ease-in-out infinite; }
+.fx-dot { fill: var(--fx-line); opacity: 0; animation: fx-dot 14s ease-in-out infinite; }
+@keyframes fx-draw { 0% { stroke-dashoffset: 1; } 55%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes fx-area { 0%, 20% { opacity: 0; } 60%, 85% { opacity: 0.6; } 100% { opacity: 0; } }
+@keyframes fx-dot { 0%, 52% { opacity: 0; } 58%, 85% { opacity: 0.5; } 100% { opacity: 0; } }
+
+.fx-candles { position: absolute; right: 3%; top: 16%; width: min(34vw, 260px); opacity: 0.24; }
+.fx-candle line { stroke-width: 1.5; }
+.fx-candle.up rect { fill: var(--fx-up); } .fx-candle.up line { stroke: var(--fx-up); }
+.fx-candle.down rect { fill: var(--fx-down); } .fx-candle.down line { stroke: var(--fx-down); }
+.fx-candle { transform-box: fill-box; transform-origin: bottom; animation: fx-candle 6s ease-in-out infinite; }
+@keyframes fx-candle { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.72); } }
+
+.fx-coin {
+  position: absolute; bottom: -40px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 1.5px solid var(--fx-coin); color: var(--fx-coin); font-weight: 800;
+  opacity: 0; animation: fx-rise linear infinite;
+}
+@keyframes fx-rise {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.22; }
+  80% { opacity: 0.16; }
+  100% { transform: translateY(-110vh) rotate(200deg); opacity: 0; }
+}
+
+/* Phone shell: let the backdrop show behind the cards (ground colour moves to <html>). */
+html:has(.m-shell) { background: #f3f5fa; }
+html[data-theme='dark']:has(.m-shell) { background: #070b16; }
+body:has(.m-shell)::before, body:has(.m-shell)::after { display: none; }
+.m-shell { background: transparent; }
+@media (max-width: 768px) {
+  .fx-candles { top: 12%; opacity: 0.18; }
+  .fx-trend { height: 30vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-line, .fx-area, .fx-dot, .fx-candle, .fx-coin { animation: none; }
+  .fx-line { stroke-dashoffset: 0; }
+  .fx-dot { opacity: 0.5; }
+  .fx-coin { display: none; }
+}

@@ -8,6 +8,7 @@ import { IncomeProvider } from './context/IncomeContext';
 const Dashboard = lazy(() => import('./components/Dashboard/Dashboard'));
 const Auth = lazy(() => import('./components/Auth/Auth'));
 import { Toaster } from 'react-hot-toast';
+import FinanceBackdrop from './components/common/FinanceBackdrop';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 
 const AppContent: React.FC = () => {
@@ -31,7 +32,10 @@ function App() {
       <ExpensesProvider>
         <IncomeProvider>
           <EarningsProvider>
-            <AppContent />
+            <FinanceBackdrop />
+            <div className="app-layer">
+              <AppContent />
+            </div>
             <Toaster position="top-right" />
           </EarningsProvider>
         </IncomeProvider>
