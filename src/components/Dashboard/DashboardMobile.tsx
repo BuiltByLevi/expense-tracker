@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
 import ExpenseList from '../ExpenseList/ExpenseList';
 import CategoryPieChart from '../Charts/CategoryPieChart';
+import TrendCharts from '../Charts/TrendCharts';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
 import EditIncomeModal from '../ExpenseList/EditIncomeModal';
 import EarningsModal from './EarningsModal';
@@ -43,7 +44,7 @@ const PAGE_TITLES: Record<Page, string> = {
   overview: 'Home',
   add: 'Add Transaction',
   transactions: 'Transactions',
-  analytics: 'Expense Allocation',
+  analytics: 'Analytics',
   ledger: 'Monthly Ledger',
   earnings: 'Manage Earnings',
   history: 'Financial History',
@@ -75,7 +76,7 @@ const NAV: { section: string; items: { page: Page; label: string; icon: React.Re
       { page: 'overview', label: 'Home', icon: <HomeIcon size={18} /> },
       { page: 'add', label: 'Add Transaction', icon: <RupeeIcon size={18} /> },
       { page: 'transactions', label: 'Transactions', icon: <LedgerIcon size={18} /> },
-      { page: 'analytics', label: 'Expense Allocation', icon: <PieIcon size={18} /> },
+      { page: 'analytics', label: 'Analytics & Trends', icon: <ChartLineIcon size={18} /> },
     ],
   },
   {
@@ -413,6 +414,8 @@ const DashboardMobile: React.FC = () => {
 
   const renderAnalytics = () => (
     <>
+      <TrendCharts expenses={expenses} financeTotals={financeTotals} />
+      <div className="m-section-head"><h2>Expense allocation</h2></div>
       {activeView === 'monthly' && monthBar}
       <div className="glass-card" style={{ padding: '4px' }}>
         <div className="tab-container" style={{ width: '100%' }}>

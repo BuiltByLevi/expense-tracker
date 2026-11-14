@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState } from 'react';
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
 import ExpenseList from '../ExpenseList/ExpenseList';
 import CategoryPieChart from '../Charts/CategoryPieChart';
+import TrendCharts from '../Charts/TrendCharts';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
 import EditIncomeModal from '../ExpenseList/EditIncomeModal';
 import EarningsModal from './EarningsModal';
@@ -430,6 +431,11 @@ const DashboardWeb: React.FC = () => {
               </>
             )}
           </div>
+        </div>
+
+        {/* Trends — stock-style line charts */}
+        <div className="tc-grid-wrap" style={{ marginBottom: '20px' }}>
+          <TrendCharts expenses={expenses} financeTotals={financeTotals} />
         </div>
 
         {/* Transaction History */}
