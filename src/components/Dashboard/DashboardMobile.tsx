@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
-import ExpenseList from '../ExpenseList/ExpenseList';
+import TransactionListMobile from '../ExpenseList/TransactionListMobile';
 import CategoryPieChart from '../Charts/CategoryPieChart';
 import TrendCharts from '../Charts/TrendCharts';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
@@ -385,20 +385,21 @@ const DashboardMobile: React.FC = () => {
   );
 
   const renderTransactions = () => (
-    <div className="glass-card" style={{ padding: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-        <h3 style={sectionTitle}><LedgerIcon size={15} color={design.colors.primary} /> Account Statement</h3>
-        <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>
-          {historyExpenses.length + historyIncome.length} entries · {historyLabel}
-        </span>
-      </div>
-      <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: `1px solid ${design.colors.primary}12` }}>
+    <>
+      {!dateRange && monthBar}
+      <div className="tl-ranges">
         <DateRangeFilter value={dateRange} onApply={setDateRange} onClear={clearDateRange} />
       </div>
+      <div className="m-section-head">
+        <h2>{dateRange ? 'Selected dates' : monthName}</h2>
+        <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>
+          {historyExpenses.length + historyIncome.length} entries{dateRange ? ` · ${historyLabel}` : ''}
+        </span>
+      </div>
       {loading ? (
-        <ListSkeleton rows={6} />
+        <div className="glass-card" style={{ padding: '16px' }}><ListSkeleton rows={6} /></div>
       ) : (
-        <ExpenseList
+        <TransactionListMobile
           expenses={historyExpenses}
           income={historyIncome}
           onDelete={handleDeleteExpense}
@@ -409,7 +410,7 @@ const DashboardMobile: React.FC = () => {
           emptyStateLabel={dateRange ? 'No transactions in this date range' : `No transactions yet for ${monthName}`}
         />
       )}
-    </div>
+    </>
   );
 
   const renderAnalytics = () => (
