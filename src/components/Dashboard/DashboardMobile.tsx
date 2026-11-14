@@ -1,7 +1,8 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+// Recharts is large; the pie chart loads on its own after the page appears.
+const CategoryPieChart = lazy(() => import('../Charts/CategoryPieChart'));
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
 import TransactionHistory from '../ExpenseList/TransactionHistory';
-import CategoryPieChart from '../Charts/CategoryPieChart';
 import TrendCharts from '../Charts/TrendCharts';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
 import EditIncomeModal from '../ExpenseList/EditIncomeModal';
@@ -432,7 +433,7 @@ const DashboardMobile: React.FC = () => {
           </p>
         </div>
         <div style={{ height: '260px' }}>
-          <CategoryPieChart data={activeView === 'total' ? allTimeCategoryAnalysis : monthCategoryAnalysis} height={260} legend={false} />
+          <Suspense fallback={null}><CategoryPieChart data={activeView === 'total' ? allTimeCategoryAnalysis : monthCategoryAnalysis} height={260} legend={false} /></Suspense>
         </div>
         <CategoryLegend data={activeView === 'total' ? allTimeCategoryAnalysis : monthCategoryAnalysis} />
         {activeView === 'total' && (

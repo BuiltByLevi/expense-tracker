@@ -1,7 +1,8 @@
 import React, { Suspense, lazy, useState } from 'react';
+// Recharts is large; the pie chart loads on its own after the page appears.
+const CategoryPieChart = lazy(() => import('../Charts/CategoryPieChart'));
 import ExpenseForm from '../ExpenseForm/ExpenseForm';
 import TransactionHistory from '../ExpenseList/TransactionHistory';
-import CategoryPieChart from '../Charts/CategoryPieChart';
 import TrendCharts from '../Charts/TrendCharts';
 import EditExpenseModal from '../ExpenseList/EditExpenseModal';
 import EditIncomeModal from '../ExpenseList/EditIncomeModal';
@@ -398,7 +399,7 @@ const DashboardWeb: React.FC = () => {
                   <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
                 </div>
                 <div style={{ height: '260px' }}>
-                  <CategoryPieChart data={allTimeCategoryAnalysis} height={260} legend={false} />
+                  <Suspense fallback={null}><CategoryPieChart data={allTimeCategoryAnalysis} height={260} legend={false} /></Suspense>
                 </div>
                 <CategoryLegend data={allTimeCategoryAnalysis} />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
@@ -425,7 +426,7 @@ const DashboardWeb: React.FC = () => {
                   <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{monthTotal.toLocaleString('en-IN')}</p>
                 </div>
                 <div style={{ height: '300px' }}>
-                  <CategoryPieChart data={monthCategoryAnalysis} height={300} legend={false} />
+                  <Suspense fallback={null}><CategoryPieChart data={monthCategoryAnalysis} height={300} legend={false} /></Suspense>
                 </div>
                 <CategoryLegend data={monthCategoryAnalysis} />
               </>
