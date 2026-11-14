@@ -1630,3 +1630,12 @@ body::after {
 .tl-ranges > div > div:first-child { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 2px 14px; }
 .tl-ranges > div > div:first-child::-webkit-scrollbar { display: none; }
 .tl-ranges > div > div:first-child > button { flex-shrink: 0; height: 34px; white-space: nowrap; background-color: var(--m-surface); }
+
+/* ============ MONTHLY LEDGER (mobile) — reuses .si-summary and .tl-* ============ */
+.lg-hero .si-summary-head { align-items: flex-start; }
+.lg-hero .si-summary-head small { margin: 0 0 2px; }
+.si-summary-head strong.lg-big { font-size: 28px; letter-spacing: -0.02em; line-height: 1.15; overflow-wrap: anywhere; }
+.lg-meter { margin-top: 14px; }
+.lg-meter-track { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.22); overflow: hidden; }
+.lg-meter-track span { display: block; height: 100%; border-radius: 999px; background: #fff; }
+.lg-meter small { display: block; margin-top: 6px; font-size: 11px; opacity: 0.85; }

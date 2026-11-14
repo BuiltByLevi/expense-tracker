@@ -1,20 +1,51 @@
-import React from 'react';
-import { format } from 'date-fns';
-import { theme as design, categoryColors } from '../../styles/theme';
-import { useTransactionLedgerLogic } from '../../hooks/useTransactionLedgerLogic';
+import React, { useMemo, useState } from 'react';
+import { format, isToday, isYesterday } from 'date-fns';
+import { theme as design, categoryColors, incomeCategoryColors } from '../../styles/theme';
+import { useTransactionLedgerLogic, type LedgerEntry } from '../../hooks/useTransactionLedgerLogic';
 import { EXPENSE_CATEGORIES } from '../../types';
 import MonthYearPicker from '../common/MonthYearPicker';
-import { ClockIcon } from '../common/FinanceIcons';
+import { ClockIcon, LedgerIcon } from '../common/FinanceIcons';
 
 interface Props {
   /** Unused: the mobile shell's menu handles navigation. Kept for API parity with the Web page. */
   onBack?: () => void;
 }
 
-function getCategoryColor(category: string): string | null {
-  const idx = (EXPENSE_CATEGORIES as readonly string[]).indexOf(category);
-  return idx === -1 ? null : categoryColors[idx % categoryColors.length];
+/**
+ * Phone ledger, styled to match the banking-style Transactions page:
+ * month switcher, closing-balance card, search + Credits / Debits chips,
+ * and entries grouped by day (oldest first, like a bank statement) with
+ * the running balance under each amount and at the end of each day.
+ */
+
+type Flow = 'all' | 'credit' | 'debit';
+
+const inr = (n: number) => `₹${Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const signed = (n: number) => `${n < 0 ? '−' : ''}${inr(n)}`;
+
+function entryColor(e: LedgerEntry): string {
+  if (e.type === 'credit') return incomeCategoryColors[e.category] ?? design.colors.success;
+  const idx = (EXPENSE_CATEGORIES as readonly string[]).indexOf(e.category);
+  return idx === -1 ? design.colors.textSecondary : categoryColors[idx % categoryColors.length];
 }
+
+function dayLabel(d: Date): string {
+  if (isToday(d)) return 'Today';
+  if (isYesterday(d)) return 'Yesterday';
+  return format(d, 'EEE, d MMM');
+}
+
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+  </svg>
+);
+const ArrowIn = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 7 7 17M7 9v8h8" /></svg>
+);
+const ArrowOut = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg>
+);
 
 const TransactionLedgerPageMobile: React.FC<Props> = () => {
   const {
@@ -23,91 +54,148 @@ const TransactionLedgerPageMobile: React.FC<Props> = () => {
     ledger, totalCredit, totalDebit, closingBalance,
   } = useTransactionLedgerLogic();
 
+  const [search, setSearch] = useState('');
+  const [flow, setFlow] = useState<Flow>('all');
+
   const monthName = format(new Date(selectedYear, selectedMonth), 'MMMM yyyy');
+  const isCurrentMonth = selectedYear === currentYear && selectedMonth === currentMonth;
+  const spentPct = totalCredit > 0 ? Math.min(100, Math.round((totalDebit / totalCredit) * 100)) : null;
+
+  const q = search.trim().toLowerCase();
+  const filtered = ledger.filter((e) =>
+    (flow === 'all' || e.type === flow) &&
+    (!q || e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q) || e.amount.toString().includes(q)),
+  );
+
+  const groups = useMemo(() => {
+    const out: { key: string; label: string; rows: LedgerEntry[] }[] = [];
+    for (const e of filtered) {
+      const key = format(e.date, 'yyyy-MM-dd');
+      let g = out[out.length - 1];
+      if (!g || g.key !== key) { g = { key, label: dayLabel(e.date), rows: [] }; out.push(g); }
+      g.rows.push(e);
+    }
+    return out;
+  }, [filtered]);
+
+  // End-of-day balance comes from the full ledger, so filtering never changes it.
+  const endOfDay = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of ledger) m.set(format(e.date, 'yyyy-MM-dd'), e.runningBalance);
+    return m;
+  }, [ledger]);
 
   return (
-    <div style={{ padding: '12px' }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-
-        {/* Title and navigation live in the mobile shell's top bar. */}
-        <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '0 4px 10px' }}>Ledger with running balance.</p>
-
-        <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', marginBottom: '10px', gap: '6px', flexWrap: 'wrap' }}>
-          <button onClick={goToPreviousMonth} className="btn btn-ghost" aria-label="Previous month" style={{ padding: '8px 12px', fontSize: '16px', flexShrink: 0 }}>◀</button>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <MonthYearPicker
-              year={selectedYear}
-              month={selectedMonth}
-              currentYear={currentYear}
-              currentMonth={currentMonth}
-              onSelect={goToMonth}
-              trigger={
-                <span style={{ fontSize: '15px', fontWeight: 700, color: design.colors.textPrimary, textAlign: 'center', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{monthName}</span>
-              }
-            />
-          </div>
-          <button onClick={goToNextMonth} className="btn btn-ghost" aria-label="Next month" style={{ padding: '8px 12px', fontSize: '16px', flexShrink: 0 }}>▶</button>
+    <div className="m-content">
+      <div className="m-month">
+        <button onClick={goToPreviousMonth} className="step" aria-label="Previous month">◀</button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <MonthYearPicker
+            year={selectedYear}
+            month={selectedMonth}
+            currentYear={currentYear}
+            currentMonth={currentMonth}
+            onSelect={goToMonth}
+            trigger={
+              <span style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, textAlign: 'center', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {monthName}
+              </span>
+            }
+          />
         </div>
-        <div style={{ marginBottom: '16px' }}>
-          <button onClick={goToCurrentMonth} className="btn btn-primary" style={{ padding: '8px', fontSize: '12px', width: '100%' }}>Today</button>
-        </div>
+        <button onClick={goToNextMonth} className="step" aria-label="Next month">▶</button>
+        {!isCurrentMonth && <button onClick={goToCurrentMonth} className="today">Today</button>}
+      </div>
 
-        {isFutureMonth && (
-          <div className="glass-card" style={{ padding: '12px', marginBottom: '16px', background: 'rgba(245, 158, 11, 0.1)', border: `1px solid ${design.colors.warning}30` }}>
-            <p style={{ fontSize: '12px', fontWeight: 700, margin: 0, color: design.colors.textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}><ClockIcon size={13} color={design.colors.warning} /> Future Month</p>
-            <p style={{ fontSize: '11px', margin: '2px 0 0 0', color: design.colors.textSecondary }}>Salary credits are not predicted.</p>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-          <div className="glass-card" style={{ padding: '12px', borderLeft: `4px solid ${design.colors.success}`, display: 'flex', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>Total Credits</p>
-            <h2 style={{ fontSize: '16px', color: design.colors.success, margin: 0 }}>{isFutureMonth ? '—' : `+₹${totalCredit.toLocaleString('en-IN')}`}</h2>
-          </div>
-          <div className="glass-card" style={{ padding: '12px', borderLeft: `4px solid ${design.colors.danger}`, display: 'flex', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>Total Debits</p>
-            <h2 style={{ fontSize: '16px', color: design.colors.danger, margin: 0 }}>-₹{totalDebit.toLocaleString('en-IN')}</h2>
-          </div>
-          <div className="glass-card" style={{ padding: '12px', background: design.colors.primaryGradient, display: 'flex', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.9)', margin: 0, fontWeight: 600, textTransform: 'uppercase' }}>Closing Balance</p>
-            <h2 style={{ fontSize: '16px', color: 'white', margin: 0 }}>₹{isFutureMonth ? totalDebit : closingBalance.toLocaleString('en-IN')}</h2>
+      <div className="si-summary lg-hero" style={{ background: design.colors.primaryGradient }}>
+        <div className="si-summary-head">
+          <span className="si-hero-ico small"><LedgerIcon size={18} color="white" /></span>
+          <div style={{ minWidth: 0 }}>
+            <small>Closing balance · {monthName}</small>
+            <strong className="lg-big">{signed(closingBalance)}</strong>
           </div>
         </div>
-
-        {ledger.length === 0 ? (
-          <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: design.colors.textSecondary }}>No transactions for {monthName}.</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {ledger.map((entry) => {
-              const categoryColor = getCategoryColor(entry.category);
-              return (
-                <div key={entry.id} className="glass-card" style={{ padding: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '11px', color: design.colors.textSecondary }}>{format(entry.date, 'dd MMM')}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: entry.type === 'credit' ? design.colors.success : design.colors.danger }}>
-                      {entry.type === 'credit' ? '+' : '-'}₹{entry.amount.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: design.colors.textPrimary, margin: 0 }}>{entry.description}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                    {categoryColor ? (
-                      <span style={{
-                        fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px',
-                        background: `${categoryColor}20`, color: categoryColor,
-                      }}>
-                        {entry.category}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '10px', color: design.colors.textTertiary }}>{entry.category}</span>
-                    )}
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: design.colors.textSecondary }}>Bal: ₹{entry.runningBalance.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              );
-            })}
+        <div className="si-summary-tiles">
+          <div><small>Credits</small><strong>{isFutureMonth ? '—' : `+${inr(totalCredit)}`}</strong></div>
+          <div><small>Debits</small><strong>−{inr(totalDebit)}</strong></div>
+        </div>
+        {spentPct !== null && (
+          <div className="lg-meter" aria-label={`${spentPct}% of credits spent`}>
+            <div className="lg-meter-track"><span style={{ width: `${spentPct}%` }} /></div>
+            <small>{spentPct}% of credits spent</small>
           </div>
         )}
       </div>
+
+      {isFutureMonth && (
+        <p className="si-note">
+          <ClockIcon size={14} color={design.colors.warning} />
+          This month hasn't started yet, so salary and other credits aren't predicted.
+        </p>
+      )}
+
+      {ledger.length === 0 ? (
+        <div className="glass-card tl-empty">
+          <strong>No entries for {monthName}</strong>
+          <small>Transactions you add or import for this month will appear here.</small>
+        </div>
+      ) : (
+        <>
+          <div className="tl-tools">
+            <label className="tl-search">
+              <SearchIcon />
+              <input type="search" placeholder="Search ledger" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search ledger" />
+            </label>
+          </div>
+          <div className="tl-chips" role="group" aria-label="Filter entries">
+            {(['all', 'credit', 'debit'] as Flow[]).map((f) => (
+              <button key={f} type="button" aria-pressed={flow === f} onClick={() => setFlow(f)}>
+                {f === 'all' ? `All · ${ledger.length}` : f === 'credit' ? 'Credits' : 'Debits'}
+              </button>
+            ))}
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="glass-card tl-empty">
+              <strong>No matches</strong>
+              <small>Try a different search or filter.</small>
+            </div>
+          ) : (
+            groups.map((g) => (
+              <section key={g.key} className="tl-group" aria-label={g.label}>
+                <header className="tl-day">
+                  <span>{g.label}</span>
+                  <span>Balance {signed(endOfDay.get(g.key) ?? 0)}</span>
+                </header>
+                <ul className="glass-card tl-list">
+                  {g.rows.map((e) => {
+                    const isIn = e.type === 'credit';
+                    const color = entryColor(e);
+                    return (
+                      <li key={e.id} className="tl-row">
+                        <div className="tl-main" style={{ cursor: 'default' }}>
+                          <span className="tl-avatar" style={{ background: `${color}1f`, color }} aria-hidden="true">
+                            {e.category.charAt(0)}
+                            <span className={`tl-flow ${isIn ? 'in' : 'out'}`}>{isIn ? <ArrowIn /> : <ArrowOut />}</span>
+                          </span>
+                          <span className="tl-text">
+                            <strong>{e.description || e.category}</strong>
+                            <small><i style={{ background: color }} aria-hidden="true" />{e.category}</small>
+                          </span>
+                          <span className={`tl-amt ${isIn ? 'in' : ''}`}>
+                            {isIn ? '+' : '−'}{inr(e.amount)}
+                            <small>Bal {signed(e.runningBalance)}</small>
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
+          )}
+        </>
+      )}
     </div>
   );
 };
