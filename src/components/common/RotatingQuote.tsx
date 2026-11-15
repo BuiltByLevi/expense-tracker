@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { FINANCIAL_QUOTES, type Quote } from '../../utils/quotes';
 
 interface Props {
-  /** 'card' = phone home card with a pause button; 'inline' = one line of text (desktop header). */
-  variant?: 'card' | 'inline';
+  /** 'card' = phone home card with a pause button; 'inline' = one line of
+   * text (desktop header); 'slide' = one line with prev/next arrows so
+   * someone reading slowly can step through quotes manually. */
+  variant?: 'card' | 'inline' | 'slide';
   intervalMs?: number;
   pool?: Quote[];
 }
@@ -41,6 +43,20 @@ const RotatingQuote: React.FC<Props> = ({ variant = 'inline', intervalMs = 5000,
       <p className="rq-inline" aria-live="off" {...hoverProps}>
         <span key={index} className="rq-fade">“{quote.text}” — {quote.author}</span>
       </p>
+    );
+  }
+
+  if (variant === 'slide') {
+    const goPrev = () => setIndex((i) => (i - 1 + pool.length) % pool.length);
+    const goNext = () => setIndex((i) => (i + 1) % pool.length);
+    return (
+      <div className="rq-slide" aria-live="off" {...hoverProps}>
+        <button type="button" className="rq-slide-arrow" onClick={goPrev} aria-label="Previous quote">‹</button>
+        <p className="rq-slide-text">
+          <span key={index} className="rq-fade">“{quote.text}” — {quote.author}</span>
+        </p>
+        <button type="button" className="rq-slide-arrow" onClick={goNext} aria-label="Next quote">›</button>
+      </div>
     );
   }
 

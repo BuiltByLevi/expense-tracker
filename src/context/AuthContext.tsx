@@ -53,15 +53,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     await setPersistence(auth, browserLocalPersistence);
     await signInWithEmailAndPassword(auth, email, password);
+    window.location.hash = '';
   };
 
   const signup = async (email: string, password: string) => {
     await setPersistence(auth, browserLocalPersistence);
     await createUserWithEmailAndPassword(auth, email, password);
+    window.location.hash = '';
   };
 
   const logout = async () => {
     await signOut(auth);
+    window.location.hash = '';
   };
 
   const updateUserProfile = async (data: { displayName?: string; photoURL?: string }) => {

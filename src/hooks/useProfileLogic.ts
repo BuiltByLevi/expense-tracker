@@ -25,7 +25,7 @@ const CLOUDINARY_UPLOAD_PRESET = 'levihere';
 export function useProfileLogic() {
   const { user, logout, updateUserProfile, resetPassword, reauthenticate, deleteAccount } = useAuth();
   const { expenses, deleteAllExpenses } = useExpenses();
-  const { getIncomeForMonth, deleteAllIncome } = useIncome();
+  const { income, getIncomeForMonth, deleteAllIncome } = useIncome();
   const { deleteAllImports } = useStatementImports();
   const { deleteAllRules } = useRecurring();
   const { earnings: defaultEarnings, getEarningsForMonth, resetEarningsHistory } = useEarnings();
@@ -72,13 +72,14 @@ export function useProfileLogic() {
     const today = new Date();
     const totals = computeFinanceTotals(
       expenses,
+      income,
       defaultEarnings,
       getMonthlyCashFlowCredits,
       today.getFullYear(),
       today.getMonth()
     );
     return totals.cumulativeNetCashFlow;
-  }, [expenses, defaultEarnings, getMonthlyCashFlowCredits]);
+  }, [expenses, income, defaultEarnings, getMonthlyCashFlowCredits]);
 
   const initials = useMemo(() => {
     const name = displayName || user?.email?.split('@')[0] || 'U';

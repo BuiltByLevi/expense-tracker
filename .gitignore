@@ -41,4 +41,7 @@ firebase-debug.log
 
 # Vite
 .vite/
+
+# Local-only dev notes (never commit, may contain test credentials)
+.local/
 EOF

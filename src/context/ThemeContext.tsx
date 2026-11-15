@@ -31,7 +31,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [colorTheme, setColorThemeState] = useState<ColorTheme>(() => {
     const saved = localStorage.getItem('colorTheme') as ColorTheme | null;
-    const initial = saved === 'original' ? 'original' : 'midnight';
+    const initial = saved === 'original' || saved === 'liquidGlass' ? saved : 'midnight';
     // Mutates the static theme.colors tokens before the first render so
     // inline styles are already in the chosen palette (and mode) on initial
     // paint. `theme` is initialized by the useState above, so it is safe to

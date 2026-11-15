@@ -12,10 +12,14 @@ interface ExistingRecord {
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Rough text-similarity check: fraction of the shorter description's words
- *  found in the longer one. Good enough to flag likely matches, not exact equality. */
+ *  found in the longer one. Good enough to flag likely matches, not exact
+ *  equality. Splits on any non-alphanumeric run (not just whitespace) since
+ *  UPI/NEFT narrations mix separators inconsistently between a stored
+ *  description and a freshly re-parsed one — "UPI-SWIGGY-998877-PAID" and
+ *  "UPI SWIGGY ORDER998877" should tokenize comparably. */
 function descriptionsAreSimilar(a: string, b: string): boolean {
-  const wordsA = a.toLowerCase().split(/\s+/).filter(Boolean);
-  const wordsB = b.toLowerCase().split(/\s+/).filter(Boolean);
+  const wordsA = a.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const wordsB = b.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
   if (wordsA.length === 0 || wordsB.length === 0) return false;
   const [shorter, longer] = wordsA.length <= wordsB.length ? [wordsA, wordsB] : [wordsB, wordsA];
   const longerSet = new Set(longer);
@@ -67,15 +71,21 @@ export function findDuplicate(
     const dayDelta = Math.abs(record.date.getTime() - transaction.date.getTime());
     if (dayDelta > ONE_DAY_MS) continue;
 
-    // No reference number on either side to corroborate — text similarity
-    // alone is never promoted to 'exact', no matter how high the word
-    // overlap, because two genuinely distinct transactions (e.g. two ATM
+    // No reference number on either side to corroborate, so amount+date
+    // alone is NOT enough to flag a match — a round amount (₹100 lunch, ₹20
+    // bus fare, ₹1000 EMI, ...) recurs constantly across unrelated
+    // transactions, and flagging every coincidence as a "possible duplicate"
+    // silently defaults real, distinct rows to unchecked on import (this is
+    // exactly what happened importing a real statement: ~all of its debits
+    // collided by amount+date with pre-existing unrelated expenses and were
+    // excluded by default). Text similarity is required to corroborate the
+    // amount+date match; it's never promoted to 'exact' no matter how high
+    // the overlap, since two genuinely distinct transactions (two ATM
     // withdrawals whose narration differs only by a branch code) can score
-    // just as high as a true re-import. Same-day + similar description is
-    // still the strongest *likely* signal available, so it wins over a
-    // same-amount-but-dissimilar-description candidate found elsewhere in
-    // the array, but it's reported with the same hedged confidence.
-    const strength = dayDelta === 0 && descriptionsAreSimilar(record.description, transaction.narration) ? 2 : 1;
+    // just as high as a true re-import.
+    if (!descriptionsAreSimilar(record.description, transaction.narration)) continue;
+
+    const strength = dayDelta === 0 ? 2 : 1;
     if (strength > bestStrength) {
       bestMatch = { duplicateOf: record.id, confidence: 'likely' };
       bestStrength = strength;

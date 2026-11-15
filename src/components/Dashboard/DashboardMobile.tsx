@@ -21,10 +21,13 @@ import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { useInstallPrompt } from '../../hooks/useInstallPrompt';
+import { useLanguage } from '../../context/LanguageContext';
+import type { TranslationKey } from '../../i18n';
 import {
   WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, ChartLineIcon, PieIcon,
   RupeeIcon, AlertIcon, CheckCircleIcon, CalendarIcon, CardChip, ContactlessMark,
   DeltaBadge, MoonIcon, SunIcon, UserIcon, UploadIcon, LogoutIcon, ClockIcon, DocumentIcon,
+  SavingsIcon,
 } from '../common/FinanceIcons';
 
 // Lazy-loaded: pulls in xlsx/pdfjs/papaparse (~1MB), only fetched when the
@@ -43,21 +46,26 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageMobi
  */
 type Page =
   | 'overview' | 'add' | 'transactions' | 'analytics'
-  | 'ledger' | 'earnings' | 'history' | 'import' | 'profile' | 'budgets' | 'recurring';
+  | 'ledger' | 'earnings' | 'history' | 'netSavings' | 'import' | 'profile' | 'budgets' | 'recurring';
 
-const PAGE_TITLES: Record<Page, string> = {
-  overview: 'Home',
-  add: 'Add Transaction',
-  transactions: 'Transactions',
-  analytics: 'Analytics',
-  ledger: 'Monthly Ledger',
-  earnings: 'Manage Earnings',
-  history: 'Financial History',
-  import: 'Import Statement',
-  profile: 'My Profile',
-  budgets: 'Budgets',
-  recurring: 'Recurring',
-};
+function pageTitles(t: (key: TranslationKey) => string): Record<Page, string> {
+  return {
+    overview: t('dashboard.page.home'),
+    add: t('dashboard.page.addTransaction'),
+    transactions: t('dashboard.page.transactions'),
+    analytics: t('dashboard.page.analytics'),
+    ledger: t('dashboard.nav.ledger'),
+    earnings: t('dashboard.nav.earnings'),
+    history: t('dashboard.page.history'),
+    netSavings: t('dashboard.netSavings.title'),
+    import: t('dashboard.page.import'),
+    profile: t('dashboard.page.profile'),
+    budgets: t('dashboard.page.budgets'),
+    recurring: t('dashboard.page.recurring'),
+  };
+}
+
+const PAGE_KEYS: Page[] = ['overview', 'add', 'transactions', 'analytics', 'ledger', 'earnings', 'history', 'netSavings', 'import', 'profile', 'budgets', 'recurring'];
 
 const Svg: React.FC<{ size?: number; children: React.ReactNode }> = ({ size = 22, children }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -73,47 +81,52 @@ const ArrowIcon: React.FC<{ up?: boolean }> = ({ up }) => (
   <Svg size={16}>{up ? <path d="M12 19V5M6 11l6-6 6 6" /> : <path d="M12 5v14M6 13l6 6 6-6" />}</Svg>
 );
 
-const NAV: { section: string; items: { page: Page; label: string; icon: React.ReactNode }[] }[] = [
-  {
-    section: 'Account',
-    items: [{ page: 'profile', label: 'My Profile', icon: <UserIcon size={18} /> }],
-  },
-  {
-    section: 'Dashboard',
-    items: [
-      { page: 'overview', label: 'Home', icon: <HomeIcon size={18} /> },
-      { page: 'add', label: 'Add Transaction', icon: <RupeeIcon size={18} /> },
-      { page: 'transactions', label: 'Transactions', icon: <LedgerIcon size={18} /> },
-      { page: 'analytics', label: 'Analytics & Trends', icon: <ChartLineIcon size={18} /> },
-      { page: 'budgets', label: 'Budgets', icon: <WalletIcon size={18} /> },
-      { page: 'recurring', label: 'Recurring', icon: <ClockIcon size={18} /> },
-    ],
-  },
-  {
-    section: 'Reports',
-    items: [
-      { page: 'ledger', label: 'Monthly Ledger', icon: <DocumentIcon size={18} /> },
-      { page: 'earnings', label: 'Manage Earnings', icon: <ChartLineIcon size={18} /> },
-      { page: 'history', label: 'Financial History', icon: <ClockIcon size={18} /> },
-      { page: 'import', label: 'Import Statement', icon: <UploadIcon size={18} /> },
-    ],
-  },
-];
+function buildNav(t: (key: TranslationKey) => string): { section: string; items: { page: Page; label: string; icon: React.ReactNode }[] }[] {
+  return [
+    {
+      section: t('dashboard.navSection.account'),
+      items: [{ page: 'profile', label: t('dashboard.page.profile'), icon: <UserIcon size={18} /> }],
+    },
+    {
+      section: t('dashboard.navSection.dashboard'),
+      items: [
+        { page: 'overview', label: t('dashboard.page.home'), icon: <HomeIcon size={18} /> },
+        { page: 'add', label: t('dashboard.page.addTransaction'), icon: <RupeeIcon size={18} /> },
+        { page: 'transactions', label: t('dashboard.page.transactions'), icon: <LedgerIcon size={18} /> },
+        { page: 'analytics', label: t('dashboard.page.analyticsTrends'), icon: <ChartLineIcon size={18} /> },
+        { page: 'budgets', label: t('dashboard.page.budgets'), icon: <WalletIcon size={18} /> },
+        { page: 'recurring', label: t('dashboard.page.recurring'), icon: <ClockIcon size={18} /> },
+      ],
+    },
+    {
+      section: t('dashboard.navSection.reports'),
+      items: [
+        { page: 'ledger', label: t('dashboard.nav.ledger'), icon: <DocumentIcon size={18} /> },
+        { page: 'earnings', label: t('dashboard.nav.earnings'), icon: <ChartLineIcon size={18} /> },
+        { page: 'history', label: t('dashboard.page.history'), icon: <ClockIcon size={18} /> },
+        { page: 'netSavings', label: t('dashboard.netSavings.title'), icon: <SavingsIcon size={18} /> },
+        { page: 'import', label: t('dashboard.page.import'), icon: <UploadIcon size={18} /> },
+      ],
+    },
+  ];
+}
 
 function pageFromHash(): Page {
   const key = window.location.hash.replace(/^#\/?/, '');
-  return key in PAGE_TITLES ? (key as Page) : 'overview';
+  return (PAGE_KEYS as string[]).includes(key) ? (key as Page) : 'overview';
 }
 
 const inr = (n: number, opts?: Intl.NumberFormatOptions) => `₹${n.toLocaleString('en-IN', opts)}`;
 
-function greeting(): string {
+function greeting(t: (key: TranslationKey) => string): string {
   const h = new Date().getHours();
-  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return h < 12 ? t('dashboard.greeting.morning') : h < 17 ? t('dashboard.greeting.afternoon') : t('dashboard.greeting.evening');
 }
 
-/** Dark-tinted version of the brand gradient, so it follows the color theme. */
-const HERO_BG = `linear-gradient(135deg, rgba(4, 10, 30, 0.55) 0%, rgba(4, 10, 30, 0.12) 100%), ${design.colors.primaryGradient}`;
+/** Dark-tinted version of the brand gradient, so it follows the color theme.
+ * Must be read at call time (not module load), since `design.colors` is
+ * mutated in place when the theme switches. */
+const heroBg = () => `linear-gradient(135deg, rgba(4, 10, 30, 0.55) 0%, rgba(4, 10, 30, 0.12) 100%), ${design.colors.primaryGradient}`;
 
 const sectionTitle: React.CSSProperties = {
   fontSize: '15px', fontWeight: 700, color: design.colors.textPrimary, margin: 0,
@@ -133,11 +146,14 @@ const DashboardMobile: React.FC = () => {
     handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
     topCategoryAmount, topCategoryName, hasDeficit, isFuture,
   } = useDashboardData();
+  const { t } = useLanguage();
 
   const [page, setPage] = useState<Page>(pageFromHash);
   const [menuOpen, setMenuOpen] = useState(false);
   const { canInstall, install } = useInstallPrompt();
   const [activeView, setActiveView] = useState<'total' | 'monthly'>('total');
+  const PAGE_TITLES = pageTitles(t);
+  const NAV = buildNav(t);
 
   useEffect(() => {
     const onHash = () => {
@@ -198,7 +214,7 @@ const DashboardMobile: React.FC = () => {
         />
       </div>
       <button onClick={goToNextMonth} className="step" aria-label="Next month">▶</button>
-      {!isCurrentMonth && <button onClick={goToCurrentMonth} className="today">Today</button>}
+      {!isCurrentMonth && <button onClick={goToCurrentMonth} className="today">{t('dashboard.today')}</button>}
     </div>
   );
 
@@ -216,14 +232,14 @@ const DashboardMobile: React.FC = () => {
 
   const renderOverview = () => (
     <>
-      <div className="m-hero" style={{ background: HERO_BG }}>
+      <div className="m-hero" style={{ background: heroBg() }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <p className="m-hero-label">Net Balance · Cumulative</p>
+          <p className="m-hero-label">{t('dashboard.netBalance.label')}</p>
           <ContactlessMark size={20} />
         </div>
         <p className="m-hero-amount">{isFuture ? '—' : inr(financeTotals.cumulativeNetCashFlow)}</p>
         <p style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: '8px 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>
-          {isFuture ? 'Not calculated for a future month' : 'Running balance since first expense'}
+          {isFuture ? t('dashboard.netBalance.futureNote') : t('dashboard.netBalance.runningSince')}
           {!isFuture && prevSummary && (
             <DeltaBadge current={financeTotals.cumulativeNetCashFlow} previous={prevSummary.runningBalance} light />
           )}
@@ -232,14 +248,14 @@ const DashboardMobile: React.FC = () => {
           <div>
             <span className="ico"><ArrowIcon /></span>
             <span style={{ minWidth: 0 }}>
-              <small>Earnings</small>
+              <small>{t('dashboard.kpi.earningsShort')}</small>
               <strong>{inr(earned)}</strong>
             </span>
           </div>
           <div>
             <span className="ico"><ArrowIcon up /></span>
             <span style={{ minWidth: 0 }}>
-              <small>Spending</small>
+              <small>{t('dashboard.kpi.spendingShort')}</small>
               <strong>{inr(monthTotal)}</strong>
             </span>
           </div>
@@ -254,29 +270,29 @@ const DashboardMobile: React.FC = () => {
 
       <div className="m-actions">
         <button type="button" className="m-action" onClick={() => navigate('add')}>
-          <span className="ico"><PlusIcon /></span><span>Add</span>
+          <span className="ico"><PlusIcon /></span><span>{t('dashboard.addAction')}</span>
         </button>
         <button type="button" className="m-action" onClick={() => navigate('import')}>
-          <span className="ico"><UploadIcon size={22} /></span><span>Import</span>
+          <span className="ico"><UploadIcon size={22} /></span><span>{t('dashboard.importAction')}</span>
         </button>
         <button type="button" className="m-action" onClick={() => navigate('earnings')}>
-          <span className="ico"><ChartLineIcon size={22} /></span><span>Earnings</span>
+          <span className="ico"><ChartLineIcon size={22} /></span><span>{t('dashboard.kpi.earningsShort')}</span>
         </button>
         <button type="button" className="m-action" onClick={() => navigate('ledger')}>
-          <span className="ico"><DocumentIcon size={22} /></span><span>Ledger</span>
+          <span className="ico"><DocumentIcon size={22} /></span><span>{t('dashboard.ledgerAction')}</span>
         </button>
       </div>
 
       <RotatingQuote variant="card" />
 
       {selectedMonthEarnings.status === 'estimated' && !isFuture && (
-        <Notice icon={<AlertIcon size={18} color="white" />} title={`Estimated earnings for ${monthName}`}>
-          Based on your default salary. Tap “Edit” on Earnings to confirm the exact amount.
+        <Notice icon={<AlertIcon size={18} color="white" />} title={t('dashboard.estimated.title', { month: monthName })}>
+          {t('dashboard.estimated.bodyMobile')}
         </Notice>
       )}
       {isFuture && (
-        <Notice icon={<CalendarIcon size={18} color="white" />} title="Future month — historical metrics not calculated">
-          You can log expenses for {monthName}; totals update once the month begins.
+        <Notice icon={<CalendarIcon size={18} color="white" />} title={t('dashboard.future.title')}>
+          {t('dashboard.future.body', { month: monthName })}
         </Notice>
       )}
 
@@ -285,23 +301,23 @@ const DashboardMobile: React.FC = () => {
         <div className="m-card">
           <p className="m-tile-label">
             <span className="dot" style={{ background: `rgba(${design.colors.successRgb}, 0.14)`, color: design.colors.success }}><WalletIcon size={15} /></span>
-            Earnings
+            {t('dashboard.kpi.earningsShort')}
           </p>
           <p className="m-tile-value">{inr(earned)}</p>
           <div className="m-tile-foot">
-            <button type="button" className="m-chip-btn" onClick={() => setShowEarningsModal(true)}>✎ Edit</button>
-            {selectedMonthEarnings.status === 'estimated' && <span style={{ color: design.colors.warning, fontWeight: 700 }}>EST</span>}
-            {selectedMonthEarnings.status === 'missing' && <span>default</span>}
+            <button type="button" className="m-chip-btn" onClick={() => setShowEarningsModal(true)}>✎ {t('common.edit')}</button>
+            {selectedMonthEarnings.status === 'estimated' && <span style={{ color: design.colors.warning, fontWeight: 700 }}>{t('common.est')}</span>}
+            {selectedMonthEarnings.status === 'missing' && <span>{t('common.default')}</span>}
           </div>
         </div>
         <div className="m-card">
           <p className="m-tile-label">
             <span className="dot" style={{ background: 'rgba(239, 68, 68, 0.12)', color: design.colors.danger }}><TrendDownIcon size={15} /></span>
-            Spending
+            {t('dashboard.kpi.spendingShort')}
           </p>
           <p className="m-tile-value">{inr(monthTotal)}</p>
           <div className="m-tile-foot">
-            <span>{monthExpenses.length} transactions</span>
+            <span>{t('dashboard.kpi.transactionsCount', { count: monthExpenses.length })}</span>
           </div>
         </div>
       </div>
@@ -311,19 +327,19 @@ const DashboardMobile: React.FC = () => {
           <div style={{ minWidth: 0 }}>
             <p className="m-tile-label">
               <span className="dot" style={{ background: `rgba(${design.colors.primaryRgb}, 0.12)`, color: design.colors.primary }}><ExchangeIcon size={15} /></span>
-              Net Cash Flow
+              {t('dashboard.kpi.netCashFlowShort')}
             </p>
             <p className="m-tile-value" style={{ color: monthNetCashFlow >= 0 ? design.colors.success : design.colors.danger }}>
               {monthNetCashFlow < 0 ? '−' : ''}{inr(Math.abs(monthNetCashFlow))}
             </p>
           </div>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: meterColor, flexShrink: 0, paddingTop: '6px' }}>{spentPct}% spent</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: meterColor, flexShrink: 0, paddingTop: '6px' }}>{t('dashboard.spentPercent', { percent: spentPct })}</span>
         </div>
         <div className="m-meter" style={{ marginTop: '12px' }} role="img" aria-label={`${spentPct}% of earnings spent`}>
           <i style={{ width: `${Math.min(100, spentPct)}%`, background: meterColor }} />
         </div>
         <p style={{ margin: '8px 0 0', fontSize: '11px', color: design.colors.textSecondary }}>
-          {monthNetCashFlow >= 0 ? 'All credits − spending' : 'Overspent this month'}
+          {monthNetCashFlow >= 0 ? t('dashboard.hint.allCredits') : t('dashboard.hint.overspent')}
         </p>
       </div>
 
@@ -333,25 +349,25 @@ const DashboardMobile: React.FC = () => {
             {hasDeficit ? <AlertIcon size={20} /> : <CheckCircleIcon size={20} />}
           </span>
           <span className="m-row-main">
-            <p className="m-row-title">Cash-Flow Deficit {inr(financeTotals.cashFlowDeficit)}</p>
-            <p className="m-row-sub">{hasDeficit ? 'Cumulative spending above earnings' : 'Cumulative spending is within earnings'}</p>
+            <p className="m-row-title">{t('dashboard.deficit.label')} {inr(financeTotals.cashFlowDeficit)}</p>
+            <p className="m-row-sub">{hasDeficit ? t('dashboard.deficit.bodyNegativeMobile') : t('dashboard.deficit.bodyPositiveMobile')}</p>
           </span>
           <span style={{ fontSize: '20px', color: design.colors.textTertiary, flexShrink: 0 }} aria-hidden="true">›</span>
         </button>
       )}
 
       <div className="m-section-head">
-        <h2>Budgets</h2>
-        <button className="m-link" onClick={() => navigate('budgets')}>Manage</button>
+        <h2>{t('dashboard.page.budgets')}</h2>
+        <button className="m-link" onClick={() => navigate('budgets')}>{t('dashboard.manage')}</button>
       </div>
       <BudgetsPanel preview monthExpenses={monthExpenses} expenses={expenses} year={selectedYear} month={selectedMonth} monthName={monthName} onManage={() => navigate('budgets')} />
 
       <div className="m-section-head">
-        <h2>Top spending</h2>
-        <button type="button" className="m-link" onClick={() => navigate('analytics')}>See all</button>
+        <h2>{t('dashboard.topSpending')}</h2>
+        <button type="button" className="m-link" onClick={() => navigate('analytics')}>{t('dashboard.seeAll')}</button>
       </div>
       <div className="m-card">
-        {topCats.length === 0 && <p className="m-empty">No spending recorded for {monthName}.</p>}
+        {topCats.length === 0 && <p className="m-empty">{t('dashboard.noSpendingRecorded', { month: monthName })}</p>}
         {topCats.map((c, i) => (
           <div key={c.category} style={{ marginTop: i === 0 ? 0 : '14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '6px' }}>
@@ -366,12 +382,12 @@ const DashboardMobile: React.FC = () => {
       </div>
 
       <div className="m-section-head">
-        <h2>Recent transactions</h2>
-        <button type="button" className="m-link" onClick={() => navigate('transactions')}>See all</button>
+        <h2>{t('dashboard.recentTransactions')}</h2>
+        <button type="button" className="m-link" onClick={() => navigate('transactions')}>{t('dashboard.seeAll')}</button>
       </div>
       <div className="m-card">
         {loading && <ListSkeleton rows={3} />}
-        {!loading && recent.length === 0 && <p className="m-empty">No transactions yet for {monthName}.</p>}
+        {!loading && recent.length === 0 && <p className="m-empty">{t('dashboard.noTransactionsMonth', { month: monthName })}</p>}
         {!loading && recent.map(t => (
           <div className="m-row" key={`${t.credit ? 'c' : 'd'}-${t.id}`}>
             <span className="m-avatar" style={{ background: t.credit ? `rgba(${design.colors.successRgb}, 0.14)` : 'var(--m-surface-2)', color: t.credit ? design.colors.success : design.colors.textPrimary }}>
@@ -395,8 +411,8 @@ const DashboardMobile: React.FC = () => {
       {monthBar}
       <div className="glass-card" style={{ padding: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
-          <h3 style={sectionTitle}><RupeeIcon size={15} color={design.colors.primary} /> Quick Transaction</h3>
-          <span className="badge-pill">Instant Ledger Update</span>
+          <h3 style={sectionTitle}><RupeeIcon size={15} color={design.colors.primary} /> {t('dashboard.quickTransaction')}</h3>
+          <span className="badge-pill">{t('dashboard.instantLedgerUpdate')}</span>
         </div>
         <ExpenseForm onAddExpense={handleAddExpense} onAddIncome={handleAddIncome} />
       </div>
@@ -410,9 +426,9 @@ const DashboardMobile: React.FC = () => {
         <DateRangeFilter value={dateRange} onApply={setDateRange} onClear={clearDateRange} />
       </div>
       <div className="m-section-head">
-        <h2>{dateRange ? 'Selected dates' : monthName}</h2>
+        <h2>{dateRange ? t('dashboard.selectedDates') : monthName}</h2>
         <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>
-          {historyExpenses.length + historyIncome.length} entries{dateRange ? ` · ${historyLabel}` : ''}
+          {t('dashboard.entries', { count: historyExpenses.length + historyIncome.length })}{dateRange ? ` · ${historyLabel}` : ''}
         </span>
       </div>
       {loading ? (
@@ -426,7 +442,7 @@ const DashboardMobile: React.FC = () => {
           onEditIncome={handleEditIncome}
           onBulkCategory={handleBulkCategory}
           onEdit={handleEdit}
-          emptyStateLabel={dateRange ? 'No transactions in this date range' : `No transactions yet for ${monthName}`}
+          emptyStateLabel={dateRange ? t('dashboard.noTransactionsRange') : t('dashboard.noTransactionsMonth', { month: monthName })}
         />
       )}
     </>
@@ -437,14 +453,14 @@ const DashboardMobile: React.FC = () => {
       {activeView === 'monthly' && monthBar}
       <div className="glass-card" style={{ padding: '4px' }}>
         <div className="tab-container" style={{ width: '100%' }}>
-          <button onClick={() => setActiveView('total')} className={`tab ${activeView === 'total' ? 'active' : ''}`} style={{ fontSize: '13px', padding: '9px' }}>Total Expenses</button>
-          <button onClick={() => setActiveView('monthly')} className={`tab ${activeView === 'monthly' ? 'active' : ''}`} style={{ fontSize: '13px', padding: '9px' }}>Monthly Expenses</button>
+          <button onClick={() => setActiveView('total')} className={`tab ${activeView === 'total' ? 'active' : ''}`} style={{ fontSize: '13px', padding: '9px' }}>{t('dashboard.tab.totalExpenses')}</button>
+          <button onClick={() => setActiveView('monthly')} className={`tab ${activeView === 'monthly' ? 'active' : ''}`} style={{ fontSize: '13px', padding: '9px' }}>{t('dashboard.tab.monthlyExpenses')}</button>
         </div>
       </div>
       <div className="glass-card" style={{ padding: '16px', overflow: 'hidden' }}>
         <div style={{ textAlign: 'center', marginBottom: '4px' }}>
           <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {activeView === 'total' ? 'All Time' : monthName}
+            {activeView === 'total' ? t('dashboard.allTime') : monthName}
           </p>
           <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>
             ₹{(activeView === 'total' ? totalAllTime : monthTotal).toLocaleString('en-IN')}
@@ -456,17 +472,17 @@ const DashboardMobile: React.FC = () => {
         <CategoryLegend data={activeView === 'total' ? allTimeCategoryAnalysis : monthCategoryAnalysis} />
         {activeView === 'total' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
-            <MiniStat label="Transactions" value={String(expenses.length)} />
-            <MiniStat label="Top" value={topCategoryName} sub={`₹${topCategoryAmount.toLocaleString('en-IN')}`} />
+            <MiniStat label={t('dashboard.stat.transactions')} value={String(expenses.length)} />
+            <MiniStat label={t('dashboard.stat.top')} value={topCategoryName} sub={`₹${topCategoryAmount.toLocaleString('en-IN')}`} />
             <MiniStat
-              label="Monthly Avg"
+              label={t('dashboard.stat.monthlyAvg')}
               value={`₹${financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-              sub={`over ${financeTotals.calendarMonthCount} months`}
+              sub={t('dashboard.stat.overMonths', { count: financeTotals.calendarMonthCount })}
             />
           </div>
         )}
       </div>
-      <div className="m-section-head"><h2>Trends</h2></div>
+      <div className="m-section-head"><h2>{t('dashboard.trends')}</h2></div>
       <TrendCharts expenses={expenses} financeTotals={financeTotals} />
     </>
   );
@@ -474,18 +490,18 @@ const DashboardMobile: React.FC = () => {
   const renderHistory = () => (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
-        <MiniStat card label="Total Earned" value={`₹${financeTotals.totalEarnings.toLocaleString('en-IN')}`} />
-        <MiniStat card label="Total Spent" value={`₹${financeTotals.totalSpent.toLocaleString('en-IN')}`} />
+        <MiniStat card label={t('dashboard.history.totalEarned')} value={`₹${financeTotals.totalEarnings.toLocaleString('en-IN')}`} />
+        <MiniStat card label={t('dashboard.history.totalSpent')} value={`₹${financeTotals.totalSpent.toLocaleString('en-IN')}`} />
         <MiniStat
           card
-          label={hasDeficit ? 'Deficit' : 'Net Positive'}
+          label={hasDeficit ? t('dashboard.history.deficit') : t('dashboard.history.netPositive')}
           value={`₹${(hasDeficit ? financeTotals.cashFlowDeficit : financeTotals.cumulativeNetCashFlow).toLocaleString('en-IN')}`}
           color={hasDeficit ? design.colors.danger : design.colors.success}
         />
       </div>
       <div className="glass-card" style={{ padding: '6px 14px' }}>
         {financeTotals.monthlySummaries.length === 0 && (
-          <p style={{ fontSize: '13px', color: design.colors.textSecondary, textAlign: 'center', padding: '20px 0', margin: 0 }}>No history yet.</p>
+          <p style={{ fontSize: '13px', color: design.colors.textSecondary, textAlign: 'center', padding: '20px 0', margin: 0 }}>{t('dashboard.history.noHistory')}</p>
         )}
         {[...financeTotals.monthlySummaries].reverse().map((s, i, arr) => {
           const isDeficit = s.debtAtEndOfMonth > 0;
@@ -496,16 +512,16 @@ const DashboardMobile: React.FC = () => {
             }}>
               <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary }}>
                 {format(new Date(s.year, s.month), 'MMM yyyy')}
-                {s.earningsStatus === 'estimated' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.warning, fontWeight: 700 }}>EST</span>}
+                {s.earningsStatus === 'estimated' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.warning, fontWeight: 700 }}>{t('common.est')}</span>}
               </p>
               <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: isDeficit ? design.colors.danger : design.colors.success }}>
                 {isDeficit ? `−₹${s.debtAtEndOfMonth.toLocaleString('en-IN')}` : `+₹${s.savingsAtEndOfMonth.toLocaleString('en-IN')}`}
               </p>
               <p style={{ margin: 0, fontSize: '12px', color: design.colors.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
-                Earned ₹{s.earnings.toLocaleString('en-IN')} · Spent ₹{s.spent.toLocaleString('en-IN')}
+                {t('dashboard.history.colEarned')} ₹{s.earnings.toLocaleString('en-IN')} · {t('dashboard.history.colSpent')} ₹{s.spent.toLocaleString('en-IN')}
               </p>
               <p style={{ margin: 0, fontSize: '11px', color: design.colors.textTertiary, textAlign: 'right' }}>
-                {isDeficit ? 'Deficit' : 'Savings'}
+                {isDeficit ? t('dashboard.history.deficit') : t('dashboard.history.savings')}
               </p>
             </div>
           );
@@ -514,17 +530,58 @@ const DashboardMobile: React.FC = () => {
     </>
   );
 
+  // Net savings = that month's earnings minus that month's spending
+  // (MonthlySummary.monthBalance), one row per month — distinct from the
+  // Financial History page, which shows the running cumulative balance.
+  const renderNetSavings = () => {
+    const totalNetSavings = financeTotals.monthlySummaries.reduce((s, m) => s + m.monthBalance, 0);
+    return (
+      <>
+        <div className="glass-card" style={{ padding: '6px 14px' }}>
+          {financeTotals.monthlySummaries.length === 0 && (
+            <p style={{ fontSize: '13px', color: design.colors.textSecondary, textAlign: 'center', padding: '20px 0', margin: 0 }}>
+              {t('dashboard.netSavings.empty')}
+            </p>
+          )}
+          {[...financeTotals.monthlySummaries].reverse().map((s, i, arr) => (
+            <div key={`${s.year}-${s.month}`} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
+              padding: '14px 0', borderBottom: i < arr.length - 1 ? `1px solid ${design.colors.primary}12` : 'none',
+            }}>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary }}>
+                {format(new Date(s.year, s.month), 'MMM yyyy')}
+              </p>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: s.monthBalance >= 0 ? design.colors.success : design.colors.danger }}>
+                {s.monthBalance < 0 ? '−' : '+'}₹{Math.abs(s.monthBalance).toLocaleString('en-IN')}
+              </p>
+            </div>
+          ))}
+        </div>
+        {financeTotals.monthlySummaries.length > 0 && (
+          <div className="glass-card" style={{ padding: '18px 20px', background: design.colors.primaryGradient, border: 'none' }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+              {t('dashboard.netSavings.total')}
+            </p>
+            <p style={{ fontSize: '26px', fontWeight: 700, color: 'white', margin: '6px 0 0 0', fontVariantNumeric: 'tabular-nums' }}>
+              {totalNetSavings < 0 ? '−' : ''}₹{Math.abs(totalNetSavings).toLocaleString('en-IN')}
+            </p>
+          </div>
+        )}
+      </>
+    );
+  };
+
   let body: React.ReactNode;
   // Full sub-pages carry their own layout and padding; dashboard sections
   // share the .m-content column.
   switch (page) {
-    case 'ledger': body = <TransactionLedgerPage onBack={goHome} />; break;
+    case 'ledger': body = <TransactionLedgerPage onBack={goHome} year={selectedYear} month={selectedMonth} />; break;
     case 'earnings': body = <EarningsHistoryPage onBack={goHome} />; break;
     case 'profile': body = <ProfilePage onBack={goHome} onOpenEarnings={() => navigate('earnings')} />; break;
     case 'import':
       body = (
         <Suspense fallback={<div style={{ padding: '12px' }}><ListSkeleton rows={4} /></div>}>
-          <BankStatementImportPage onBack={goHome} />
+          <BankStatementImportPage onBack={goHome} onImported={goToMonth} />
         </Suspense>
       );
       break;
@@ -532,6 +589,7 @@ const DashboardMobile: React.FC = () => {
     case 'transactions': body = <div className="m-content">{renderTransactions()}</div>; break;
     case 'analytics': body = <div className="m-content">{renderAnalytics()}</div>; break;
     case 'history': body = <div className="m-content">{renderHistory()}</div>; break;
+    case 'netSavings': body = <div className="m-content">{renderNetSavings()}</div>; break;
     case 'recurring': body = <div className="m-content"><RecurringPanel /></div>; break;
     case 'budgets':
       body = (
@@ -558,7 +616,7 @@ const DashboardMobile: React.FC = () => {
         </button>
         {page === 'overview' ? (
           <div className="m-greet">
-            <small>{greeting()},</small>
+            <small>{greeting(t)},</small>
             <strong>{name}</strong>
           </div>
         ) : (
@@ -578,10 +636,10 @@ const DashboardMobile: React.FC = () => {
 
       <nav className="m-tabbar" aria-label="Quick navigation">
         <button type="button" className={`m-tab ${page === 'overview' ? 'active' : ''}`} aria-current={page === 'overview' ? 'page' : undefined} onClick={() => navigate('overview')}>
-          <HomeIcon /> Home
+          <HomeIcon /> {t('dashboard.page.home')}
         </button>
         <button type="button" className={`m-tab ${page === 'transactions' ? 'active' : ''}`} aria-current={page === 'transactions' ? 'page' : undefined} onClick={() => navigate('transactions')}>
-          <LedgerIcon size={22} /> Transactions
+          <LedgerIcon size={22} /> {t('dashboard.page.transactions')}
         </button>
         <div className="m-tab-add">
           <button type="button" className="m-fab" style={{ background: design.colors.primaryGradient }} onClick={() => navigate('add')} aria-label="Add transaction">
@@ -589,16 +647,16 @@ const DashboardMobile: React.FC = () => {
           </button>
         </div>
         <button type="button" className={`m-tab ${page === 'analytics' ? 'active' : ''}`} aria-current={page === 'analytics' ? 'page' : undefined} onClick={() => navigate('analytics')}>
-          <PieIcon size={22} /> Analytics
+          <PieIcon size={22} /> {t('dashboard.page.analytics')}
         </button>
-        <button type="button" className="m-tab" onClick={() => setMenuOpen(true)} aria-label="Open menu">
-          <MenuIcon /> More
+        <button type="button" className={`m-tab ${page === 'earnings' ? 'active' : ''}`} aria-current={page === 'earnings' ? 'page' : undefined} onClick={() => navigate('earnings')}>
+          <ChartLineIcon size={22} /> {t('dashboard.kpi.earningsShort')}
         </button>
       </nav>
 
       <div className={`m-scrim ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
       <nav id="m-drawer" className={`m-drawer ${menuOpen ? 'open' : ''}`} aria-label="Main menu" aria-hidden={!menuOpen} inert={!menuOpen}>
-        <div className="m-drawer-head" style={{ background: HERO_BG }}>
+        <div className="m-drawer-head" style={{ background: heroBg() }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
             <LogoMark size={20} color="white" />
             <span style={{ flex: 1, fontSize: '15px', fontWeight: 800, letterSpacing: '0.14em' }}>PRATIQ</span>
@@ -646,12 +704,12 @@ const DashboardMobile: React.FC = () => {
           {canInstall && (
             <button type="button" className="m-nav-item" onClick={() => { setMenuOpen(false); install(); }}>
               <span className="m-nav-icon"><DownloadIcon /></span>
-              Install app on this phone
+              {t('dashboard.installApp')}
             </button>
           )}
           <button type="button" className="m-nav-item" onClick={logout} style={{ color: design.colors.danger }}>
             <span className="m-nav-icon"><LogoutIcon size={18} /></span>
-            Logout
+            {t('dashboard.logout')}
           </button>
         </div>
       </nav>
@@ -692,6 +750,7 @@ const MAX_LEGEND_ENTRIES = 8;
 
 /** 2-column dot legend matching CategoryPieChart's per-slice color assignment. */
 const CategoryLegend: React.FC<{ data: { category: string; amount: number }[] }> = ({ data }) => {
+  const { t } = useLanguage();
   if (data.length === 0) return null;
   const visible = data.slice(0, MAX_LEGEND_ENTRIES);
   const hiddenCount = data.length - visible.length;
@@ -709,7 +768,7 @@ const CategoryLegend: React.FC<{ data: { category: string; amount: number }[] }>
       </div>
       {hiddenCount > 0 && (
         <p style={{ fontSize: '11px', color: design.colors.textTertiary, margin: '6px 0 0 0' }}>
-          +{hiddenCount} more {hiddenCount === 1 ? 'category' : 'categories'}
+          {hiddenCount === 1 ? t('dashboard.legend.moreCategory', { count: hiddenCount }) : t('dashboard.legend.moreCategories', { count: hiddenCount })}
         </p>
       )}
     </div>

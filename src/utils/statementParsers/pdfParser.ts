@@ -129,6 +129,71 @@ function finalizeTransaction(pending: PendingTransaction, previousBalance: numbe
   };
 }
 
+/**
+ * Turns the page-extracted lines into transactions. Pulled out of
+ * parsePdfFile so it can be unit-tested against hardcoded line arrays
+ * without needing an actual PDF/pdf.js.
+ *
+ * Some bank layouts (e.g. ICICI's "OpTransactionHistory" export) print each
+ * transaction's bold merchant/title line ("PREMIUM MI", "Credit trxn", ...)
+ * as its own row ABOVE that transaction's serial+date+amount row, rather
+ * than inline with it. Naively appending every non-dated line to whatever
+ * transaction is still "current" glues each title onto the PREVIOUS
+ * transaction instead of its own — which doesn't just produce a cosmetically
+ * wrong description, it can flip classification: an interest credit whose
+ * narration happens to absorb the next row's "...PAYROLL COMPLIANCE..."
+ * title gets misclassified as a salary credit. A line immediately followed
+ * by a dated line is always one of these titles in this layout (continuation/
+ * wrap lines are never immediately followed by a date — the next title
+ * always comes first), so such lines are dropped rather than attached
+ * anywhere; the transaction's own wrapped detail line (e.g.
+ * "UPI/PREMIUM MI/...") already carries the same merchant name.
+ */
+export function linesToTransactions(lines: string[]): NormalizedTransaction[] {
+  const transactions: NormalizedTransaction[] = [];
+  let previousBalance: number | null = null;
+  let current: PendingTransaction | null = null;
+
+  const finalizeCurrent = () => {
+    if (!current) return;
+    const tx = finalizeTransaction(current, previousBalance);
+    transactions.push(tx);
+    if (tx.balance !== null) previousBalance = tx.balance;
+    current = null;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const dateMatch = line.match(DATE_WITH_OPTIONAL_SERIAL);
+    const date = dateMatch ? parseStatementDate(dateMatch[1]) : null;
+
+    if (date) {
+      if (BALANCE_SNAPSHOT_KEYWORDS.test(dateMatch![2])) {
+        // Opening/closing balance line — not a transaction, but still closes out
+        // whatever transaction was accumulating before it.
+        finalizeCurrent();
+        continue;
+      }
+      finalizeCurrent();
+      current = { date, rest: dateMatch![2], narrationParts: [] };
+      continue;
+    }
+
+    if (isNoiseLine(line)) continue;
+
+    const nextLine = lines[i + 1]?.trim();
+    if (nextLine && DATE_WITH_OPTIONAL_SERIAL.test(nextLine)) continue; // next transaction's title line — see doc comment above
+
+    if (current) current.narrationParts.push(line);
+    // Lines before the first dated line (headers, address block) are naturally dropped.
+  }
+  finalizeCurrent();
+
+  return transactions;
+}
+
 export async function parsePdfFile(file: File): Promise<
   { transactions: NormalizedTransaction[] } | { error: ParserError }
 > {
@@ -155,42 +220,7 @@ export async function parsePdfFile(file: File): Promise<
     };
   }
 
-  const transactions: NormalizedTransaction[] = [];
-  let previousBalance: number | null = null;
-  let current: PendingTransaction | null = null;
-
-  const finalizeCurrent = () => {
-    if (!current) return;
-    const tx = finalizeTransaction(current, previousBalance);
-    transactions.push(tx);
-    if (tx.balance !== null) previousBalance = tx.balance;
-    current = null;
-  };
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    const dateMatch = line.match(DATE_WITH_OPTIONAL_SERIAL);
-    const date = dateMatch ? parseStatementDate(dateMatch[1]) : null;
-
-    if (date) {
-      if (BALANCE_SNAPSHOT_KEYWORDS.test(dateMatch![2])) {
-        // Opening/closing balance line — not a transaction, but still closes out
-        // whatever transaction was accumulating before it.
-        finalizeCurrent();
-        continue;
-      }
-      finalizeCurrent();
-      current = { date, rest: dateMatch![2], narrationParts: [] };
-      continue;
-    }
-
-    if (isNoiseLine(line)) continue;
-    if (current) current.narrationParts.push(line);
-    // Lines before the first dated line (headers, address block) are naturally dropped.
-  }
-  finalizeCurrent();
+  const transactions = linesToTransactions(lines);
 
   if (transactions.length === 0) {
     return {

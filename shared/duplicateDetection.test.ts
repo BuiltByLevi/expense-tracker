@@ -28,11 +28,16 @@ describe('findDuplicate', () => {
     expect(m).toEqual({ duplicateOf: 'r2', confidence: 'likely' });
   });
 
-  it('two legitimate distinct transactions, same amount/date, clearly different narrations -> hedged "likely", never discarded', () => {
+  it('two legitimate distinct transactions, same amount/date, clearly different narrations -> NOT flagged (amount+date alone is too weak a signal)', () => {
+    // A round amount recurring on/near the same date is common (₹500 here
+    // could be rent, a gift, a bill — many unrelated things), so without any
+    // text overlap or reference number this must not be flagged. A real
+    // statement import once had ~all of its debit rows silently defaulted
+    // to unchecked because every one of them happened to collide this way
+    // with pre-existing, unrelated expenses.
     const existing = [rec('atm1', 500, new Date(2026, 10, 3), 'ATM CASH WITHDRAWAL')];
     const second = tx({ date: new Date(2026, 10, 3), narration: 'UPI PAYMENT TO RAVI KUMAR', amount: 500 });
-    const m = findDuplicate(second, existing, null);
-    expect(m?.confidence).toBe('likely');
+    expect(findDuplicate(second, existing, null)).toBeNull();
   });
 
   it('same description/amount but weeks apart (recurring charge) is NOT a duplicate', () => {
@@ -108,6 +113,26 @@ describe('findDuplicate', () => {
     const existing = [rec('pl1', 3000, new Date(2026, 10, 10), 'PAYLOAD PAYMENT')];
     const second = tx({ date: new Date(2026, 10, 10), narration: 'PAYLOAD SETTLEMENT', amount: 750 });
     expect(findDuplicate(second, existing, null)).toBeNull();
+  });
+
+  it('importing a real statement against a account full of unrelated pre-existing round-amount expenses does not falsely flag every row', () => {
+    // Reproduces the real-world bug: a long-used test account already has
+    // manually-entered expenses at common round amounts near the same
+    // dates as a freshly-imported statement's genuinely new transactions.
+    const existing = [
+      rec('e1', 100, new Date(2026, 5, 4), 'Lunch with friends'),
+      rec('e2', 20, new Date(2026, 5, 5), 'Bus fare'),
+      rec('e3', 1000, new Date(2026, 5, 17), 'Monthly subscription'),
+      rec('e4', 45, new Date(2026, 5, 21), 'Coffee'),
+    ];
+    const imported = [
+      tx({ date: new Date(2026, 5, 4), narration: 'UPI/MISS NEELA/Paid via C/YES BANK', amount: 100 }),
+      tx({ date: new Date(2026, 5, 5), narration: 'UPI/bookmyshow/BIG 2520TR/YES BANK', amount: 20 }),
+      tx({ date: new Date(2026, 5, 17), narration: 'UPI/MAHENDRA D/Paid via C/YES BANK', amount: 1000 }),
+      tx({ date: new Date(2026, 5, 21), narration: 'UPI/PREMIUM MI/Dahi/YES BANK', amount: 45 }),
+    ];
+    const results = imported.map((r) => findDuplicate(r, existing, null));
+    expect(results.every((m) => m === null)).toBe(true);
   });
 
   it('re-importing the exact same Razorpay row (matching reference number) is correctly flagged exact, so it is not double-counted', () => {

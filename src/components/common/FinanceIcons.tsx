@@ -80,6 +80,13 @@ export const CalendarIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidt
   </svg>
 );
 
+export const GlobeIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
+  <svg {...base(size, style)}>
+    <circle {...stroke(color, strokeWidth)} cx="12" cy="12" r="9" />
+    <path {...stroke(color, strokeWidth)} d="M3 12h18M12 3c2.5 2.6 3.8 5.8 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.8-3.8-9s1.3-6.4 3.8-9Z" />
+  </svg>
+);
+
 export const UserIcon: React.FC<IconProps> = ({ size = 16, color, strokeWidth, style }) => (
   <svg {...base(size, style)}>
     <circle {...stroke(color, strokeWidth)} cx="12" cy="8" r="4" />

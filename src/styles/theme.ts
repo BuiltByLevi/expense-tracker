@@ -1,13 +1,15 @@
-// Two selectable color themes share the same token names so every component
+// Three selectable color themes share the same token names so every component
 // keeps reading `theme.colors.X` unchanged:
-//  - 'midnight'  — the current Midnight Blue & Teal brand (default)
-//  - 'original'  — the app's original Indigo & Violet brand, kept as a
+//  - 'midnight'    — the current Midnight Blue & Teal brand (default)
+//  - 'original'    — the app's original Indigo & Violet brand, kept as a
 //    user-selectable option in Profile → Preferences → Theme.
+//  - 'liquidGlass' — an Apple-style "Liquid Glass" look: iOS system blue/cyan
+//    accents over a much more transparent, brighter-rimmed glass surface.
 // `theme.colors` and the category arrays are mutated IN PLACE by
 // applyColorTheme() so existing static imports stay valid; ThemeContext
 // re-renders the tree after switching so inline styles pick up new values.
 
-export type ColorTheme = 'midnight' | 'original';
+export type ColorTheme = 'midnight' | 'original' | 'liquidGlass';
 
 const midnightColors = {
   // Backgrounds — "Midnight Blue & Teal": cool off-white by day, deep navy-black by night.
@@ -102,6 +104,51 @@ const originalColors: typeof midnightColors = {
   pastelPink: '#fce7f3',
 };
 
+// "Liquid Glass" — Apple's system blue/cyan over a much more transparent,
+// brighter-rimmed glass surface than the other two themes (see the stronger
+// blur/saturate + crisp border added for this theme in globals.css).
+const liquidGlassColors: typeof midnightColors = {
+  bgGradient: 'linear-gradient(135deg, #eaf4ff 0%, #f3edff 50%, #eafbff 100%)',
+  bgGradientDark: 'linear-gradient(135deg, #060b16 0%, #0d1526 50%, #070c14 100%)',
+
+  glassBg: 'rgba(255, 255, 255, 0.38)',
+  glassBgHover: 'rgba(255, 255, 255, 0.54)',
+  glassBorder: 'rgba(255, 255, 255, 0.85)',
+  glassShadow: '0 8px 32px rgba(10, 132, 255, 0.10)',
+  glassShadowHover: '0 12px 44px rgba(10, 132, 255, 0.18)',
+
+  primary: '#0a84ff',
+  primaryLight: '#8fc4ff',
+  primaryDark: '#0060c7',
+  primaryGradient: 'linear-gradient(135deg, #0a84ff 0%, #64d2ff 100%)',
+  teal: '#64d2ff',
+  tealLight: '#bfeaff',
+  tealDark: '#2697d6',
+
+  primaryRgb: '10, 132, 255',
+  successRgb: '48, 209, 88',
+  accentBrightRgb: '100, 210, 255',
+  accentBright: '#64d2ff',
+
+  success: '#30d158',
+  successLight: '#d7f7df',
+  danger: '#ff453a',
+  dangerLight: '#ffe1de',
+  warning: '#ff9f0a',
+  warningLight: '#ffedd1',
+
+  textPrimary: '#0b1424',
+  textSecondary: '#51607a',
+  textTertiary: '#8793a8',
+  textInverse: '#ffffff',
+
+  pastelPurple: '#e9ddff',
+  pastelMint: '#d7f7df',
+  pastelPeach: '#ffe3c2',
+  pastelBlue: '#d9ecff',
+  pastelPink: '#ffd9ea',
+};
+
 // Dark-mode overlays — inline styles read `theme.colors` directly, so the
 // token object must also be re-pointed when light/dark mode flips (the CSS
 // variables only cover class-based styles). Values mirror the [data-theme=
@@ -147,6 +194,27 @@ const originalDarkOverlay: Partial<typeof midnightColors> = {
   textPrimary: '#f1f5f9',
   textSecondary: '#a5b4c8',
   textTertiary: '#6b7a94',
+};
+
+const liquidGlassDarkOverlay: Partial<typeof midnightColors> = {
+  glassBg: 'rgba(16, 26, 46, 0.42)',
+  glassBgHover: 'rgba(24, 38, 64, 0.58)',
+  glassBorder: 'rgba(120, 190, 255, 0.22)',
+  glassShadow: '0 8px 32px rgba(0, 0, 0, 0.55)',
+  glassShadowHover: '0 12px 44px rgba(10, 132, 255, 0.3), 0 0 0 1px rgba(100, 210, 255, 0.18) inset',
+
+  primary: '#409cff',
+  teal: '#64d2ff',
+  primaryRgb: '64, 156, 255',
+  successRgb: '48, 209, 88',
+
+  success: '#30d158',
+  danger: '#ff6961',
+  warning: '#ffac33',
+
+  textPrimary: '#f2f6fc',
+  textSecondary: '#a9b7cc',
+  textTertiary: '#6d7b92',
 };
 
 export const theme = {
@@ -253,6 +321,34 @@ const originalCategoryColors = [
   '#94a3b8', // gray          — Other
 ];
 
+// iOS system-color inspired palette for 'liquidGlass' (not CVD-validated —
+// a decorative theme, same as 'original').
+const liquidGlassCategoryColors = [
+  '#0a84ff', // blue   — Food & Dining
+  '#ff3b30', // red    — Transportation
+  '#00b4c4', // teal   — Shopping
+  '#ff9500', // orange — Entertainment
+  '#af52de', // purple — Bills & Utilities
+  '#b58b00', // gold   — Healthcare
+  '#ff2d78', // pink   — Education
+  '#30b352', // green  — Rent
+  '#5ea1ff', // blue (muted)   — Groceries
+  '#ff7a70', // red (muted)    — Fuel
+  '#5fd0db', // teal (muted)   — EMI & Loans
+  '#ffb455', // orange (muted) — Insurance
+  '#cd8ae8', // purple (muted) — Investments
+  '#d6b84d', // gold (muted)   — Cash Withdrawal
+  '#ff7aa8', // pink (muted)   — Bank Charges
+  '#72cf8a', // green (muted)  — Transfers
+  '#8e8e93', // gray           — Other
+];
+
+const liquidGlassCategoryColorsDark = [
+  '#409cff', '#ff6961', '#27c4d4', '#ffac33', '#c57aea', '#d4af2e', '#ff5c96', '#52dd72',
+  '#7bb8ff', '#ff9992', '#5fd8e3', '#ffc266', '#d9a6ee', '#e0c45e', '#ff82b3', '#78e395',
+  '#98989d',
+];
+
 export const categoryColors = [...midnightCategoryColors];
 
 // Dark-mode counterparts (same hue order, re-stepped for the dark surface —
@@ -268,22 +364,35 @@ export const incomeCategoryColors: Record<string, string> = {
   'Other Income': theme.colors.textTertiary,
 };
 
+const palettesByTheme: Record<ColorTheme, typeof midnightColors> = {
+  midnight: midnightColors,
+  original: originalColors,
+  liquidGlass: liquidGlassColors,
+};
+
+const darkOverlaysByTheme: Record<ColorTheme, Partial<typeof midnightColors>> = {
+  midnight: midnightDarkOverlay,
+  original: originalDarkOverlay,
+  liquidGlass: liquidGlassDarkOverlay,
+};
+
+// Only 'midnight' re-steps its categorical hues for the dark surface; the
+// other two themes use a single palette for both modes.
+const categoryColorsByTheme: Record<ColorTheme, { light: string[]; dark: string[] }> = {
+  midnight: { light: midnightCategoryColors, dark: midnightCategoryColorsDark },
+  original: { light: originalCategoryColors, dark: originalCategoryColors },
+  liquidGlass: { light: liquidGlassCategoryColors, dark: liquidGlassCategoryColorsDark },
+};
+
 export function applyColorTheme(name: ColorTheme, mode: 'light' | 'dark' = 'light'): void {
-  const colors = name === 'original' ? originalColors : midnightColors;
-  Object.assign(theme.colors, colors);
+  Object.assign(theme.colors, palettesByTheme[name]);
   if (mode === 'dark') {
-    Object.assign(theme.colors, name === 'original' ? originalDarkOverlay : midnightDarkOverlay);
+    Object.assign(theme.colors, darkOverlaysByTheme[name]);
   }
 
-  // The original theme had a single palette for both modes; midnight has a
-  // dark-surface re-step, so the active set follows the current mode.
-  const cats = name === 'original'
-    ? originalCategoryColors
-    : mode === 'dark' ? midnightCategoryColorsDark : midnightCategoryColors;
-  categoryColors.splice(0, categoryColors.length, ...cats);
-
-  const catsDark = name === 'original' ? originalCategoryColors : midnightCategoryColorsDark;
-  categoryColorsDark.splice(0, categoryColorsDark.length, ...catsDark);
+  const cats = categoryColorsByTheme[name];
+  categoryColors.splice(0, categoryColors.length, ...(mode === 'dark' ? cats.dark : cats.light));
+  categoryColorsDark.splice(0, categoryColorsDark.length, ...cats.dark);
 
   incomeCategoryColors.Salary = theme.colors.success;
   incomeCategoryColors.Interest = theme.colors.primary;

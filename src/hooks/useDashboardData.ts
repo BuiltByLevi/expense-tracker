@@ -94,8 +94,8 @@ export function useDashboardData() {
   const currentMonth = currentDate.getMonth();
 
   const financeTotals = useMemo(
-    () => computeFinanceTotals(expenses, earnings, getMonthlyCashFlowCredits, selectedYear, selectedMonth),
-    [expenses, earnings, getMonthlyCashFlowCredits, selectedYear, selectedMonth]
+    () => computeFinanceTotals(expenses, income, earnings, getMonthlyCashFlowCredits, selectedYear, selectedMonth),
+    [expenses, income, earnings, getMonthlyCashFlowCredits, selectedYear, selectedMonth]
   );
 
   const selectedMonthEarnings = useMemo(() => {

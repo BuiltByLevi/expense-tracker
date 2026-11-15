@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { useStatementImport } from '@/hooks/useStatementImport';
+import { useDashboardMonth } from '@/context/DashboardMonthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { BankIcon } from '@/components/FinanceIcons';
 import { fontSize, radius, spacing } from '@/theme';
@@ -22,8 +23,21 @@ export default function ImportScreen() {
   const { palette } = useTheme();
   const router = useRouter();
   const imp = useStatementImport();
+  const { goToMonth } = useDashboardMonth();
 
   const close = () => router.back();
+
+  // Jumps the Dashboard tab to the statement's month before leaving this
+  // modal — the two screens are separate routes, so without this the
+  // Dashboard stays on whatever month it was already showing and the
+  // just-imported transactions (debits and credits alike) appear to be
+  // missing whenever the statement isn't for the currently-viewed month.
+  const closeToImportedMonth = () => {
+    if (imp.statementPeriod.end) {
+      goToMonth(imp.statementPeriod.end.getFullYear(), imp.statementPeriod.end.getMonth());
+    }
+    close();
+  };
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: palette.screenBg }]} edges={['top', 'bottom']}>
@@ -39,7 +53,7 @@ export default function ImportScreen() {
             </Text>
           ) : null}
         </View>
-        <Pressable onPress={close} hitSlop={12}>
+        <Pressable onPress={imp.status === 'done' ? closeToImportedMonth : close} hitSlop={12}>
           <Text style={{ color: palette.primary, fontWeight: '700', fontSize: fontSize.md }}>
             Close
           </Text>
@@ -249,7 +263,7 @@ export default function ImportScreen() {
               entr{imp.summary.incomeImported === 1 ? 'y' : 'ies'} saved
               {imp.summary.skipped > 0 ? `, ${imp.summary.skipped} skipped` : ''}.
             </Text>
-            <Pressable onPress={close} style={styles.ctaWrap}>
+            <Pressable onPress={closeToImportedMonth} style={styles.ctaWrap}>
               <LinearGradient
                 colors={palette.primaryGradient as unknown as [string, string]}
                 start={{ x: 0, y: 0 }}

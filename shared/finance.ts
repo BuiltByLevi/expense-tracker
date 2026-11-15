@@ -1,4 +1,4 @@
-import type { Expense, MonthlyEarnings } from './types';
+import type { Expense, Income, MonthlyEarnings } from './types';
 
 export interface MonthlySummary {
   year: number;
@@ -33,9 +33,29 @@ export type EarningsLookup = (
   month: number
 ) => MonthlyEarnings | null;
 
+type YearMonth = { year: number; month: number };
+
+function earlierOf(a: YearMonth | null, b: YearMonth | null): YearMonth | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a.year < b.year || (a.year === b.year && a.month < b.month) ? a : b;
+}
+
+function earliestMonthOf(dates: Date[]): YearMonth | null {
+  let earliest: YearMonth | null = null;
+  for (const date of dates) {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    if (!earliest || y < earliest.year || (y === earliest.year && m < earliest.month)) {
+      earliest = { year: y, month: m };
+    }
+  }
+  return earliest;
+}
+
 /**
  * Compute cumulative financial summary using per-month earnings.
- * 
+ *
  * - Each month's earnings come from the lookup function
  * - If a month has no record, falls back to `defaultEarnings` (marked 'missing')
  * - Calculation only runs up to the current real month (no future predictions)
@@ -43,6 +63,7 @@ export type EarningsLookup = (
  */
 export const computeFinanceTotals = (
   expenses: Expense[],
+  income: Pick<Income, 'date'>[],
   defaultEarnings: number,
   earningsLookup: EarningsLookup,
   upToYear: number,
@@ -58,16 +79,16 @@ export const computeFinanceTotals = (
   const capYear = isSelectedMonthInFuture ? todayYear : upToYear;
   const capMonth = isSelectedMonthInFuture ? todayMonth : upToMonth;
 
-  // Find earliest expense month
-  let earliest: { year: number; month: number } | null = null;
-  for (const exp of expenses) {
-    const d = new Date(exp.date);
-    const y = d.getFullYear();
-    const m = d.getMonth();
-    if (!earliest || y < earliest.year || (y === earliest.year && m < earliest.month)) {
-      earliest = { year: y, month: m };
-    }
-  }
+  // Find the earliest month with any real data — an expense OR an income
+  // entry. Looking at expenses alone silently dropped a user's earnings
+  // (and the whole window) whenever income was recorded before their first
+  // expense, or when an account had no expenses at all. Mirrors
+  // useEarningsHistoryLogic's firstDataMonth, which already considers both
+  // for the same reason.
+  const earliest = earlierOf(
+    earliestMonthOf(expenses.map((e) => new Date(e.date))),
+    earliestMonthOf(income.map((i) => new Date(i.date)))
+  );
 
   if (!earliest) {
     return {

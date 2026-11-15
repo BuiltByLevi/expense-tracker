@@ -4,7 +4,8 @@ import { theme as design, categoryColors, incomeCategoryColors } from '../../sty
 import { useTransactionLedgerLogic, type LedgerEntry } from '../../hooks/useTransactionLedgerLogic';
 import { EXPENSE_CATEGORIES } from '../../types';
 import MonthYearPicker from '../common/MonthYearPicker';
-import { ClockIcon, LedgerIcon } from '../common/FinanceIcons';
+import { ClockIcon, LedgerIcon, Sparkline } from '../common/FinanceIcons';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Monthly ledger body shared by the phone and desktop pages, styled to match the banking-style Transactions page:
@@ -24,9 +25,9 @@ function entryColor(e: LedgerEntry): string {
   return idx === -1 ? design.colors.textSecondary : categoryColors[idx % categoryColors.length];
 }
 
-function dayLabel(d: Date): string {
-  if (isToday(d)) return 'Today';
-  if (isYesterday(d)) return 'Yesterday';
+function dayLabel(d: Date, today: string, yesterday: string): string {
+  if (isToday(d)) return today;
+  if (isYesterday(d)) return yesterday;
   return format(d, 'EEE, d MMM');
 }
 
@@ -42,12 +43,21 @@ const ArrowOut = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg>
 );
 
-const LedgerView: React.FC = () => {
+interface Props {
+  /** The month the Dashboard was showing when the user navigated here —
+   *  e.g. right after a bank statement import jumps the Dashboard to the
+   *  statement's month. Falls back to the current month when omitted. */
+  initialYear?: number;
+  initialMonth?: number;
+}
+
+const LedgerView: React.FC<Props> = ({ initialYear, initialMonth }) => {
+  const { t } = useLanguage();
   const {
     selectedYear, selectedMonth, currentYear, currentMonth, isFutureMonth,
     goToPreviousMonth, goToNextMonth, goToCurrentMonth, goToMonth,
     ledger, totalCredit, totalDebit, closingBalance,
-  } = useTransactionLedgerLogic();
+  } = useTransactionLedgerLogic(initialYear, initialMonth);
 
   const [search, setSearch] = useState('');
   const [flow, setFlow] = useState<Flow>('all');
@@ -67,11 +77,11 @@ const LedgerView: React.FC = () => {
     for (const e of filtered) {
       const key = format(e.date, 'yyyy-MM-dd');
       let g = out[out.length - 1];
-      if (!g || g.key !== key) { g = { key, label: dayLabel(e.date), rows: [] }; out.push(g); }
+      if (!g || g.key !== key) { g = { key, label: dayLabel(e.date, t('dashboard.today'), t('ledger.yesterday')), rows: [] }; out.push(g); }
       g.rows.push(e);
     }
     return out;
-  }, [filtered]);
+  }, [filtered, t]);
 
   // End-of-day balance comes from the full ledger, so filtering never changes it.
   const endOfDay = useMemo(() => {
@@ -81,7 +91,7 @@ const LedgerView: React.FC = () => {
   }, [ledger]);
 
   return (
-    <>
+    <div className="lg-view">
       <div className="m-month">
         <button onClick={goToPreviousMonth} className="step" aria-label="Previous month">◀</button>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -99,25 +109,27 @@ const LedgerView: React.FC = () => {
           />
         </div>
         <button onClick={goToNextMonth} className="step" aria-label="Next month">▶</button>
-        {!isCurrentMonth && <button onClick={goToCurrentMonth} className="today">Today</button>}
+        {!isCurrentMonth && <button onClick={goToCurrentMonth} className="today">{t('dashboard.today')}</button>}
       </div>
 
-      <div className="si-summary lg-hero" style={{ background: design.colors.primaryGradient }}>
+      <div className="si-summary lg-hero animate-in" style={{ background: design.colors.primaryGradient }}>
+        <span className="hero-watermark" aria-hidden="true"><LedgerIcon size={100} strokeWidth={1.2} color="#fff" /></span>
         <div className="si-summary-head">
           <span className="si-hero-ico small"><LedgerIcon size={18} color="white" /></span>
-          <div style={{ minWidth: 0 }}>
-            <small>Closing balance · {monthName}</small>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <small>{t('ledger.closingBalance', { month: monthName })}</small>
             <strong className="lg-big">{signed(closingBalance)}</strong>
           </div>
+          {ledger.length >= 2 && <Sparkline data={ledger.map((e) => e.runningBalance)} color="#fff" width={80} height={28} />}
         </div>
         <div className="si-summary-tiles">
-          <div><small>Credits</small><strong>{isFutureMonth ? '—' : `+${inr(totalCredit)}`}</strong></div>
-          <div><small>Debits</small><strong>−{inr(totalDebit)}</strong></div>
+          <div><small>{t('ledger.credits')}</small><strong>{isFutureMonth ? '—' : `+${inr(totalCredit)}`}</strong></div>
+          <div><small>{t('ledger.debits')}</small><strong>−{inr(totalDebit)}</strong></div>
         </div>
         {spentPct !== null && (
           <div className="lg-meter" aria-label={`${spentPct}% of credits spent`}>
             <div className="lg-meter-track"><span style={{ width: `${spentPct}%` }} /></div>
-            <small>{spentPct}% of credits spent</small>
+            <small>{t('ledger.percentOfCreditsSpent', { percent: spentPct })}</small>
           </div>
         )}
       </div>
@@ -125,42 +137,42 @@ const LedgerView: React.FC = () => {
       {isFutureMonth && (
         <p className="si-note">
           <ClockIcon size={14} color={design.colors.warning} />
-          This month hasn't started yet, so salary and other credits aren't predicted.
+          {t('ledger.futureMonthNote')}
         </p>
       )}
 
       {ledger.length === 0 ? (
         <div className="glass-card tl-empty">
-          <strong>No entries for {monthName}</strong>
-          <small>Transactions you add or import for this month will appear here.</small>
+          <strong>{t('ledger.noEntries', { month: monthName })}</strong>
+          <small>{t('ledger.noEntriesHint')}</small>
         </div>
       ) : (
         <>
-          <div className="tl-tools">
+          <div className="tl-tools animate-in animate-in-delay-1">
             <label className="tl-search">
               <SearchIcon />
-              <input type="search" placeholder="Search ledger" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search ledger" />
+              <input type="search" placeholder={t('ledger.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search ledger" />
             </label>
           </div>
           <div className="tl-chips" role="group" aria-label="Filter entries">
             {(['all', 'credit', 'debit'] as Flow[]).map((f) => (
               <button key={f} type="button" aria-pressed={flow === f} onClick={() => setFlow(f)}>
-                {f === 'all' ? `All · ${ledger.length}` : f === 'credit' ? 'Credits' : 'Debits'}
+                {f === 'all' ? t('ledger.chipAll', { count: ledger.length }) : f === 'credit' ? t('ledger.credits') : t('ledger.debits')}
               </button>
             ))}
           </div>
 
           {filtered.length === 0 ? (
             <div className="glass-card tl-empty">
-              <strong>No matches</strong>
-              <small>Try a different search or filter.</small>
+              <strong>{t('ledger.noMatches')}</strong>
+              <small>{t('ledger.noMatchesHint')}</small>
             </div>
           ) : (
             groups.map((g) => (
               <section key={g.key} className="tl-group" aria-label={g.label}>
                 <header className="tl-day">
                   <span>{g.label}</span>
-                  <span>Balance {signed(endOfDay.get(g.key) ?? 0)}</span>
+                  <span>{t('ledger.dayBalance', { amount: signed(endOfDay.get(g.key) ?? 0) })}</span>
                 </header>
                 <ul className="glass-card tl-list">
                   {g.rows.map((e) => {
@@ -179,7 +191,7 @@ const LedgerView: React.FC = () => {
                           </span>
                           <span className={`tl-amt ${isIn ? 'in' : ''}`}>
                             {isIn ? '+' : '−'}{inr(e.amount)}
-                            <small>Bal {signed(e.runningBalance)}</small>
+                            <small>{t('ledger.balShort', { amount: signed(e.runningBalance) })}</small>
                           </span>
                         </div>
                       </li>
@@ -191,7 +203,7 @@ const LedgerView: React.FC = () => {
           )}
         </>
       )}
-    </>
+    </div>
   );
 };
 

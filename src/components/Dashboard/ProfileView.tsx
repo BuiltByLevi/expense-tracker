@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { theme as design } from '../../styles/theme';
 import { useProfileLogic } from '../../hooks/useProfileLogic';
+import { useLanguage } from '../../context/LanguageContext';
 import ConfirmDialog from '../common/ConfirmDialog';
 import DeleteAccountDialog from './DeleteAccountDialog';
+import LanguagePicker from '../common/LanguagePicker';
 import {
   WalletIcon, ChartLineIcon, CalendarIcon, SavingsIcon, UserIcon, LockIcon, LogoutIcon,
-  CameraIcon, CheckIcon, ShieldCheckIcon, MoonIcon, ClockIcon, TrashIcon, RupeeIcon,
+  CameraIcon, CheckIcon, ShieldCheckIcon, MoonIcon, ClockIcon, TrashIcon, RupeeIcon, GlobeIcon,
 } from '../common/FinanceIcons';
 
 /**
@@ -26,6 +28,7 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
     uploadingPhoto, fileInputRef, handlePhotoUpload,
     handleChangePassword, handleLogout, handleDeleteData, deletingData, handleDeleteAccount,
   } = useProfileLogic();
+  const { t } = useLanguage();
 
   const [editingName, setEditingName] = useState(false);
   const [confirm, setConfirm] = useState<'reset' | 'data' | 'account' | null>(null);
@@ -137,6 +140,7 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
           {([
             { id: 'midnight', label: 'Midnight Teal', swatch: 'linear-gradient(135deg, #1e3a8a 0%, #14b8a6 100%)' },
             { id: 'original', label: 'Original Indigo', swatch: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' },
+            { id: 'liquidGlass', label: 'Liquid Glass', swatch: 'linear-gradient(135deg, #0a84ff 0%, #64d2ff 100%)' },
           ] as const).map((opt) => (
             <button
               key={opt.id}
@@ -151,6 +155,13 @@ const ProfileView: React.FC<{ onOpenEarnings?: () => void }> = ({ onOpenEarnings
               {opt.label}
             </button>
           ))}
+        </div>
+        <div className="pf-row pf-lang-row">
+          <span className="pf-ico t-blue"><GlobeIcon size={16} /></span>
+          <span className="pf-text"><strong>{t('language.label')}</strong><small>{t('language.hint')}</small></span>
+        </div>
+        <div className="pf-row" style={{ paddingTop: 0 }}>
+          <LanguagePicker />
         </div>
       </div>
 

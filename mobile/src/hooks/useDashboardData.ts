@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { endOfMonth, isWithinInterval, startOfMonth } from 'date-fns';
+import { useDashboardMonth } from '@/context/DashboardMonthContext';
 import { useEarnings } from '@/context/EarningsContext';
 import { useExpenses } from '@/context/ExpensesContext';
 import { useIncome } from '@/context/IncomeContext';
@@ -59,8 +60,10 @@ export function useDashboardData() {
   const loading = expensesLoading || incomeLoading;
   const error = expensesError ?? incomeError;
 
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  // Shared with the Import screen via context — a separate route, not a
+  // child of this one — so a statement import can jump the Dashboard to its
+  // month. See DashboardMonthContext.
+  const { selectedYear, selectedMonth, setSelectedYear, setSelectedMonth, goToMonth } = useDashboardMonth();
 
   const getEffectiveEarningsRecord = useCallback(
     (year: number, month: number): MonthlyEarnings | null => {
@@ -81,12 +84,13 @@ export function useDashboardData() {
     () =>
       computeFinanceTotals(
         expenses,
+        income,
         earnings,
         getMonthlyCashFlowCredits,
         selectedYear,
         selectedMonth
       ),
-    [expenses, earnings, getMonthlyCashFlowCredits, selectedYear, selectedMonth]
+    [expenses, income, earnings, getMonthlyCashFlowCredits, selectedYear, selectedMonth]
   );
 
   const selectedMonthEarnings = useMemo(() => {
@@ -176,6 +180,7 @@ export function useDashboardData() {
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
+    goToMonth,
     financeTotals,
     selectedMonthEarnings,
     monthExpenses,

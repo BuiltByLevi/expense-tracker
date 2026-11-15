@@ -30,6 +30,15 @@ export function useStatementImport() {
   const [rows, setRows] = useState<ReviewTransaction[]>([]);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
 
+  const statementPeriod = useMemo(() => {
+    const dates = rows.map((r) => r.date).filter((d): d is Date => d !== null);
+    if (dates.length === 0) return { start: null, end: null };
+    return {
+      start: new Date(Math.min(...dates.map((d) => d.getTime()))),
+      end: new Date(Math.max(...dates.map((d) => d.getTime()))),
+    };
+  }, [rows]);
+
   const pickAndParse = async () => {
     setErrorMessage(null);
     let picked;
@@ -177,6 +186,7 @@ export function useStatementImport() {
     rows,
     stats,
     summary,
+    statementPeriod,
     pickAndParse,
     toggleInclude,
     setAllIncluded,

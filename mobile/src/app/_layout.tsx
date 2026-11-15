@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { DashboardMonthProvider } from '@/context/DashboardMonthContext';
 import { EarningsProvider } from '@/context/EarningsContext';
 import { ExpensesProvider } from '@/context/ExpensesContext';
 import { IncomeProvider } from '@/context/IncomeContext';
@@ -76,7 +77,9 @@ export default function RootLayout() {
             <ExpensesProvider>
               <IncomeProvider>
                 <EarningsProvider>
-                  <RootNavigator />
+                  <DashboardMonthProvider>
+                    <RootNavigator />
+                  </DashboardMonthProvider>
                 </EarningsProvider>
               </IncomeProvider>
             </ExpensesProvider>

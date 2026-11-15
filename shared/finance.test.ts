@@ -41,12 +41,12 @@ describe('refund/transfer accounting — end to end (Salary 50,000 / Expenses 18
   const expenses: Expense[] = [exp('e1', 18000, 'Shopping', new Date(2026, 10, 5))];
 
   it('"Monthly Earnings" label excludes the refund (50,000, not 51,500)', () => {
-    const result = computeFinanceTotals(expenses, 0, earningsLabelLookup(income), 2026, 10);
+    const result = computeFinanceTotals(expenses, income, 0, earningsLabelLookup(income), 2026, 10);
     expect(result.monthlySummaries[0].earnings).toBe(50000);
   });
 
   it('cash-flow math (Net Cash Flow / running balance) INCLUDES the refund — real money, just not "earnings"', () => {
-    const result = computeFinanceTotals(expenses, 0, cashFlowLookup(income), 2026, 10);
+    const result = computeFinanceTotals(expenses, income, 0, cashFlowLookup(income), 2026, 10);
     const month = result.monthlySummaries[0];
     expect(month.earnings).toBe(51500); // total credits used as the cash-flow basis
     expect(month.spent).toBe(18000);
@@ -56,7 +56,7 @@ describe('refund/transfer accounting — end to end (Salary 50,000 / Expenses 18
   });
 
   it('the refund never silently disappears: total expenses are unaffected by it either', () => {
-    const result = computeFinanceTotals(expenses, 0, cashFlowLookup(income), 2026, 10);
+    const result = computeFinanceTotals(expenses, income, 0, cashFlowLookup(income), 2026, 10);
     expect(result.totalSpent).toBe(18000); // the original ₹18,000 purchase is still a real expense, un-netted
   });
 });
@@ -69,10 +69,10 @@ describe('transfer-in accounting — single-ledger model, no multi-account assum
     ];
     const expenses: Expense[] = [exp('e1', 40000, 'Rent', new Date(2026, 10, 2))];
 
-    const label = computeFinanceTotals(expenses, 0, earningsLabelLookup(income), 2026, 10);
+    const label = computeFinanceTotals(expenses, income, 0, earningsLabelLookup(income), 2026, 10);
     expect(label.monthlySummaries[0].earnings).toBe(52000); // transfer excluded from the label
 
-    const cashFlow = computeFinanceTotals(expenses, 0, cashFlowLookup(income), 2026, 10);
+    const cashFlow = computeFinanceTotals(expenses, income, 0, cashFlowLookup(income), 2026, 10);
     expect(cashFlow.monthlySummaries[0].earnings).toBe(62000); // 52,000 + 10,000 — real cash, included
     expect(cashFlow.monthlySummaries[0].monthBalance).toBe(22000); // 62,000 - 40,000
   });
@@ -94,7 +94,7 @@ describe('multi-month reconciliation — salary, interest, refund, transfer toge
   ];
 
   it('matches hand-computed expected totals across all three months', () => {
-    const result = computeFinanceTotals(expenses, 0, cashFlowLookup(income), 2026, 10);
+    const result = computeFinanceTotals(expenses, income, 0, cashFlowLookup(income), 2026, 10);
     const byMonth = (m: number) => result.monthlySummaries.find((s) => s.month === m)!;
 
     expect(byMonth(8).monthBalance).toBe(33500); // Sep: 50,000 + 1,500 - 18,000
@@ -103,5 +103,35 @@ describe('multi-month reconciliation — salary, interest, refund, transfer toge
 
     expect(result.cumulativeNetCashFlow).toBe(33500 + 27620 + 22000);
     expect(result.cashFlowDeficit).toBe(0);
+  });
+});
+
+describe('earliest-month window includes income, not just expenses', () => {
+  it('counts a salary recorded before the first expense, instead of starting the window at the first expense', () => {
+    const income: Income[] = [
+      inc('sep-salary', 50000, 'Salary', new Date(2026, 8, 30)), // September — no expenses yet
+      inc('oct-salary', 50000, 'Salary', new Date(2026, 9, 30)),
+    ];
+    const expenses: Expense[] = [exp('oct-e1', 20000, 'Rent', new Date(2026, 9, 5))]; // first expense is October
+
+    const result = computeFinanceTotals(expenses, income, 0, cashFlowLookup(income), 2026, 9);
+
+    expect(result.monthlySummaries).toHaveLength(2); // Sep and Oct, not just Oct
+    expect(result.monthlySummaries[0].month).toBe(8);
+    expect(result.monthlySummaries[0].earnings).toBe(50000);
+    expect(result.monthlySummaries[0].spent).toBe(0);
+    expect(result.totalEarnings).toBe(100000);
+    expect(result.cumulativeNetCashFlow).toBe(80000); // 50,000 + (50,000 - 20,000)
+  });
+
+  it('an account with income but zero expenses is not reported as all-zero', () => {
+    const income: Income[] = [inc('sep-salary', 50000, 'Salary', new Date(2026, 8, 30))];
+    const expenses: Expense[] = [];
+
+    const result = computeFinanceTotals(expenses, income, 0, cashFlowLookup(income), 2026, 8);
+
+    expect(result.monthlySummaries).toHaveLength(1);
+    expect(result.totalEarnings).toBe(50000);
+    expect(result.cumulativeNetCashFlow).toBe(50000);
   });
 });

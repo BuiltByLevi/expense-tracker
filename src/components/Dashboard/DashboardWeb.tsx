@@ -24,6 +24,7 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageWeb'
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { useLanguage } from '../../context/LanguageContext';
 import RotatingQuote from '../common/RotatingQuote';
 import BudgetsPanel from '../Budgets/BudgetsPanel';
 import RecurringPanel from '../Recurring/RecurringPanel';
@@ -50,6 +51,7 @@ const DashboardWeb: React.FC = () => {
     handleEdit, handleEditIncome, handleBulkCategory, editingIncome, setEditingIncome, updateIncome, handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
     topCategoryAmount, topCategoryName, hasDeficit, isFuture,
   } = useDashboardData();
+  const { t } = useLanguage();
 
   const [activeView, setActiveView] = useState<GraphType>('total');
 
@@ -66,7 +68,7 @@ const DashboardWeb: React.FC = () => {
     return <EarningsHistoryPage onBack={() => setShowEarningsPage(false)} />;
   }
   if (showLedgerPage) {
-    return <TransactionLedgerPage onBack={() => setShowLedgerPage(false)} />;
+    return <TransactionLedgerPage onBack={() => setShowLedgerPage(false)} year={selectedYear} month={selectedMonth} />;
   }
   if (showProfilePage) {
     return <ProfilePage onBack={() => setShowProfilePage(false)} onOpenEarnings={() => { setShowProfilePage(false); setShowEarningsPage(true); }} />;
@@ -74,7 +76,7 @@ const DashboardWeb: React.FC = () => {
   if (showImportPage) {
     return (
       <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
-        <BankStatementImportPage onBack={() => setShowImportPage(false)} />
+        <BankStatementImportPage onBack={() => setShowImportPage(false)} onImported={goToMonth} />
       </Suspense>
     );
   }
@@ -97,20 +99,20 @@ const DashboardWeb: React.FC = () => {
                 <h1 style={{ fontSize: '20px', fontWeight: 800, margin: 0, letterSpacing: '0.01em', color: design.colors.textPrimary }}>
                   PRATIQ
                 </h1>
-                <span className="badge-pill">Pro Expense Tracker</span>
+                <span className="badge-pill">{t('dashboard.badge.pro')}</span>
               </div>
               <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '4px 0 0 0' }}>
-                Welcome back, {user?.email?.split('@')[0]}
+                {t('dashboard.welcome', { name: user?.email?.split('@')[0] || '' })}
               </p>
               <RotatingQuote variant="inline" />
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button onClick={() => setShowLedgerPage(true)} className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <LedgerIcon size={15} /> Monthly Ledger
+              <LedgerIcon size={15} /> {t('dashboard.nav.ledger')}
             </button>
             <button onClick={() => setShowEarningsPage(true)} className="btn btn-ghost tint-green" style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ChartLineIcon size={15} /> Manage Earnings
+              <ChartLineIcon size={15} /> {t('dashboard.nav.earnings')}
             </button>
             <ProfileMenu
               name={user?.email?.split('@')[0] || 'User'}
@@ -141,10 +143,10 @@ const DashboardWeb: React.FC = () => {
             </div>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-                Estimated Earnings for {monthName}
+                {t('dashboard.estimated.title', { month: monthName })}
               </p>
               <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>
-                This month's earnings are estimated based on your default salary. Click "Edit Earnings" to confirm the exact amount.
+                {t('dashboard.estimated.bodyWeb')}
               </p>
             </div>
           </div>
@@ -162,10 +164,10 @@ const DashboardWeb: React.FC = () => {
             </div>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-                Future month — historical metrics not calculated
+                {t('dashboard.future.title')}
               </p>
               <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>
-                You can log expenses for {monthName}, but cumulative totals will update after the month begins.
+                {t('dashboard.future.body', { month: monthName })}
               </p>
             </div>
           </div>
@@ -179,9 +181,9 @@ const DashboardWeb: React.FC = () => {
               icon={<WalletIcon size={17} />}
               label={
                 <>
-                  Monthly Earnings
-                  {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', color: '#fde68a', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}><AlertIcon size={10} color="#fde68a" strokeWidth={2.5} /> EST</span>}
-                  {selectedMonthEarnings.status === 'missing' && <span style={{ marginLeft: '6px', color: 'rgba(255,255,255,0.65)' }}>(default)</span>}
+                  {t('dashboard.kpi.earnings')}
+                  {selectedMonthEarnings.status === 'estimated' && <span style={{ marginLeft: '6px', color: '#fde68a', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}><AlertIcon size={10} color="#fde68a" strokeWidth={2.5} /> {t('common.est')}</span>}
+                  {selectedMonthEarnings.status === 'missing' && <span style={{ marginLeft: '6px', color: 'rgba(255,255,255,0.65)' }}>({t('common.default')})</span>}
                 </>
               }
               value={`₹${selectedMonthEarnings.amount.toLocaleString('en-IN')}`}
@@ -193,7 +195,7 @@ const DashboardWeb: React.FC = () => {
                   onClick={() => setShowEarningsModal(true)}
                   style={{ fontSize: '11px', padding: '3px 10px', background: 'rgba(255,255,255,0.22)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  ✎ Edit
+                  ✎ {t('common.edit')}
                 </button>
               }
             />
@@ -203,12 +205,12 @@ const DashboardWeb: React.FC = () => {
             <StatCard
               accent
               icon={<TrendDownIcon size={17} />}
-              label="Monthly Spending"
+              label={t('dashboard.kpi.spending')}
               value={`₹${monthTotal.toLocaleString('en-IN')}`}
               trend={trendWindow.map(m => m.spent)}
               trendColor="rgba(255,255,255,0.9)"
               badge={prevSummary && <DeltaBadge current={monthTotal} previous={prevSummary.spent} goodWhenDown light />}
-              hint={`${monthExpenses.length} transactions`}
+              hint={t('dashboard.kpi.transactionsCount', { count: monthExpenses.length })}
             />
           </div>
 
@@ -216,12 +218,12 @@ const DashboardWeb: React.FC = () => {
             <StatCard
               accent
               icon={<ExchangeIcon size={17} />}
-              label="Monthly Net Cash Flow"
+              label={t('dashboard.kpi.netCashFlow')}
               value={`₹${monthNetCashFlow.toLocaleString('en-IN')}`}
               valueColor={monthNetCashFlow >= 0 ? 'white' : '#fecaca'}
               trend={trendWindow.map(m => m.monthBalance)}
               trendColor="rgba(255,255,255,0.9)"
-              hint={monthNetCashFlow >= 0 ? 'All credits − Spending' : 'Overspent this month'}
+              hint={monthNetCashFlow >= 0 ? t('dashboard.hint.allCredits') : t('dashboard.hint.overspent')}
             />
           </div>
 
@@ -239,13 +241,13 @@ const DashboardWeb: React.FC = () => {
               </div>
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
-                  Net Balance · Cumulative
+                  {t('dashboard.netBalance.label')}
                 </p>
                 <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'white', margin: '4px 0 0 0', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {isFuture ? '—' : `₹${financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}`}
                 </h2>
                 <p style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.75)', margin: '5px 0 0 0', fontWeight: 500, flexWrap: 'wrap' }}>
-                  {isFuture ? 'Not calculated for future' : 'Running balance since first expense'}
+                  {isFuture ? t('dashboard.netBalance.futureNote') : t('dashboard.netBalance.runningSince')}
                   {!isFuture && prevSummary && (
                     <DeltaBadge current={financeTotals.cumulativeNetCashFlow} previous={prevSummary.runningBalance} light />
                   )}
@@ -268,17 +270,17 @@ const DashboardWeb: React.FC = () => {
               </div>
               <div>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-                  Cash-Flow Deficit ₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}
+                  {t('dashboard.deficit.label')} ₹{financeTotals.cashFlowDeficit.toLocaleString('en-IN')}
                 </p>
                 <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '2px 0 0 0' }}>
                   {hasDeficit
-                    ? 'This cumulative spending above earnings — not tracked actual debt.'
-                    : 'No deficit — cumulative spending is within earnings.'}
+                    ? t('dashboard.deficit.bodyNegativeWeb')
+                    : t('dashboard.deficit.bodyPositiveWeb')}
                 </p>
               </div>
             </div>
             <button onClick={() => setShowDebtDetails(true)} className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: '12px', flexShrink: 0 }}>
-              View Breakdown
+              {t('dashboard.deficit.viewBreakdown')}
             </button>
           </div>
         )}
@@ -289,23 +291,23 @@ const DashboardWeb: React.FC = () => {
             <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '80vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                 <div>
-                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: design.colors.textPrimary, marginBottom: '6px' }}>Financial History</h2>
-                  <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0 }}>Month-by-month cash flow (per-month earnings)</p>
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: design.colors.textPrimary, marginBottom: '6px' }}>{t('dashboard.page.history')}</h2>
+                  <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: 0 }}>{t('dashboard.history.subtitle')}</p>
                 </div>
                 <button onClick={() => setShowDebtDetails(false)} aria-label="Close" style={{ background: 'rgba(0,0,0,0.05)', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', color: design.colors.textSecondary }}>×</button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: `rgba(${design.colors.primaryRgb}, 0.05)`, borderRadius: '12px' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Earned</p>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.history.totalEarned')}</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.totalEarnings.toLocaleString('en-IN')}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>Total Spent</p>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.history.totalSpent')}</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.totalSpent.toLocaleString('en-IN')}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>{hasDeficit ? 'Deficit' : 'Net Positive'}</p>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600 }}>{hasDeficit ? t('dashboard.history.deficit') : t('dashboard.history.netPositive')}</p>
                   <p style={{ fontSize: '16px', fontWeight: 700, color: hasDeficit ? design.colors.danger : design.colors.success, margin: '4px 0 0 0' }}>
                     ₹{hasDeficit ? financeTotals.cashFlowDeficit.toLocaleString('en-IN') : financeTotals.cumulativeNetCashFlow.toLocaleString('en-IN')}
                   </p>
@@ -316,10 +318,10 @@ const DashboardWeb: React.FC = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ borderBottom: `2px solid ${design.colors.primary}30` }}>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>Month</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>Earned</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>Spent</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>Status</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.history.colMonth')}</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.history.colEarned')}</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.history.colSpent')}</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.history.colStatus')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -329,8 +331,8 @@ const DashboardWeb: React.FC = () => {
                         <tr key={`${summary.year}-${summary.month}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                           <td style={{ padding: '10px 8px', fontWeight: 600, color: design.colors.textPrimary }}>
                             {format(new Date(summary.year, summary.month), 'MMM yyyy')}
-                            {summary.earningsStatus === 'estimated' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.warning }}>EST</span>}
-                            {summary.earningsStatus === 'missing' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.textTertiary }}>(default)</span>}
+                            {summary.earningsStatus === 'estimated' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.warning }}>{t('common.est')}</span>}
+                            {summary.earningsStatus === 'missing' && <span style={{ marginLeft: '6px', fontSize: '10px', color: design.colors.textTertiary }}>({t('common.default')})</span>}
                           </td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textPrimary }}>₹{summary.earnings.toLocaleString('en-IN')}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: design.colors.textPrimary }}>₹{summary.spent.toLocaleString('en-IN')}</td>
@@ -353,9 +355,9 @@ const DashboardWeb: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <RupeeIcon size={15} color={design.colors.primary} /> Quick Transaction
+                  <RupeeIcon size={15} color={design.colors.primary} /> {t('dashboard.quickTransaction')}
                 </h3>
-                <span className="badge-pill">Instant Ledger Update</span>
+                <span className="badge-pill">{t('dashboard.instantLedgerUpdate')}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button onClick={goToPreviousMonth} className="btn btn-ghost btn-icon" aria-label="Previous month" style={{ padding: '6px 10px', fontSize: '12px' }}>◀</button>
@@ -373,7 +375,7 @@ const DashboardWeb: React.FC = () => {
                 />
                 <button onClick={goToNextMonth} className="btn btn-ghost btn-icon" aria-label="Next month" style={{ padding: '6px 10px', fontSize: '12px' }}>▶</button>
                 <button onClick={goToCurrentMonth} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '11px' }}>
-                  Today
+                  {t('dashboard.today')}
                 </button>
               </div>
             </div>
@@ -383,18 +385,18 @@ const DashboardWeb: React.FC = () => {
           <div className="glass-card animate-in animate-in-delay-3" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <PieIcon size={15} color={design.colors.primary} /> Expense Allocation
+                <PieIcon size={15} color={design.colors.primary} /> {t('dashboard.expenseAllocation')}
               </h3>
               <div className="tab-container" style={{ padding: '3px' }}>
-                <button onClick={() => setActiveView('total')} className={`tab ${activeView === 'total' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>Total Expenses</button>
-                <button onClick={() => setActiveView('monthly')} className={`tab ${activeView === 'monthly' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>Monthly Expenses</button>
+                <button onClick={() => setActiveView('total')} className={`tab ${activeView === 'total' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>{t('dashboard.tab.totalExpenses')}</button>
+                <button onClick={() => setActiveView('monthly')} className={`tab ${activeView === 'monthly' ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '12px' }}>{t('dashboard.tab.monthlyExpenses')}</button>
               </div>
             </div>
 
             {activeView === 'total' ? (
               <>
                 <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Time</p>
+                  <p style={{ fontSize: '11px', color: design.colors.textSecondary, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('dashboard.allTime')}</p>
                   <p style={{ fontSize: '22px', fontWeight: 700, color: design.colors.primary, margin: 0 }}>₹{totalAllTime.toLocaleString('en-IN')}</p>
                 </div>
                 <div style={{ height: '260px' }}>
@@ -403,18 +405,18 @@ const DashboardWeb: React.FC = () => {
                 <CategoryLegend data={allTimeCategoryAnalysis} />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${design.colors.primary}20` }}>
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Transactions</p>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>{t('dashboard.stat.transactions')}</p>
                     <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{expenses.length}</p>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Top</p>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>{t('dashboard.stat.top')}</p>
                     <p style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>{topCategoryName}</p>
                     <p style={{ fontSize: '11px', color: design.colors.primary, margin: 0, fontWeight: 600 }}>₹{topCategoryAmount.toLocaleString('en-IN')}</p>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Monthly Avg</p>
+                    <p style={{ fontSize: '10px', color: design.colors.textSecondary, margin: 0, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>{t('dashboard.stat.monthlyAvg')}</p>
                     <p style={{ fontSize: '18px', fontWeight: 700, color: design.colors.textPrimary, margin: '4px 0 0 0' }}>₹{financeTotals.calendarMonthAverage.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>over {financeTotals.calendarMonthCount} months</p>
+                    <p style={{ fontSize: '10px', color: design.colors.textTertiary, margin: '2px 0 0 0' }}>{t('dashboard.stat.overMonths', { count: financeTotals.calendarMonthCount })}</p>
                   </div>
                 </div>
               </>
@@ -436,7 +438,7 @@ const DashboardWeb: React.FC = () => {
         {/* Budgets */}
         <div className="glass-card bank-ui animate-in" style={{ padding: '20px 24px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <WalletIcon size={15} color={design.colors.primary} /> Budgets
+            <WalletIcon size={15} color={design.colors.primary} /> {t('dashboard.page.budgets')}
           </h3>
           <div className="bd-desktop">
             <BudgetsPanel monthExpenses={monthExpenses} expenses={expenses} year={selectedYear} month={selectedMonth} monthName={monthName} />
@@ -446,7 +448,7 @@ const DashboardWeb: React.FC = () => {
         {/* Recurring */}
         <div className="glass-card bank-ui animate-in" style={{ padding: '20px 24px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ClockIcon size={15} color={design.colors.primary} /> Recurring
+            <ClockIcon size={15} color={design.colors.primary} /> {t('dashboard.page.recurring')}
           </h3>
           <div className="rc-desktop"><RecurringPanel /></div>
         </div>
@@ -460,10 +462,10 @@ const DashboardWeb: React.FC = () => {
         <div className="glass-card animate-in animate-in-delay-3 bank-ui tl-wide" style={{ padding: '20px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <LedgerIcon size={15} color={design.colors.primary} /> Account Statement
+              <LedgerIcon size={15} color={design.colors.primary} /> {t('dashboard.accountStatement')}
             </h3>
             <span style={{ fontSize: '12px', color: design.colors.textSecondary, fontWeight: 500 }}>
-              {historyExpenses.length + historyIncome.length} entries · {historyLabel}
+              {t('dashboard.entries', { count: historyExpenses.length + historyIncome.length })} · {historyLabel}
             </span>
           </div>
           <div style={{ marginBottom: '14px', paddingBottom: '14px', borderBottom: `1px solid ${design.colors.primary}12` }}>
@@ -481,7 +483,7 @@ const DashboardWeb: React.FC = () => {
               onEditIncome={handleEditIncome}
               onBulkCategory={handleBulkCategory}
               onEdit={handleEdit}
-              emptyStateLabel={dateRange ? 'No transactions in this date range' : `No transactions yet for ${monthName}`}
+              emptyStateLabel={dateRange ? t('dashboard.noTransactionsRange') : t('dashboard.noTransactionsMonth', { month: monthName })}
             />
             </div>
           )}
@@ -505,6 +507,7 @@ const MAX_LEGEND_ENTRIES = 8;
 
 /** 2-column dot legend matching CategoryPieChart's per-slice color assignment. */
 const CategoryLegend: React.FC<{ data: { category: string; amount: number }[] }> = ({ data }) => {
+  const { t } = useLanguage();
   if (data.length === 0) return null;
   const visible = data.slice(0, MAX_LEGEND_ENTRIES);
   const hiddenCount = data.length - visible.length;
@@ -522,7 +525,7 @@ const CategoryLegend: React.FC<{ data: { category: string; amount: number }[] }>
       </div>
       {hiddenCount > 0 && (
         <p style={{ fontSize: '11px', color: design.colors.textTertiary, margin: '8px 0 0 0' }}>
-          +{hiddenCount} more {hiddenCount === 1 ? 'category' : 'categories'}
+          {hiddenCount === 1 ? t('dashboard.legend.moreCategory', { count: hiddenCount }) : t('dashboard.legend.moreCategories', { count: hiddenCount })}
         </p>
       )}
     </div>
