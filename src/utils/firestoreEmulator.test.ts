@@ -5,7 +5,7 @@ import { collection, connectFirestoreEmulator, doc, getDocs, getFirestore, query
 import { addTransactionDocs } from './firestoreBulk';
 import { BulkWriteError } from '../../shared/bulkWrite';
 import { parseCsvText } from '../../shared/statementParsers/csvParser';
-import { buildReviewTransactions } from '../../shared/statementReview';
+import { assignCategory, buildReviewTransactions, needsConfirmation } from '../../shared/statementReview';
 import { executeImport, planImport } from '../../shared/statementImport';
 import { fromTransactionDoc, toTransactionDoc, type TransactionFields } from '../../shared/transactionDoc';
 import { resolveMonthlyEarnings } from '../../shared/earningsResolution';
@@ -56,7 +56,12 @@ suite('statement import against the Firestore emulator and the real security rul
   const importCsv = async (uid: string, text: string) => {
     const result = parseCsvText(text);
     if ('error' in result) throw new Error(result.error.message);
-    const review = buildReviewTransactions(result.transactions, await read<Expense>('expenses', uid), await read<Income>('income', uid));
+    let review = buildReviewTransactions(result.transactions, await read<Expense>('expenses', uid), await read<Income>('income', uid));
+    // Same user step as shared/statementImportEndToEnd.test.ts: accept each
+    // own-account suggestion. Without it the gate leaves those rows out.
+    for (const row of review) {
+      if (needsConfirmation(row)) review = assignCategory(review, row.rowId, row.category);
+    }
     return executeImport(planImport(review, `import-${run}`), writersFor(uid));
   };
 
