@@ -1,9 +1,11 @@
 import { useCallback, useMemo } from 'react';
+import { sumMoney } from '@shared/money';
+import { spendingOnly } from '@shared/accounting';
 import { endOfMonth, isWithinInterval, startOfMonth } from 'date-fns';
 import { useDashboardMonth } from '@/context/DashboardMonthContext';
-import { useEarnings } from '@/context/EarningsContext';
-import { useExpenses } from '@/context/ExpensesContext';
-import { useIncome } from '@/context/IncomeContext';
+import { useEarnings } from '@/context/useEarnings';
+import { useExpenses } from '@/context/useExpenses';
+import { useIncome } from '@/context/useIncome';
 import { computeFinanceTotals } from '@shared/finance';
 import { resolveMonthlyEarnings } from '@shared/earningsResolution';
 import { makeCashFlowLookup } from '@shared/cashFlowLookup';
@@ -111,7 +113,7 @@ export function useDashboardData() {
   );
 
   const monthTotal = useMemo(
-    () => monthExpenses.reduce((s, e) => s + e.amount, 0),
+    () => sumMoney(spendingOnly(monthExpenses).map((e) => e.amount)),
     [monthExpenses]
   );
 
@@ -137,9 +139,9 @@ export function useDashboardData() {
     };
   }, [financeTotals.monthlySummaries, selectedYear, selectedMonth]);
 
-  const monthCategoryAnalysis = useMemo(() => analyzeCategories(monthExpenses), [monthExpenses]);
-  const allTimeCategoryAnalysis = useMemo(() => analyzeCategories(expenses), [expenses]);
-  const totalAllTime = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
+  const monthCategoryAnalysis = useMemo(() => analyzeCategories(spendingOnly(monthExpenses)), [monthExpenses]);
+  const allTimeCategoryAnalysis = useMemo(() => analyzeCategories(spendingOnly(expenses)), [expenses]);
+  const totalAllTime = useMemo(() => sumMoney(spendingOnly(expenses).map((e) => e.amount)), [expenses]);
 
   const goToPreviousMonth = () => {
     if (selectedMonth === 0) {

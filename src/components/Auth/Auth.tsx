@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthForm } from '../../hooks/useAuthForm';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 import LogoMark from '../common/LogoMark';
 import RotatingQuote from '../common/RotatingQuote';
 import { LockIcon, ShieldCheckIcon, ChartLineIcon, WalletIcon, UploadIcon, InboxIcon } from '../common/FinanceIcons';

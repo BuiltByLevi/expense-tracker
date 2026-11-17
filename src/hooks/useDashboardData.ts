@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useEarnings } from '../context/EarningsContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { useExpenses } from '../context/ExpensesContext';
 import { useIncome } from '../context/IncomeContext';
 import toast from 'react-hot-toast';
@@ -12,6 +12,8 @@ import { computeFinanceTotals } from '../utils/finance';
 import { resolveMonthlyEarnings } from '../utils/earningsResolution';
 import { makeCashFlowLookup } from '../utils/cashFlowLookup';
 import { filterByDateRange, type DateRange } from '../utils/dateRangePresets';
+import { roundMoney, sumMoney } from '../../shared/money';
+import { spendingOnly } from '../../shared/accounting';
 
 function analyzeCategories(expenses: Expense[]) {
   const categoryMap = new Map<string, number>();
@@ -113,16 +115,16 @@ export function useDashboardData() {
   }, [expenses, selectedYear, selectedMonth]);
 
   const monthTotal = useMemo(
-    () => monthExpenses.reduce((sum, e) => sum + e.amount, 0),
+    () => sumMoney(spendingOnly(monthExpenses).map((e) => e.amount)),
     [monthExpenses]
   );
   const totalAllTime = useMemo(
-    () => expenses.reduce((sum, e) => sum + e.amount, 0),
+    () => sumMoney(spendingOnly(expenses).map((e) => e.amount)),
     [expenses]
   );
 
-  const monthCategoryAnalysis = useMemo(() => analyzeCategories(monthExpenses), [monthExpenses]);
-  const allTimeCategoryAnalysis = useMemo(() => analyzeCategories(expenses), [expenses]);
+  const monthCategoryAnalysis = useMemo(() => analyzeCategories(spendingOnly(monthExpenses)), [monthExpenses]);
+  const allTimeCategoryAnalysis = useMemo(() => analyzeCategories(spendingOnly(expenses)), [expenses]);
 
   // Itemized credits for the selected month — shown merged into the main
   // transaction list (ExpenseList) so imported income isn't invisible there.
@@ -139,7 +141,7 @@ export function useDashboardData() {
     return record ? record.amount : earnings;
   }, [getMonthlyCashFlowCredits, selectedYear, selectedMonth, earnings]);
 
-  const monthNetCashFlow = monthCashFlowCredits - monthTotal;
+  const monthNetCashFlow = roundMoney(monthCashFlowCredits - monthTotal);
 
   // Transaction History's source: the active date range when one is set,
   // otherwise the selected month (unchanged default behavior). Filters the
@@ -231,6 +233,7 @@ export function useDashboardData() {
   return {
     user,
     logout,
+    income,
     theme,
     toggleTheme,
     loading,

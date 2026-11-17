@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from '../../types';
 import toast from 'react-hot-toast';
@@ -9,7 +9,7 @@ interface EditExpenseModalProps {
   expense: Expense | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (id: string, data: any) => Promise<void>;
+  onUpdate: (id: string, data: Partial<Expense>) => Promise<void>;
 }
 
 const categories = EXPENSE_CATEGORIES;
@@ -20,8 +20,11 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
+  // Re-seed the form when the edited expense changes. Adjusting state during
+  // render (rather than in an effect) avoids a second, cascading render pass.
+  const [seededFor, setSeededFor] = useState<Expense | null>(null);
+  if (expense !== seededFor) {
+    setSeededFor(expense);
     if (expense) {
       setAmount(expense.amount.toString());
       setCategory(expense.category as ExpenseCategory);
@@ -31,7 +34,7 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
       // time-of-day rather than UTC midnight (see ExpenseForm's date default).
       setDate(format(new Date(expense.date), 'yyyy-MM-dd'));
     }
-  }, [expense]);
+  }
 
   if (!isOpen || !expense) return null;
 
@@ -55,7 +58,7 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
       });
       toast.success('Expense updated!');
       onClose();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update');
     } finally {
       setSubmitting(false);

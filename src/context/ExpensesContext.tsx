@@ -15,6 +15,9 @@ import {
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from './AuthContext';
+import { BulkWriteError } from '../../shared/bulkWrite';
+import { addTransactionDocs } from '../utils/firestoreBulk';
+import { fromTransactionDoc, toTransactionDoc } from '../../shared/transactionDoc';
 import type { Expense, CategoryTotal } from '../types';
 
 interface ExpensesContextType {
@@ -68,22 +71,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return onSnapshot(
       q,
       (snapshot) => {
-        const items: Expense[] = snapshot.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            amount: data.amount,
-            category: data.category,
-            description: data.description,
-            date: new Date(data.date),
-            userId: data.userid,
-            source: data.source,
-            importId: data.importId,
-            originalNarration: data.originalNarration,
-            referenceNumber: data.referenceNumber,
-            recurringId: data.recurringId,
-          } as Expense;
-        });
+        const items: Expense[] = snapshot.docs.map((d) => fromTransactionDoc(d.id, d.data()) as Expense);
         items.sort((a, b) => b.date.getTime() - a.date.getTime());
         setLive({ uid, items });
       },
@@ -103,18 +91,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Firestore rejects explicit `undefined` field values, so optional
   // traceability fields (source/importId/originalNarration/referenceNumber)
   // are only included when actually present.
-  const toExpenseDoc = (expense: Omit<Expense, 'id' | 'userId'>) => ({
-    amount: expense.amount,
-    category: expense.category,
-    description: expense.description,
-    userid: user!.uid,
-    date: expense.date.toISOString(),
-    ...(expense.source !== undefined && { source: expense.source }),
-    ...(expense.importId !== undefined && { importId: expense.importId }),
-    ...(expense.originalNarration !== undefined && { originalNarration: expense.originalNarration }),
-    ...(expense.referenceNumber !== undefined && { referenceNumber: expense.referenceNumber }),
-    ...(expense.recurringId !== undefined && { recurringId: expense.recurringId }),
-  });
+  const toExpenseDoc = (expense: Omit<Expense, 'id' | 'userId'>) => toTransactionDoc(expense, user!.uid);
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'userId'>) => {
     if (!user) return;
@@ -137,20 +114,12 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const addExpenses = async (expenses: Omit<Expense, 'id' | 'userId'>[]) => {
     if (!user || expenses.length === 0) return;
 
-    const BATCH_LIMIT = 500;
-    try {
-      for (let i = 0; i < expenses.length; i += BATCH_LIMIT) {
-        const chunk = expenses.slice(i, i + BATCH_LIMIT);
-        const batch = writeBatch(db);
-        for (const expense of chunk) {
-          batch.set(doc(collection(db, 'expenses')), toExpenseDoc(expense));
-        }
-        await batch.commit();
-      }
-      await loadExpenses();
-    } catch (error) {
-      console.error('Error bulk-adding expenses:', error);
-      throw error;
+    const result = await addTransactionDocs(db, 'expenses', user.uid, expenses);
+    await loadExpenses();
+    if (result.failed > 0) {
+      console.error('Error bulk-adding expenses:', result.error);
+      // Carries the exact saved/failed counts for the caller to report.
+      throw new BulkWriteError(result);
     }
   };
 

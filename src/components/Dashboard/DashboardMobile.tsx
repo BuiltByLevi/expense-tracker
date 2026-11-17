@@ -21,7 +21,7 @@ import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { useInstallPrompt } from '../../hooks/useInstallPrompt';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 import type { TranslationKey } from '../../i18n';
 import {
   WalletIcon, TrendDownIcon, ExchangeIcon, LedgerIcon, ChartLineIcon, PieIcon,

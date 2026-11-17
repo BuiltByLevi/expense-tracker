@@ -8,8 +8,9 @@ import { useExpenses } from '../context/ExpensesContext';
 import { useIncome } from '../context/IncomeContext';
 import { useStatementImports } from './useStatementImports';
 import { useRecurring } from '../context/RecurringContext';
+import { spendingOnly } from '../../shared/accounting';
 import { useEarnings } from '../context/EarningsContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { computeFinanceTotals } from '../utils/finance';
 import { makeCashFlowLookup } from '../utils/cashFlowLookup';
 
@@ -40,7 +41,7 @@ export function useProfileLogic() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
-    const totalSpent = expenses.reduce((s, e) => s + e.amount, 0);
+    const totalSpent = spendingOnly(expenses).reduce((s, e) => s + e.amount, 0);
     const uniqueMonths = new Set(
       expenses.map((e) => {
         const d = new Date(e.date);
@@ -166,21 +167,33 @@ export function useProfileLogic() {
    *  user to type DELETE). */
   const handleDeleteData = async () => {
     setDeletingData(true);
-    try {
-      await Promise.all([
-        deleteAllExpenses(),
-        deleteAllIncome(),
-        resetEarningsHistory(),
-        deleteAllImports(),
-        deleteAllRules(),
-      ]);
+    // Promise.all rejects (and stops reporting) on the FIRST failure, so one
+    // collection erroring would hide whether the other four actually
+    // succeeded — leaving "some of it may remain" with no way to tell what.
+    // allSettled lets every deletion run to completion independently and
+    // names exactly which ones failed, so a retry only has to redo those.
+    const tasks: { label: string; run: () => Promise<void> }[] = [
+      { label: 'Expenses', run: deleteAllExpenses },
+      { label: 'Income', run: deleteAllIncome },
+      { label: 'Earnings history', run: resetEarningsHistory },
+      { label: 'Import history', run: deleteAllImports },
+      { label: 'Recurring rules', run: deleteAllRules },
+    ];
+    const results = await Promise.allSettled(tasks.map((t) => t.run()));
+    const failed = results
+      .map((r, i) => (r.status === 'rejected' ? { label: tasks[i].label, reason: r.reason } : null))
+      .filter((f): f is { label: string; reason: unknown } => f !== null);
+
+    if (failed.length === 0) {
       toast.success('All expense data deleted', { duration: 4000 });
-    } catch (error) {
-      console.error('Error deleting all data:', error);
-      toast.error('Something went wrong deleting your data — some of it may remain. Please try again.', { duration: 5000 });
-    } finally {
-      setDeletingData(false);
+    } else {
+      for (const f of failed) console.error(`Error deleting ${f.label}:`, f.reason);
+      toast.error(
+        `Couldn't delete: ${failed.map((f) => f.label).join(', ')}. Everything else was removed — try again for the rest.`,
+        { duration: 7000 }
+      );
     }
+    setDeletingData(false);
   };
 
   /**

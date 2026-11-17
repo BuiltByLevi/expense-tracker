@@ -1,3 +1,4 @@
+import { sumMoney } from './money';
 import type { Income } from './types';
 
 export interface DerivedEarnings {
@@ -38,7 +39,7 @@ export function deriveMonthlyEarnings(entries: Income[]): DerivedEarnings | null
   if (countedEntries.length === 0) return null;
 
   const otherEntries = entries.filter((e) => NON_EARNINGS_CATEGORIES.has(e.category));
-  const amount = countedEntries.reduce((s, e) => s + e.amount, 0);
+  const amount = sumMoney(countedEntries.map((e) => e.amount));
 
   let latest = countedEntries[0];
   for (const e of countedEntries) {

@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { theme as design } from '../../styles/theme';
 import { useEarningsHistoryLogic } from '../../hooks/useEarningsHistoryLogic';
 import { RupeeIcon, CheckIcon, Sparkline, DeltaBadge } from '../common/FinanceIcons';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 
 /**
  * Manage Earnings, banking style: a summary card for the shown period, the

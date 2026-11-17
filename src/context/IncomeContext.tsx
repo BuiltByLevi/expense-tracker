@@ -14,6 +14,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from './AuthContext';
+import { BulkWriteError } from '../../shared/bulkWrite';
+import { addTransactionDocs } from '../utils/firestoreBulk';
+import { fromTransactionDoc, toTransactionDoc } from '../../shared/transactionDoc';
+import { entriesForMonth } from '../../shared/monthFilter';
 import type { Income } from '../types';
 
 interface IncomeContextType {
@@ -76,22 +80,7 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return onSnapshot(
       q,
       (snapshot) => {
-        const items: Income[] = snapshot.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            amount: data.amount,
-            category: data.category,
-            description: data.description,
-            date: new Date(data.date),
-            userId: data.userid,
-            source: data.source,
-            importId: data.importId,
-            originalNarration: data.originalNarration,
-            referenceNumber: data.referenceNumber,
-            recurringId: data.recurringId,
-          } as Income;
-        });
+        const items: Income[] = snapshot.docs.map((d) => fromTransactionDoc(d.id, d.data()) as Income);
         items.sort((a, b) => b.date.getTime() - a.date.getTime());
         setLive({ uid, items });
       },
@@ -108,18 +97,7 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   /** Kept for callers that refresh after a write; the live listener already has the change. */
   const loadIncome = async () => {};
 
-  const toIncomeDoc = (entry: Omit<Income, 'id' | 'userId'>) => ({
-    amount: entry.amount,
-    category: entry.category,
-    description: entry.description,
-    userid: user!.uid,
-    date: entry.date.toISOString(),
-    ...(entry.source !== undefined && { source: entry.source }),
-    ...(entry.importId !== undefined && { importId: entry.importId }),
-    ...(entry.originalNarration !== undefined && { originalNarration: entry.originalNarration }),
-    ...(entry.referenceNumber !== undefined && { referenceNumber: entry.referenceNumber }),
-    ...(entry.recurringId !== undefined && { recurringId: entry.recurringId }),
-  });
+  const toIncomeDoc = (entry: Omit<Income, 'id' | 'userId'>) => toTransactionDoc(entry, user!.uid);
 
   const addIncome = async (entry: Omit<Income, 'id' | 'userId'>) => {
     if (!user) return;
@@ -135,20 +113,13 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   /** Batched bulk write (see ExpensesContext.addExpenses for why this matters for imports). */
   const addIncomes = async (entries: Omit<Income, 'id' | 'userId'>[]) => {
     if (!user || entries.length === 0) return;
-    const BATCH_LIMIT = 500;
-    try {
-      for (let i = 0; i < entries.length; i += BATCH_LIMIT) {
-        const chunk = entries.slice(i, i + BATCH_LIMIT);
-        const batch = writeBatch(db);
-        for (const entry of chunk) {
-          batch.set(doc(collection(db, 'income')), toIncomeDoc(entry));
-        }
-        await batch.commit();
-      }
-      await loadIncome();
-    } catch (error) {
-      console.error('Error bulk-adding income:', error);
-      throw error;
+
+    const result = await addTransactionDocs(db, 'income', user.uid, entries);
+    await loadIncome();
+    if (result.failed > 0) {
+      console.error('Error bulk-adding income:', result.error);
+      // Carries the exact saved/failed counts for the caller to report.
+      throw new BulkWriteError(result);
     }
   };
 
@@ -222,11 +193,7 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const getIncomeForMonth = (year: number, month: number) => {
-    const entries = income.filter((i) => i.date.getFullYear() === year && i.date.getMonth() === month);
-    const total = entries.reduce((sum, i) => sum + i.amount, 0);
-    return { entries, total };
-  };
+  const getIncomeForMonth = (year: number, month: number) => entriesForMonth(income, year, month);
 
 
   const restoreIncome = async (entry: Income) => {

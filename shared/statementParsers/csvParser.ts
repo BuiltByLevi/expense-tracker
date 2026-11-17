@@ -2,8 +2,15 @@ import Papa from 'papaparse';
 import type { NormalizedTransaction, ParserError } from './types';
 import { rowsToTransactions } from './columnMapper';
 
+/** What happened to the file's rows on the way to becoming transactions. */
+export interface ParseStats {
+  dataRows: number;
+  nonTransactionRows: number;
+  continuationRows: number;
+}
+
 export type ParseResult =
-  | { transactions: NormalizedTransaction[] }
+  | { transactions: NormalizedTransaction[]; stats?: ParseStats }
   | { error: ParserError };
 
 /**
@@ -12,7 +19,8 @@ export type ParseResult =
  * reuse the exact same parsing and column-recognition rules as the web app.
  */
 export function parseCsvText(text: string): ParseResult {
-  const result = Papa.parse<string[]>(text, {
+  // A byte-order mark would otherwise glue itself to the first header name.
+  const result = Papa.parse<string[]>(text.replace(/^\uFEFF/, ''), {
     header: false,
     skipEmptyLines: true,
   });
@@ -21,7 +29,7 @@ export function parseCsvText(text: string): ParseResult {
     return { error: { code: 'EMPTY_FILE', message: 'This CSV file has no rows to import.' } };
   }
 
-  const { transactions, columnsRecognized } = rowsToTransactions(result.data);
+  const { transactions, columnsRecognized, ...stats } = rowsToTransactions(result.data);
   if (!columnsRecognized) {
     return {
       error: {
@@ -30,5 +38,5 @@ export function parseCsvText(text: string): ParseResult {
       },
     };
   }
-  return { transactions };
+  return { transactions, stats };
 }

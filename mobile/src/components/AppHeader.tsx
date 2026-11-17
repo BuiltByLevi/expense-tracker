@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BadgePill, Card, IconBox } from '@/components/Card';
 import { LogoMark } from '@/components/FinanceIcons';
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/useAuth';
+import { useTheme } from '@/context/useTheme';
 import { FINANCIAL_QUOTES, getDailyQuote } from '@shared/quotes';
 import { spacing } from '@/theme';
 

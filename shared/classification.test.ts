@@ -73,7 +73,7 @@ describe('suggestIncomeCategory — unaffected existing categories still work', 
   it('refund narrations are still recognized', () => {
     expect(suggestIncomeCategory('REFUND ORDER CANCELLED').category).toBe('Refund');
   });
-  it('transfer-in narrations are still recognized', () => {
-    expect(suggestIncomeCategory('NEFT FUND TRANSFER FROM SAVINGS').category).toBe('Transfer');
+  it('an NEFT deposit with no internal marker has no category until the user picks one', () => {
+    expect(suggestIncomeCategory('NEFT FUND TRANSFER FROM SAVINGS').category).toBeNull();
   });
 });

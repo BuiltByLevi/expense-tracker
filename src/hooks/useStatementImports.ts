@@ -50,6 +50,10 @@ export const useStatementImports = () => {
   }, [user]);
 
   useEffect(() => {
+    // Intentional: loadImports is an async Firestore fetch on mount/user change.
+    // Its synchronous setLoading(true) runs before the first await and is what
+    // the loading spinner needs; the result is set only after the fetch resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadImports();
   }, [loadImports]);
 

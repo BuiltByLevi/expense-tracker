@@ -1,3 +1,5 @@
+import { roundMoney, sumMoney } from './money';
+import { spendingOnly } from './accounting';
 import type { Expense, Income, MonthlyEarnings } from './types';
 
 export interface MonthlySummary {
@@ -132,11 +134,13 @@ export const computeFinanceTotals = (
   ) {
     safety++;
 
-    const expensesThisMonth = expenses.filter((e) => {
+    // Monthly Expenses are spending only: ATM withdrawals, transfers out and
+    // investments are excluded (see shared/accounting.ts).
+    const expensesThisMonth = spendingOnly(expenses).filter((e) => {
       const d = new Date(e.date);
       return d.getFullYear() === cursor.year && d.getMonth() === cursor.month;
     });
-    const spentThisMonth = expensesThisMonth.reduce((s, e) => s + e.amount, 0);
+    const spentThisMonth = sumMoney(expensesThisMonth.map((e) => e.amount));
     const hasExpenses = expensesThisMonth.length > 0;
 
     // Per-month earnings lookup
@@ -150,10 +154,10 @@ export const computeFinanceTotals = (
       earningsThisMonth = defaultEarnings;
       earningsStatus = 'missing';
     }
-    totalEarningsSum += earningsThisMonth;
+    totalEarningsSum = roundMoney(totalEarningsSum + earningsThisMonth);
 
-    const monthBalance = earningsThisMonth - spentThisMonth;
-    runningBalance += monthBalance;
+    const monthBalance = roundMoney(earningsThisMonth - spentThisMonth);
+    runningBalance = roundMoney(runningBalance + monthBalance);
 
     summaries.push({
       year: cursor.year,
@@ -176,7 +180,7 @@ export const computeFinanceTotals = (
     }
   }
 
-  const totalSpent = summaries.reduce((s, m) => s + m.spent, 0);
+  const totalSpent = sumMoney(summaries.map((m) => m.spent));
   const calendarMonthCount = summaries.length;
   const calendarMonthAverage =
     calendarMonthCount > 0 ? totalSpent / calendarMonthCount : 0;

@@ -32,6 +32,20 @@ const RAW_ROWS: string[][] = [
   ['30/11/2026', 'SAVINGS INTEREST CREDITED', 'REF0010', '', '15.50', '159365.50'],
 ];
 
+// A deposit whose narration does not place it is unassigned until the user
+// classifies it, and an unassigned deposit is never imported as income. These
+// are the categories the user confirms in review for this statement's rows.
+const USER_CONFIRMED: Record<string, Income['category']> = {
+  'NEFT FUND TRANSFER FROM SAVINGS': 'Transfer',
+};
+function confirmedIncomeCategory(narration: string): Income['category'] {
+  const suggested = suggestIncomeCategory(narration).category;
+  if (suggested) return suggested;
+  const confirmed = USER_CONFIRMED[narration];
+  if (!confirmed) throw new Error('unexpected unclassified deposit: ' + narration);
+  return confirmed;
+}
+
 describe('bank statement import pipeline — Razorpay/Payload credit reconciliation', () => {
   const { transactions, columnsRecognized } = rowsToTransactions(RAW_ROWS);
 
@@ -81,10 +95,10 @@ describe('bank statement import pipeline — Razorpay/Payload credit reconciliat
     expect(feeRow.category.category).not.toBe('Salary');
   });
 
-  it('refund and transfer-in narrations are categorized correctly and excluded from the earnings label downstream', () => {
+  it('refund is categorized; an unplaced NEFT deposit has no category until the user classifies it', () => {
     const byNarration = (n: string) => transactions.find((t) => t.narration === n)!;
     expect(suggestIncomeCategory(byNarration('REFUND ORDER CANCELLED').narration).category).toBe('Refund');
-    expect(suggestIncomeCategory(byNarration('NEFT FUND TRANSFER FROM SAVINGS').narration).category).toBe('Transfer');
+    expect(suggestIncomeCategory(byNarration('NEFT FUND TRANSFER FROM SAVINGS').narration).category).toBeNull();
   });
 
   it('no legitimate credit is flagged as a duplicate of another row in the same statement', () => {
@@ -102,7 +116,7 @@ describe('bank statement import pipeline — Razorpay/Payload credit reconciliat
     const income: Income[] = credits.map((tx, idx) => ({
       id: `inc-${idx}`,
       amount: tx.amount!,
-      category: suggestIncomeCategory(tx.narration).category,
+      category: confirmedIncomeCategory(tx.narration),
       description: tx.narration,
       date: tx.date!,
       userId: 'u1',

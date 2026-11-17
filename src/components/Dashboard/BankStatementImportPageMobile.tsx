@@ -8,7 +8,8 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type IncomeCategory } from '../.
 import { useStatementImport } from '../../hooks/useStatementImport';
 import { useStatementImports } from '../../hooks/useStatementImports';
 import type { ReviewTransaction } from '../../../shared/statementParsers/types';
-import { useLanguage } from '../../context/LanguageContext';
+import { needsDirection } from '../../../shared/statementReview';
+import { useLanguage } from '../../context/useLanguage';
 import type { TranslationKey } from '../../i18n';
 
 interface Props {
@@ -112,8 +113,8 @@ const Row: React.FC<{
 const BankStatementImportPageMobile: React.FC<Props> = ({ onBack, onImported }) => {
   const { t } = useLanguage();
   const {
-    status, errorMessage, fileName, rows, bankGuess, statementPeriod, salaryRowsTotal, importSummary,
-    handleFile, toggleInclude, toggleSelectAllByType, updateCategory, updateDescription, updateAmount,
+    status, errorMessage, fileName, rows, bankGuess, statementPeriod, statementSummary, salaryRowsTotal, importSummary,
+    handleFile, toggleInclude, toggleSelectAllByType, setRowType, updateCategory, updateDescription, updateAmount,
     confirmImport, reset,
   } = useStatementImport();
   const { imports, loading: historyLoading, refresh: refreshHistory } = useStatementImports();
@@ -127,6 +128,8 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack, onImported }) 
   const selCredits = creditRows.filter((r) => r.included);
   const totalSelected = selDebits.length + selCredits.length;
   const duplicatesUnselected = rows.filter((r) => r.duplicateOf && !r.included).length;
+  const undecidedRows = rows.filter(needsDirection);
+  const invalidRows = rows.filter((r) => (r.type === null || r.date === null) && !needsDirection(r));
   const sum = (rs: ReviewTransaction[]) => rs.reduce((s, r) => s + (r.amount ?? 0), 0);
   const shownRows = tab === 'debit' ? debitRows : creditRows;
   const allShownSelected = shownRows.length > 0 && shownRows.every((r) => r.included);
@@ -238,6 +241,23 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack, onImported }) 
             </div>
           </div>
 
+          {statementSummary.reconciled !== null && statementSummary.openingBalance !== null && statementSummary.closingBalance !== null && (
+            <>
+              <p className="si-note">
+                <BankIcon size={14} color={design.colors.textSecondary} />
+                {t('import.statement.opening')} {inr(statementSummary.openingBalance)} · {t('import.statement.closing')} {inr(statementSummary.closingBalance)}
+              </p>
+              <p className="si-note">
+                {statementSummary.reconciled
+                  ? <CheckCircleIcon size={14} color={design.colors.success} />
+                  : <AlertIcon size={14} color={design.colors.warning} />}
+                {statementSummary.reconciled
+                  ? t('import.statement.reconciled')
+                  : t('import.statement.notReconciled', { amount: inr(Math.abs(statementSummary.difference)) })}
+              </p>
+            </>
+          )}
+
           {salaryRowsTotal > 0 && (
             <p className="si-note">
               <RupeeIcon size={14} color={design.colors.success} />
@@ -250,6 +270,32 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack, onImported }) 
               <AlertIcon size={14} color={design.colors.warning} />
               {t(duplicatesUnselected === 1 ? 'import.duplicatesUnselectedSingular' : 'import.duplicatesUnselectedPlural', { count: duplicatesUnselected })}
             </p>
+          )}
+
+          {invalidRows.length > 0 && (
+            <p className="si-note">
+              <AlertIcon size={14} color={design.colors.warning} />
+              {t(invalidRows.length === 1 ? 'import.invalidRowsSingular' : 'import.invalidRowsPlural', { count: invalidRows.length })}
+            </p>
+          )}
+
+          {undecidedRows.length > 0 && (
+            <div className="glass-card" style={{ padding: '12px 14px' }}>
+              <strong style={{ fontSize: '13px' }}>{t('import.needsDirectionTitle', { count: undecidedRows.length })}</strong>
+              <p className="si-note" style={{ margin: '4px 0 8px 0' }}>{t('import.needsDirectionHint')}</p>
+              {undecidedRows.map((row) => (
+                <div key={row.rowId} style={{ padding: '8px 0', borderTop: '1px solid var(--m-line)', fontSize: '13px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{row.date ? format(row.date, 'dd MMM') : '—'} · {row.narration}</span>
+                    <strong style={{ whiteSpace: 'nowrap' }}>{inr(row.amount ?? 0)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                    <button className="btn btn-ghost" style={{ flex: 1, padding: '8px', fontSize: '12px' }} onClick={() => setRowType(row.rowId, 'credit')}>{t('import.markMoneyIn')}</button>
+                    <button className="btn btn-ghost" style={{ flex: 1, padding: '8px', fontSize: '12px' }} onClick={() => setRowType(row.rowId, 'debit')}>{t('import.markMoneyOut')}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
 
           <div className="glass-card" style={{ padding: '4px' }}>
@@ -300,13 +346,24 @@ const BankStatementImportPageMobile: React.FC<Props> = ({ onBack, onImported }) 
 
       {status === 'done' && importSummary && (
         <div className="glass-card si-state">
-          <span className="si-state-ico ok"><CheckCircleIcon size={30} color={design.colors.success} strokeWidth={1.8} /></span>
+          <span className="si-state-ico ok">
+            {importSummary.imported > 0
+              ? <CheckCircleIcon size={30} color={design.colors.success} strokeWidth={1.8} />
+              : <AlertIcon size={30} color={design.colors.danger} strokeWidth={1.8} />}
+          </span>
           <p className="si-state-title">
-            {t(importSummary.imported === 1 ? 'import.importedSingular' : 'import.importedPlural', { count: importSummary.imported })}
+            {importSummary.imported === 0 && importSummary.failed > 0
+              ? t('import.nothingSaved')
+              : t(importSummary.imported === 1 ? 'import.importedSingular' : 'import.importedPlural', { count: importSummary.imported })}
           </p>
-          <p className="si-state-sub">
-            {importSummary.skipped > 0 ? t('import.mobile.skippedPrefix', { count: importSummary.skipped }) : ''}{t('import.mobile.doneBody')}
-          </p>
+          {importSummary.failed > 0 && (
+            <p className="si-state-sub" role="alert" style={{ color: design.colors.danger }}>{t('import.saveFailed', { count: importSummary.failed })}</p>
+          )}
+          {importSummary.imported > 0 && (
+            <p className="si-state-sub">
+              {importSummary.skipped - importSummary.failed > 0 ? t('import.mobile.skippedPrefix', { count: importSummary.skipped - importSummary.failed }) : ''}{t('import.mobile.doneBody')}
+            </p>
+          )}
           <button
             onClick={() => {
               if (statementPeriod.end) onImported?.(statementPeriod.end.getFullYear(), statementPeriod.end.getMonth());

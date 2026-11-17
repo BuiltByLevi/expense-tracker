@@ -1,34 +1,9 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 import type { MonthlyEarnings } from '@shared/types';
-
-interface EarningsContextType {
-  /** Default/fallback monthly figure (userSettings.monthlyEarnings). */
-  earnings: number;
-  earningsHistory: Record<string, MonthlyEarnings>;
-  loading: boolean;
-  getEarningsForMonth: (year: number, month: number) => MonthlyEarnings | null;
-  setEarningsForMonth: (
-    year: number,
-    month: number,
-    amount: number,
-    status?: 'confirmed' | 'estimated',
-    options?: { override?: boolean }
-  ) => Promise<void>;
-  /** Drops a month's manual override so it goes back to its imported total. */
-  revertEarningsOverride: (year: number, month: number) => Promise<void>;
-  refresh: () => Promise<void>;
-}
-
-const EarningsContext = createContext<EarningsContextType | undefined>(undefined);
-
-export const useEarnings = () => {
-  const context = useContext(EarningsContext);
-  if (!context) throw new Error('useEarnings must be used within an EarningsProvider');
-  return context;
-};
+import { EarningsContext } from './useEarnings';
 
 /** "YYYY-MM" — the document id used by the web app's earningsHistory subcollection. */
 const monthKey = (year: number, month: number) =>
@@ -70,6 +45,8 @@ export const EarningsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user]);
 
   useEffect(() => {
+    // Async Firestore fetch: setLoading(true) runs before its first await by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 

@@ -1,3 +1,5 @@
+import { outflowKind } from './accounting';
+
 /** Monthly spending limit per expense category, e.g. { 'Food & Dining': 8000 }. */
 export type CategoryBudgets = Record<string, number>;
 
@@ -34,16 +36,30 @@ export function cleanBudgets(raw: unknown): CategoryBudgets {
 }
 
 /**
+ * A category a budget can be set on. ATM cash withdrawals, transfers out and
+ * investments are not spending (see shared/accounting.ts), so a budget on
+ * them would never mean what it says and is not offered or counted.
+ */
+export function isBudgetableCategory(category: string): boolean {
+  return outflowKind(category) === 'spending';
+}
+
+/**
  * Status of every budgeted category for one month's expenses, most-used
- * first (over budget at the top). Categories without a budget are ignored.
+ * first (over budget at the top). Categories without a budget are ignored,
+ * and so are budgets on categories that are not spending (see isBudgetableCategory).
  */
 export function computeBudgetStatuses(
   budgets: CategoryBudgets,
   monthExpenses: { category: string; amount: number }[],
 ): BudgetStatus[] {
   const spentBy = new Map<string, number>();
-  for (const e of monthExpenses) spentBy.set(e.category, (spentBy.get(e.category) ?? 0) + e.amount);
+  for (const e of monthExpenses) {
+    if (!isBudgetableCategory(e.category)) continue;
+    spentBy.set(e.category, (spentBy.get(e.category) ?? 0) + e.amount);
+  }
   return Object.entries(cleanBudgets(budgets))
+    .filter(([category]) => isBudgetableCategory(category))
     .map(([category, limit]) => {
       const spent = spentBy.get(category) ?? 0;
       const percent = (spent / limit) * 100;

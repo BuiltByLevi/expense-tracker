@@ -11,6 +11,7 @@ import EarningsHistoryPage from './EarningsHistoryPageWeb';
 import TransactionLedgerPage from './TransactionLedgerPageWeb';
 import ProfilePage from './ProfilePageWeb';
 import StatCard from './StatCard';
+import AccountingBreakdownCard from './AccountingBreakdownCard';
 import StatementUploadCard from './StatementUploadCard';
 import MonthYearPicker from '../common/MonthYearPicker';
 import DateRangeFilter from './DateRangeFilter';
@@ -24,7 +25,7 @@ const BankStatementImportPage = lazy(() => import('./BankStatementImportPageWeb'
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
 import { useDashboardData } from '../../hooks/useDashboardData';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 import RotatingQuote from '../common/RotatingQuote';
 import BudgetsPanel from '../Budgets/BudgetsPanel';
 import RecurringPanel from '../Recurring/RecurringPanel';
@@ -45,7 +46,7 @@ const DashboardWeb: React.FC = () => {
     showEarningsPage, setShowEarningsPage, showLedgerPage, setShowLedgerPage,
     showProfilePage, setShowProfilePage, showImportPage, setShowImportPage,
     showDebtDetails, setShowDebtDetails,
-    financeTotals, selectedMonthEarnings, expenses, monthExpenses, monthTotal, totalAllTime,
+    financeTotals, selectedMonthEarnings, expenses, income, monthExpenses, monthTotal, totalAllTime,
     monthCategoryAnalysis, allTimeCategoryAnalysis, monthNetCashFlow,
     dateRange, setDateRange, clearDateRange, historyExpenses, historyIncome, historyLabel,
     handleEdit, handleEditIncome, handleBulkCategory, editingIncome, setEditingIncome, updateIncome, handleAddExpense, handleAddIncome, handleDeleteExpense, handleDeleteIncome,
@@ -433,6 +434,18 @@ const DashboardWeb: React.FC = () => {
               </>
             )}
           </div>
+        </div>
+
+        {/* Accounting breakdown: every figure from shared/accounting */}
+        <div className="animate-in">
+          <AccountingBreakdownCard
+            expenses={expenses}
+            income={income}
+            year={selectedYear}
+            month={selectedMonth}
+            dashboardEarnings={selectedMonthEarnings.amount}
+            dashboardNetCashFlow={monthNetCashFlow}
+          />
         </div>
 
         {/* Budgets */}

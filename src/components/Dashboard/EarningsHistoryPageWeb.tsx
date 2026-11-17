@@ -2,7 +2,7 @@ import React from 'react';
 import { theme as design } from '../../styles/theme';
 import EarningsView from './EarningsView';
 import { RupeeIcon } from '../common/FinanceIcons';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 
 interface Props {
   onBack: () => void;

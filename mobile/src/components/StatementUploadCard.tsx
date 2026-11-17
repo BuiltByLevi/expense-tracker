@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, IconBox } from '@/components/Card';
 import { BankIcon } from '@/components/FinanceIcons';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import { radius, spacing } from '@/theme';
 
 interface Props {

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { startOfMonth, endOfMonth, isWithinInterval, isAfter } from 'date-fns';
+import { startOfMonth, endOfMonth, isAfter } from 'date-fns';
 import { useExpenses } from '../context/ExpensesContext';
 import { useIncome } from '../context/IncomeContext';
 import { useEarnings } from '../context/EarningsContext';
+import { buildStatement } from '../../shared/statementLedger';
 
 export interface LedgerEntry {
   id: string;
@@ -15,13 +16,13 @@ export interface LedgerEntry {
 }
 
 /**
- * Owns all TransactionLedgerPage business logic (month nav, the ledger merge +
- * running-balance memo, totals) so the Web and Mobile pages share one source
+ * Owns all TransactionLedgerPage business logic (month nav, the month's
+ * statement: opening balance, running balance per row, totals, closing) so the Web and Mobile pages share one source
  * of truth and only differ in layout.
  */
 export function useTransactionLedgerLogic(initialYear?: number, initialMonth?: number) {
   const { expenses } = useExpenses();
-  const { getIncomeForMonth } = useIncome();
+  const { income, getIncomeForMonth } = useIncome();
   const { getEarningsForMonth, earnings: defaultEarnings } = useEarnings();
   const now = new Date();
   // Opens on whatever month the Dashboard was showing (initialYear/Month), so
@@ -61,87 +62,85 @@ export function useTransactionLedgerLogic(initialYear?: number, initialMonth?: n
     setSelectedMonth(month);
   };
 
-  const ledger = useMemo<LedgerEntry[]>(() => {
-    const entries: LedgerEntry[] = [];
-    if (!isFutureMonth) {
-      // Real itemized income for this month (e.g. from a bank statement
-      // import) takes priority — one ledger row per credit, same as debits
-      // get one row per expense. Only months with none fall back to the
-      // single synthetic "Monthly Salary / Earnings" line from the manual number.
-      const { entries: incomeEntries } = getIncomeForMonth(selectedYear, selectedMonth);
-      const record = getEarningsForMonth(selectedYear, selectedMonth);
-      if (incomeEntries.length > 0) {
-        incomeEntries.forEach((i) => entries.push({
-          id: i.id,
-          date: i.date,
-          description: i.description,
-          category: i.category,
-          type: 'credit',
-          amount: i.amount,
-          runningBalance: 0,
-        }));
-        // A manual override replaces the imported total for cash-flow math
-        // (see shared/cashFlowLookup.ts) while the real transactions above
-        // still list what was actually imported. Without this line the
-        // Ledger's closing balance would silently disagree with the
-        // Dashboard's Net Cash Flow, which already follows the override.
-        if (record?.override) {
-          const itemizedTotal = incomeEntries.reduce((s, i) => s + i.amount, 0);
-          const adjustment = record.amount - itemizedTotal;
-          if (adjustment !== 0) {
+  const statement = useMemo(() => {
+    const today = new Date();
+    const isFuture = (year: number, month: number) => isAfter(new Date(year, month, 1), startOfMonth(today));
+
+    const expensesByMonth = new Map<string, typeof expenses>();
+    for (const e of expenses) {
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const bucket = expensesByMonth.get(key);
+      if (bucket) bucket.push(e);
+      else expensesByMonth.set(key, [e]);
+    }
+
+    /** Every credit and debit for one month, before balances are run. */
+    const entriesFor = (year: number, month: number): Omit<LedgerEntry, 'runningBalance'>[] => {
+      const entries: Omit<LedgerEntry, 'runningBalance'>[] = [];
+      if (!isFuture(year, month)) {
+        // Itemized income (e.g. from a statement import) gets one row per
+        // credit. Only months with none fall back to the single synthetic
+        // "Monthly Salary / Earnings" line from the manual number.
+        const { entries: incomeEntries } = getIncomeForMonth(year, month);
+        const record = getEarningsForMonth(year, month);
+        if (incomeEntries.length > 0) {
+          incomeEntries.forEach((i) => entries.push({
+            id: i.id, date: i.date, description: i.description, category: i.category, type: 'credit', amount: i.amount,
+          }));
+          // A manual override replaces the imported total for cash-flow math
+          // (see shared/cashFlowLookup.ts), so the difference is shown as its
+          // own line to keep this balance in step with the Dashboard.
+          if (record?.override) {
+            const adjustment = record.amount - incomeEntries.reduce((s, i) => s + i.amount, 0);
+            if (adjustment !== 0) {
+              entries.push({
+                id: `override-${year}-${month}`,
+                date: endOfMonth(new Date(year, month)),
+                description: 'Earnings override',
+                category: 'Income',
+                type: adjustment > 0 ? 'credit' : 'debit',
+                amount: Math.abs(adjustment),
+              });
+            }
+          }
+        } else {
+          const amt = record ? record.amount : defaultEarnings;
+          if (amt > 0) {
             entries.push({
-              id: `override-${selectedYear}-${selectedMonth}`,
-              date: endOfMonth(new Date(selectedYear, selectedMonth)),
-              description: 'Earnings override',
+              id: `e-${year}-${month}`,
+              date: new Date(year, month, 1),
+              description: 'Monthly Salary / Earnings',
               category: 'Income',
-              type: adjustment > 0 ? 'credit' : 'debit',
-              amount: Math.abs(adjustment),
-              runningBalance: 0,
+              type: 'credit',
+              amount: amt,
             });
           }
         }
-      } else {
-        const amt = record ? record.amount : defaultEarnings;
-        if (amt > 0) {
-          entries.push({
-            id: `e-${selectedYear}-${selectedMonth}`,
-            date: new Date(selectedYear, selectedMonth, 1),
-            description: 'Monthly Salary / Earnings',
-            category: 'Income',
-            type: 'credit',
-            amount: amt,
-            runningBalance: 0,
-          });
-        }
+      }
+      for (const e of expensesByMonth.get(`${year}-${month}`) ?? []) {
+        entries.push({ id: e.id, date: new Date(e.date), description: e.description, category: e.category, type: 'debit', amount: e.amount });
+      }
+      return entries;
+    };
+
+    // Like a bank statement, a month opens with whatever the months before
+    // it closed with — walked forward from the first month that has data.
+    let openingBalance = 0;
+    const allDates = [...expenses.map((e) => new Date(e.date)), ...income.map((i) => i.date)];
+    if (allDates.length > 0) {
+      const earliest = allDates.reduce((min, d) => (d.getTime() < min.getTime() ? d : min));
+      let year = earliest.getFullYear();
+      let month = earliest.getMonth();
+      let guard = 0;
+      while (guard++ < 600 && (year < selectedYear || (year === selectedYear && month < selectedMonth))) {
+        openingBalance = buildStatement(entriesFor(year, month), openingBalance).closingBalance;
+        if (month === 11) { year++; month = 0; } else { month++; }
       }
     }
-    const monthExp = expenses.filter((e) =>
-      isWithinInterval(new Date(e.date), {
-        start: startOfMonth(new Date(selectedYear, selectedMonth)),
-        end: endOfMonth(new Date(selectedYear, selectedMonth)),
-      })
-    );
-    monthExp.forEach((e) => entries.push({
-      id: e.id,
-      date: new Date(e.date),
-      description: e.description,
-      category: e.category,
-      type: 'debit',
-      amount: e.amount,
-      runningBalance: 0,
-    }));
-    entries.sort((a, b) => a.date.getTime() - b.date.getTime());
-    let bal = 0;
-    entries.forEach((e) => {
-      bal += e.type === 'credit' ? e.amount : -e.amount;
-      e.runningBalance = bal;
-    });
-    return entries;
-  }, [expenses, getIncomeForMonth, getEarningsForMonth, defaultEarnings, selectedYear, selectedMonth, isFutureMonth]);
 
-  const totalCredit = useMemo(() => ledger.filter((e) => e.type === 'credit').reduce((s, e) => s + e.amount, 0), [ledger]);
-  const totalDebit = useMemo(() => ledger.filter((e) => e.type === 'debit').reduce((s, e) => s + e.amount, 0), [ledger]);
-  const closingBalance = totalCredit - totalDebit;
+    return buildStatement(entriesFor(selectedYear, selectedMonth), openingBalance);
+  }, [expenses, income, getIncomeForMonth, getEarningsForMonth, defaultEarnings, selectedYear, selectedMonth]);
 
   return {
     selectedYear,
@@ -153,9 +152,10 @@ export function useTransactionLedgerLogic(initialYear?: number, initialMonth?: n
     goToNextMonth,
     goToCurrentMonth,
     goToMonth,
-    ledger,
-    totalCredit,
-    totalDebit,
-    closingBalance,
+    ledger: statement.rows as LedgerEntry[],
+    openingBalance: statement.openingBalance,
+    totalCredit: statement.totalCredit,
+    totalDebit: statement.totalDebit,
+    closingBalance: statement.closingBalance,
   };
 }

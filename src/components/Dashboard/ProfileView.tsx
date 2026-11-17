@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { theme as design } from '../../styles/theme';
 import { useProfileLogic } from '../../hooks/useProfileLogic';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 import ConfirmDialog from '../common/ConfirmDialog';
 import DeleteAccountDialog from './DeleteAccountDialog';
 import LanguagePicker from '../common/LanguagePicker';

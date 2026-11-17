@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { CategoryTotal } from '../../types';
 import { theme as design, categoryColors } from '../../styles/theme';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../context/useTheme';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { EMPTY_STATE_QUOTES, getRandomQuote } from '../../utils/quotes';
 
@@ -12,6 +12,48 @@ interface CategoryPieChartProps {
   /** Set false to suppress recharts' built-in legend, e.g. when the caller renders its own. */
   legend?: boolean;
 }
+
+interface CategoryTooltipProps {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload: CategoryTotal }>;
+  isDark: boolean;
+}
+
+// Defined at module scope (not inside the chart) so it is a stable component
+// rather than one re-created on every render. Recharts injects active/payload.
+const CategoryTooltip = ({ active, payload, isDark }: CategoryTooltipProps) => {
+  if (active && payload && payload.length) {
+    const item = payload[0].payload;
+    return (
+      <div style={{
+        background: isDark
+          ? 'linear-gradient(180deg, rgba(45, 55, 80, 0.98) 0%, rgba(20, 25, 42, 0.98) 100%)'
+          : 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(20px)',
+        border: isDark
+          ? `1px solid rgba(${design.colors.accentBrightRgb}, 0.3)`
+          : '1px solid rgba(255,255,255,0.8)',
+        borderRadius: '12px',
+        padding: '12px 16px',
+        boxShadow: isDark
+          ? `0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(${design.colors.accentBrightRgb}, 0.2)`
+          : '0 8px 24px rgba(15, 23, 42, 0.15)',
+        fontSize: '13px',
+      }}>
+        <p style={{ margin: 0, fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}>
+          {item.category}
+        </p>
+        <p style={{ margin: '4px 0 0 0', color: isDark ? design.colors.accentBright : design.colors.primary, fontWeight: 600 }}>
+          ₹{item.amount.toLocaleString('en-IN')}
+        </p>
+        <p style={{ margin: '2px 0 0 0', color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }}>
+          {item.percentage.toFixed(1)}% of total
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300, legend = true }) => {
   const { theme } = useTheme();
@@ -45,40 +87,6 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300,
   // renders its own legend (slice % labels would be redundant clutter).
   const showLabels = legend && !isMobile && data.length <= 6;
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      return (
-        <div style={{
-          background: isDark
-            ? 'linear-gradient(180deg, rgba(45, 55, 80, 0.98) 0%, rgba(20, 25, 42, 0.98) 100%)'
-            : 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(20px)',
-          border: isDark
-            ? `1px solid rgba(${design.colors.accentBrightRgb}, 0.3)`
-            : '1px solid rgba(255,255,255,0.8)',
-          borderRadius: '12px',
-          padding: '12px 16px',
-          boxShadow: isDark
-            ? `0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(${design.colors.accentBrightRgb}, 0.2)`
-            : '0 8px 24px rgba(15, 23, 42, 0.15)',
-          fontSize: '13px',
-        }}>
-          <p style={{ margin: 0, fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}>
-            {item.category}
-          </p>
-          <p style={{ margin: '4px 0 0 0', color: isDark ? design.colors.accentBright : design.colors.primary, fontWeight: 600 }}>
-            ₹{item.amount.toLocaleString('en-IN')}
-          </p>
-          <p style={{ margin: '2px 0 0 0', color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }}>
-            {item.percentage.toFixed(1)}% of total
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -88,7 +96,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300,
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={showLabels ? ({ name, percent }: any) =>
+            label={showLabels ? ({ name, percent }: { name?: string; percent?: number }) =>
               `${name}: ${((percent || 0) * 100).toFixed(1)}%` : false}
             // Adjusted radius to look good on both mobile and desktop
             outerRadius={isMobile ? 85 : Math.min(110, (typeof height === 'number' ? height : 300) * 0.55)}
@@ -107,7 +115,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, height = 300,
               />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CategoryTooltip isDark={isDark} />} />
           {legend && (
             <Legend
               verticalAlign="bottom"

@@ -2,15 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { parseStatementDate, parseStatementAmount } from './normalize';
 
 describe('parseStatementDate', () => {
-  it('normalizes to local midnight, deterministically, regardless of when it is called', async () => {
+  it('anchors the printed day at noon UTC, deterministically, regardless of when it is called', async () => {
     const a = parseStatementDate('30/11/2026');
     await new Promise((r) => setTimeout(r, 5));
     const b = parseStatementDate('30/11/2026');
     expect(a?.getTime()).toBe(b?.getTime());
-    expect(a?.getHours()).toBe(0);
-    expect(a?.getMinutes()).toBe(0);
-    expect(a?.getSeconds()).toBe(0);
-    expect(a?.getMilliseconds()).toBe(0);
+    expect(a?.toISOString()).toBe('2026-11-30T12:00:00.000Z');
   });
 
   it('preserves the calendar date across supported formats', () => {

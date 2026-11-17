@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { useExpenses } from '@/context/ExpensesContext';
-import { useIncome } from '@/context/IncomeContext';
+import { useExpenses } from '@/context/useExpenses';
+import { useIncome } from '@/context/useIncome';
 import { parseStatement, pickStatementFile } from '@/services/statementFile';
-import { buildReviewTransactions } from '@shared/statementReview';
-import type { ReviewTransaction } from '@shared/statementParsers/types';
-import type { IncomeCategory } from '@shared/types';
+import { assignCategory, assignRowType, buildReviewTransactions, isImportable, needsCategory, needsConfirmation } from '@shared/statementReview';
+import { executeImport, planImport } from '@shared/statementImport';
+import { sumMoney } from '@shared/money';
+import type { ReviewTransaction, TransactionType } from '@shared/statementParsers/types';
+import type { Expense, Income } from '@shared/types';
 
 export type ImportStatus = 'idle' | 'parsing' | 'review' | 'importing' | 'done' | 'error';
 
@@ -12,6 +14,8 @@ export interface ImportSummary {
   expensesImported: number;
   incomeImported: number;
   skipped: number;
+  /** Rows that were sent to the database and did not save. */
+  failed: number;
 }
 
 /**
@@ -70,24 +74,36 @@ export function useStatementImport() {
     setStatus('review');
   };
 
+  // A row that cannot be saved (no direction, date or amount), or a deposit
+  // still waiting for a category, cannot be ticked — ticking it would promise
+  // an import that then skips it.
+  const selectable = (r: ReviewTransaction) => isImportable(r) && !needsCategory(r) && !needsConfirmation(r);
+
   const toggleInclude = (rowId: string) => {
-    setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, included: !r.included } : r)));
+    setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, included: !r.included && selectable(r) } : r)));
   };
 
   const setAllIncluded = (included: boolean) => {
-    // Rows missing a date/type can never be written, so bulk-select must not
-    // mark them included — it would promise an import that silently skips.
-    setRows((prev) =>
-      prev.map((r) =>
-        r.type !== null && r.date !== null ? { ...r, included } : { ...r, included: false }
-      )
-    );
+    // Bulk-select must not mark unsaveable rows included, for the same reason.
+    setRows((prev) => prev.map((r) => ({ ...r, included: included && selectable(r) })));
   };
 
+  /** The user's answer for a row whose direction the file didn't give. */
+  const setRowType = (rowId: string, type: TransactionType) => {
+    setRows((prev) => assignRowType(prev, rowId, type, expenses, income));
+  };
+
+  /** The user's category for a row (deposits wait for one before they import). */
   const updateCategory = (rowId: string, category: string) => {
-    setRows((prev) =>
-      prev.map((r) => (r.rowId === rowId ? { ...r, category, uncertain: false } : r))
-    );
+    setRows((prev) => assignCategory(prev, rowId, category));
+  };
+
+  /** Confirms the suggested category of a row (e.g. an own-account transfer). */
+  const confirmRow = (rowId: string) => {
+    setRows((prev) => {
+      const row = prev.find((r) => r.rowId === rowId);
+      return row?.category ? assignCategory(prev, rowId, row.category) : prev;
+    });
   };
 
   const stats = useMemo(() => {
@@ -99,12 +115,10 @@ export function useStatementImport() {
       debits: included.filter((r) => r.type === 'debit').length,
       duplicates: rows.filter((r) => r.duplicateOf).length,
       uncertain: rows.filter((r) => r.uncertain).length,
-      creditTotal: included
-        .filter((r) => r.type === 'credit')
-        .reduce((s, r) => s + (r.amount ?? 0), 0),
-      debitTotal: included
-        .filter((r) => r.type === 'debit')
-        .reduce((s, r) => s + (r.amount ?? 0), 0),
+      unassigned: rows.filter(needsCategory).length,
+      undecided: rows.filter((r) => r.type === null && r.date !== null && r.amount !== null).length,
+      creditTotal: sumMoney(included.filter((r) => r.type === 'credit').map((r) => r.amount ?? 0)),
+      debitTotal: sumMoney(included.filter((r) => r.type === 'debit').map((r) => r.amount ?? 0)),
     };
   }, [rows]);
 
@@ -115,59 +129,29 @@ export function useStatementImport() {
    */
   const confirmImport = async () => {
     setStatus('importing');
-    const importId = `import-${Date.now()}`;
+    const plan = planImport(rows, `import-${Date.now()}`);
+    const outcome = await executeImport(plan, {
+      addExpenses: (records) => addExpenses(records as Omit<Expense, 'id' | 'userId'>[]),
+      addIncomes: (records) => addIncomes(records as Omit<Income, 'id' | 'userId'>[]),
+    });
 
-    const debitCandidates = rows.filter((r) => r.type === 'debit' && r.included);
-    const validDebits = debitCandidates.filter((r) => r.date && r.amount !== null);
-    const creditCandidates = rows.filter((r) => r.type === 'credit' && r.included);
-    const validCredits = creditCandidates.filter((r) => r.date && r.amount !== null);
-
-    let expensesImported = 0;
-    let incomeImported = 0;
-    let skipped =
-      debitCandidates.length - validDebits.length + (creditCandidates.length - validCredits.length);
-
-    try {
-      if (validDebits.length > 0) {
-        await addExpenses(
-          validDebits.map((r) => ({
-            amount: r.amount as number,
-            category: r.category,
-            description: r.description || r.narration,
-            date: r.date as Date,
-            source: 'import' as const,
-            importId,
-            originalNarration: r.narration,
-            referenceNumber: r.referenceNumber ?? undefined,
-          }))
-        );
-        expensesImported = validDebits.length;
-      }
-
-      if (validCredits.length > 0) {
-        await addIncomes(
-          validCredits.map((r) => ({
-            amount: r.amount as number,
-            category: r.category as IncomeCategory,
-            description: r.description || r.narration,
-            date: r.date as Date,
-            source: 'import' as const,
-            importId,
-            originalNarration: r.narration,
-            referenceNumber: r.referenceNumber ?? undefined,
-          }))
-        );
-        incomeImported = validCredits.length;
-      }
-    } catch {
+    if (outcome.failed > 0) {
+      // Exact counts: what was saved stays saved, and re-importing the same
+      // file flags those rows as duplicates rather than adding them twice.
       setStatus('error');
       setErrorMessage(
-        'The import failed partway through. Some rows may already have been saved — check your transactions before retrying.'
+        `${outcome.imported} of ${outcome.imported + outcome.failed} transactions were saved; ${outcome.failed} could not be saved. ` +
+          'Check your connection and import the file again — rows already saved will be flagged as duplicates.'
       );
       return;
     }
 
-    setSummary({ expensesImported, incomeImported, skipped });
+    setSummary({
+      expensesImported: outcome.expensesImported,
+      incomeImported: outcome.incomeImported,
+      skipped: outcome.rejected,
+      failed: outcome.failed,
+    });
     setStatus('done');
   };
 
@@ -190,7 +174,9 @@ export function useStatementImport() {
     pickAndParse,
     toggleInclude,
     setAllIncluded,
+    setRowType,
     updateCategory,
+    confirmRow,
     confirmImport,
     reset,
   };

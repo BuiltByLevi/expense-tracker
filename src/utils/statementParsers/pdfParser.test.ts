@@ -1,75 +1,56 @@
-import { describe, it, expect } from 'vitest';
-import { linesToTransactions } from './pdfParser';
+import { describe, expect, it, vi } from 'vitest';
 
-describe('linesToTransactions', () => {
-  it('does not glue the next row\'s bold title line onto the current transaction (ICICI OpTransactionHistory layout)', () => {
-    // Real lines (pdf.js text-extraction order) from an ICICI statement: each
-    // transaction's bold title ("Credit trxn", "RZPX PVT LTD PAYROLL
-    // COMPLIANCE", "Eleven Pun") is its own row ABOVE that transaction's
-    // serial+date+amount row, not inline with it.
-    const lines = [
-      // A preceding transaction, so direction can be inferred from the
-      // balance delta (the very first transaction in a statement has no
-      // prior balance to compare against).
-      'PREMIUM MI',
-      '33 29.06.2026 45.00 5250.13',
-      'UPI/PREMIUM MI/paytmqr68girx@/Paid via C/YES',
-      'Credit trxn',
-      '34 30.06.2026 151.00 5401.13',
-      '169701520337:Int.Pd:30-03-2026 to 29-06-2026',
-      'RZPX PVT LTD PAYROLL COMPLIANCE',
-      '35 30.06.2026 34905.00 40306.13',
-      'ESCROW ACCOUNT',
-      'NEFT-IDFB6181M5999519-RZPX PVT LTD',
-      'PAYROLL COMPLIANCE ESCROW ACCOUNT-',
-      'SALARY CENTRALOGIC C-101988796',
-      'Eleven Pun',
-      '36 30.06.2026 30.00 40276.13',
-      'UPI/Eleven Pun/25186623099692/Snaks/JIO',
-    ];
+// Vite's `?url` import resolves to a browser URL. Under Node the worker is
+// loaded from disk instead — the only thing swapped here is where pdf.js
+// finds its own worker file; the parser and pdf.js themselves are real.
+vi.mock('pdfjs-dist/legacy/build/pdf.worker.mjs?url', () => ({
+  default: new URL('../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url).href,
+}));
 
-    const transactions = linesToTransactions(lines);
-    expect(transactions).toHaveLength(4);
+import { parsePdfFile } from './pdfParser';
+import { summarizeStatement } from '../../../shared/statementLedger';
+import { EXPECTED, FIXTURE, OPENING_BALANCE, buildTextPdf, pdfColumnLayout } from '../../../shared/testFixtures/statementFixture';
 
-    const [, interest, salary, snack] = transactions;
+/**
+ * The PDF path from actual bytes: a real text PDF is built, read by pdf.js
+ * (the same library the browser uses) and turned into transactions by the
+ * production parser — nothing between the file and the result is mocked.
+ */
+describe('parsePdfFile — real text PDF', () => {
+  const file = (bytes: Uint8Array, name = 'statement.pdf') => new File([bytes as BlobPart], name, { type: 'application/pdf' });
 
-    // The interest credit's narration must not absorb the next row's
-    // "...PAYROLL COMPLIANCE..." title — that's what flipped its category
-    // from Interest to Salary.
-    expect(interest.amount).toBe(151);
-    expect(interest.type).toBe('credit');
-    expect(interest.narration).not.toMatch(/PAYROLL/i);
-    expect(interest.narration).toMatch(/Int\.?Pd/i);
+  it('reads all 16 transactions of the two-page fixture with exact amounts and directions', async () => {
+    const result = await parsePdfFile(file(buildTextPdf(pdfColumnLayout())));
+    if ('error' in result) throw new Error(result.error.message);
 
-    expect(salary.amount).toBe(34905);
-    expect(salary.type).toBe('credit');
-    expect(salary.narration).toMatch(/PAYROLL/i);
-    // Its own narration shouldn't pick up the row after it either.
-    expect(salary.narration).not.toMatch(/Eleven Pun/i);
-
-    expect(snack.amount).toBe(30);
-    expect(snack.type).toBe('debit');
+    expect(result.transactions.map((t) => [t.date?.getDate(), t.type, t.amount])).toEqual(FIXTURE.map((r) => [r.day, r.type, r.amount]));
+    expect(result.transactions.filter((t) => t.parseIssue)).toEqual([]);
+    expect(summarizeStatement(result.transactions)).toMatchObject({
+      creditCount: EXPECTED.creditCount,
+      totalCredits: EXPECTED.creditTotal,
+      debitCount: EXPECTED.debitCount,
+      totalDebits: EXPECTED.debitTotal,
+      openingBalance: OPENING_BALANCE,
+      closingBalance: EXPECTED.closingBalance,
+      reconciled: true,
+    });
   });
 
-  it('still attaches genuine multi-line wrapped narration to the right transaction', () => {
-    const lines = [
-      'PREMIUM MI',
-      '1 01.06.2026 70.00 34643.35',
-      'UPI/PREMIUM MI/paytmqr68girx@/DAHI AND L/YES',
-      'BANK',
-      'L/651827240101/YCD391aeab04f544cc7bac9cc4b',
-      '876e816d',
-      'Bil Payment',
-      '2 03.06.2026 4851.00 29792.35',
-      'BIL/Consumer Loans XX61053 EMI Pra',
-    ];
+  it('keeps a narration that wraps onto a second line with its own row', async () => {
+    const result = await parsePdfFile(file(buildTextPdf(pdfColumnLayout())));
+    if ('error' in result) throw new Error(result.error.message);
+    // The fixture wraps at a word boundary, so the two lines rejoin to the exact narration.
+    expect(result.transactions[0].narration).toBe(FIXTURE[0].narration);
+    expect(result.transactions[0].referenceNumber).toBe('HDFCN52026110100001');
+  });
 
-    const [first, second] = linesToTransactions(lines);
-    expect(first.amount).toBe(70);
-    expect(first.narration).toMatch(/PREMIUM MI/i);
-    expect(first.narration).not.toMatch(/Bil Payment/i);
+  it('a PDF with no text is reported as scanned, not as an empty statement', async () => {
+    const result = await parsePdfFile(file(buildTextPdf([])));
+    expect('error' in result && result.error.code).toBe('SCANNED_PDF');
+  });
 
-    expect(second.amount).toBe(4851);
-    expect(second.narration).toMatch(/Consumer Loans/i);
+  it('a file that is not a PDF is reported as unreadable', async () => {
+    const result = await parsePdfFile(file(new TextEncoder().encode('this is not a pdf')));
+    expect('error' in result && result.error.code).toBe('PARSE_FAILED');
   });
 });

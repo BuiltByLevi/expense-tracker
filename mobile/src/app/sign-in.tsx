@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/useAuth';
+import { useTheme } from '@/context/useTheme';
 import { LockIcon, LogoMark } from '@/components/FinanceIcons';
 import { FINANCIAL_QUOTES, getDailyQuote } from '@shared/quotes';
 import { fontSize, radius, spacing } from '@/theme';

@@ -1,21 +1,8 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { translate } from '../i18n';
 import { isAppLanguage, type AppLanguage } from '../../shared/i18n/types';
 import type { TranslationKey } from '../i18n';
-
-interface LanguageContextType {
-  language: AppLanguage;
-  setLanguage: (language: AppLanguage) => void;
-  t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
-}
-
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
-
-export const useLanguage = () => {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error('useLanguage must be used inside LanguageProvider');
-  return ctx;
-};
+import { LanguageContext } from './useLanguage';
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<AppLanguage>(() => {

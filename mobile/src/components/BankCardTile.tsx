@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import { CardChip, ContactlessMark, TrendDownIcon, TrendUpIcon } from '@/components/FinanceIcons';
 import { radius, spacing } from '@/theme';
 

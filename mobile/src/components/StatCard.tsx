@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import { Sparkline } from '@/components/FinanceIcons';
 import { radius, spacing } from '@/theme';
 

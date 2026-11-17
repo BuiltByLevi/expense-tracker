@@ -45,3 +45,6 @@ firebase-debug.log
 # Local-only dev notes (never commit, may contain test credentials)
 .local/
 EOF
+# Python bytecode caches
+__pycache__/
+*.pyc

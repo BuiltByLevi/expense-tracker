@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import { format } from 'date-fns';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import { LedgerIcon } from '@/components/FinanceIcons';
-import { useExpenses } from '@/context/ExpensesContext';
-import { useIncome } from '@/context/IncomeContext';
+import { useExpenses } from '@/context/useExpenses';
+import { useIncome } from '@/context/useIncome';
 import { QUICK_RANGE_OPTIONS, filterByDateRange, type DateRange } from '@shared/dateRangePresets';
 import { fontSize, radius, spacing } from '@/theme';
 import { formatSignedCurrency } from '@/utils/format';

@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { EXPENSE_CATEGORIES, type Expense } from '../../types';
+import { isBudgetableCategory } from '../../../shared/budgets';
 import { categoryColors } from '../../styles/theme';
 import { useBudgets } from '../../context/BudgetsContext';
+import { useLanguage } from '../../context/useLanguage';
 import { computeBudgetStatuses, type BudgetStatus } from '../../utils/budgets';
 
 interface Props {
@@ -38,6 +40,7 @@ const Bar: React.FC<{ s: BudgetStatus }> = ({ s }) => (
 );
 
 const BudgetsPanel: React.FC<Props> = ({ monthExpenses, expenses, year, month, monthName, preview = false, onManage }) => {
+  const { t } = useLanguage();
   const { budgets, loading, setBudget } = useBudgets();
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -66,7 +69,7 @@ const BudgetsPanel: React.FC<Props> = ({ monthExpenses, expenses, year, month, m
     };
   }, [expenses, year, month]);
 
-  const unbudgeted = EXPENSE_CATEGORIES.filter((c) => !(c in budgets));
+  const unbudgeted = EXPENSE_CATEGORIES.filter((c) => isBudgetableCategory(c) && !(c in budgets));
   const overCount = statuses.filter((s) => s.level === 'over').length;
   const warnCount = statuses.filter((s) => s.level === 'warning').length;
 
@@ -103,6 +106,7 @@ const BudgetsPanel: React.FC<Props> = ({ monthExpenses, expenses, year, month, m
     }
     return (
       <div className="glass-card bd-card">
+        <p className="bd-note" style={{ margin: '0 0 10px 0', fontSize: '11px', color: 'var(--text-secondary, #64748b)', lineHeight: 1.45 }}>{t('budgets.excludedNote')}</p>
         {statuses.slice(0, 3).map((s) => (
           <div key={s.category} className="bd-row">
             <div className="bd-row-top">

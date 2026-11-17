@@ -71,3 +71,7 @@ export default defineConfig([
   },
 ])
 ```
+
+## Testing
+
+See [docs/TESTING.md](docs/TESTING.md) for the TypeScript, Python and Firestore emulator test layers, and how to run each one.

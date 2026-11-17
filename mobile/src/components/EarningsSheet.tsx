@@ -13,9 +13,9 @@ import {
   View,
 } from 'react-native';
 import { format } from 'date-fns';
-import { useEarnings } from '@/context/EarningsContext';
-import { useIncome } from '@/context/IncomeContext';
-import { useTheme } from '@/context/ThemeContext';
+import { useEarnings } from '@/context/useEarnings';
+import { useIncome } from '@/context/useIncome';
+import { useTheme } from '@/context/useTheme';
 import { deriveMonthlyEarnings } from '@shared/earningsDerivation';
 import { fontSize, radius, spacing } from '@/theme';
 import { formatCurrency } from '@/utils/format';

@@ -4,12 +4,14 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { DashboardMonthProvider } from '@/context/DashboardMonthContext';
 import { EarningsProvider } from '@/context/EarningsContext';
 import { ExpensesProvider } from '@/context/ExpensesContext';
 import { IncomeProvider } from '@/context/IncomeContext';
-import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 
 /**
  * Redirects between the authenticated tab group and the sign-in screen.

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   addDoc,
   collection,
@@ -10,27 +10,11 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 import type { Income } from '@shared/types';
-
-interface IncomeContextType {
-  income: Income[];
-  loading: boolean;
-  error: string | null;
-  refresh: () => Promise<void>;
-  addIncome: (entry: Omit<Income, 'id' | 'userId'>) => Promise<void>;
-  addIncomes: (entries: Omit<Income, 'id' | 'userId'>[]) => Promise<void>;
-  deleteIncome: (id: string) => Promise<void>;
-  getIncomeForMonth: (year: number, month: number) => { entries: Income[]; total: number };
-}
-
-const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
-
-export const useIncome = () => {
-  const context = useContext(IncomeContext);
-  if (!context) throw new Error('useIncome must be used within an IncomeProvider');
-  return context;
-};
+import { BulkWriteError, commitInChunks } from '@shared/bulkWrite';
+import { entriesForMonth } from '@shared/monthFilter';
+import { IncomeContext } from './useIncome';
 
 export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [income, setIncome] = useState<Income[]>([]);
@@ -74,6 +58,8 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [user]);
 
   useEffect(() => {
+    // Async Firestore fetch: setLoading(true) runs before its first await by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadIncome();
   }, [loadIncome]);
 
@@ -97,16 +83,15 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addIncomes = async (entries: Omit<Income, 'id' | 'userId'>[]) => {
     if (!user || entries.length === 0) return;
-    const BATCH_LIMIT = 500;
-    for (let i = 0; i < entries.length; i += BATCH_LIMIT) {
-      const chunk = entries.slice(i, i + BATCH_LIMIT);
+    // Ids are chosen up front so a retried batch can't add copies.
+    const writes = entries.map((item) => ({ ref: doc(collection(db, 'income')), data: toIncomeDoc(item) }));
+    const result = await commitInChunks(writes, async (chunk) => {
       const batch = writeBatch(db);
-      for (const entry of chunk) {
-        batch.set(doc(collection(db, 'income')), toIncomeDoc(entry));
-      }
+      for (const write of chunk) batch.set(write.ref, write.data);
       await batch.commit();
-    }
+    });
     await loadIncome();
+    if (result.failed > 0) throw new BulkWriteError(result);
   };
 
   const deleteIncome = async (id: string) => {
@@ -118,12 +103,7 @@ export const IncomeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Local getters (`getFullYear`/`getMonth`), matching the web app — the
   // stored ISO string is read back in the device's timezone deliberately.
   const getIncomeForMonth = useCallback(
-    (year: number, month: number) => {
-      const entries = income.filter(
-        (e) => e.date.getFullYear() === year && e.date.getMonth() === month
-      );
-      return { entries, total: entries.reduce((s, e) => s + e.amount, 0) };
-    },
+    (year: number, month: number) => entriesForMonth(income, year, month),
     [income]
   );
 

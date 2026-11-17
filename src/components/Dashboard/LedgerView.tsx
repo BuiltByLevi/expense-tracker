@@ -5,7 +5,7 @@ import { useTransactionLedgerLogic, type LedgerEntry } from '../../hooks/useTran
 import { EXPENSE_CATEGORIES } from '../../types';
 import MonthYearPicker from '../common/MonthYearPicker';
 import { ClockIcon, LedgerIcon, Sparkline } from '../common/FinanceIcons';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 
 /**
  * Monthly ledger body shared by the phone and desktop pages, styled to match the banking-style Transactions page:
@@ -56,7 +56,7 @@ const LedgerView: React.FC<Props> = ({ initialYear, initialMonth }) => {
   const {
     selectedYear, selectedMonth, currentYear, currentMonth, isFutureMonth,
     goToPreviousMonth, goToNextMonth, goToCurrentMonth, goToMonth,
-    ledger, totalCredit, totalDebit, closingBalance,
+    ledger, openingBalance, totalCredit, totalDebit, closingBalance,
   } = useTransactionLedgerLogic(initialYear, initialMonth);
 
   const [search, setSearch] = useState('');
@@ -120,9 +120,10 @@ const LedgerView: React.FC<Props> = ({ initialYear, initialMonth }) => {
             <small>{t('ledger.closingBalance', { month: monthName })}</small>
             <strong className="lg-big">{signed(closingBalance)}</strong>
           </div>
-          {ledger.length >= 2 && <Sparkline data={ledger.map((e) => e.runningBalance)} color="#fff" width={80} height={28} />}
+          {ledger.length >= 2 && <Sparkline data={[openingBalance, ...ledger.map((e) => e.runningBalance)]} color="#fff" width={80} height={28} />}
         </div>
-        <div className="si-summary-tiles">
+        <div className="si-summary-tiles" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+          <div><small>{t('ledger.openingBalance')}</small><strong>{signed(openingBalance)}</strong></div>
           <div><small>{t('ledger.credits')}</small><strong>{isFutureMonth ? '—' : `+${inr(totalCredit)}`}</strong></div>
           <div><small>{t('ledger.debits')}</small><strong>−{inr(totalDebit)}</strong></div>
         </div>

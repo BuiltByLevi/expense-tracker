@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 import { APP_LANGUAGES, LANGUAGE_NAMES } from '../../../shared/i18n/types';
 
 interface Props {

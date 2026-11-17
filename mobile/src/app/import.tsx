@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -14,16 +16,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { useStatementImport } from '@/hooks/useStatementImport';
 import { useDashboardMonth } from '@/context/DashboardMonthContext';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import { BankIcon } from '@/components/FinanceIcons';
 import { fontSize, radius, spacing } from '@/theme';
 import { formatCurrency } from '@/utils/format';
+import { needsCategory, needsConfirmation, needsDirection } from '@shared/statementReview';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@shared/types';
 
 export default function ImportScreen() {
   const { palette } = useTheme();
   const router = useRouter();
   const imp = useStatementImport();
   const { goToMonth } = useDashboardMonth();
+  // The row whose category is being chosen in the picker sheet.
+  const [pickerRowId, setPickerRowId] = useState<string | null>(null);
+  const pickerRow = imp.rows.find((r) => r.rowId === pickerRowId) ?? null;
+  const pickerOptions: readonly string[] = pickerRow?.type === 'credit' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   const close = () => router.back();
 
@@ -151,9 +159,11 @@ export default function ImportScreen() {
                 ↑ {formatCurrency(imp.stats.debitTotal)} debits
               </Text>
             </View>
-            {imp.stats.duplicates > 0 || imp.stats.uncertain > 0 ? (
+            {imp.stats.duplicates > 0 || imp.stats.uncertain > 0 || imp.stats.unassigned > 0 || imp.stats.undecided > 0 ? (
               <Text style={[styles.warn, { color: palette.warning }]}>
                 {imp.stats.duplicates > 0 ? `${imp.stats.duplicates} possible duplicate(s) unselected. ` : ''}
+                {imp.stats.undecided > 0 ? `${imp.stats.undecided} row(s) need money in or out. ` : ''}
+                {imp.stats.unassigned > 0 ? `${imp.stats.unassigned} deposit(s) need a category. ` : ''}
                 {imp.stats.uncertain > 0 ? `${imp.stats.uncertain} row(s) need a check.` : ''}
               </Text>
             ) : null}
@@ -194,8 +204,42 @@ export default function ImportScreen() {
                       {item.narration}
                     </Text>
                     <Text style={[styles.rowMeta, { color: palette.textTertiary }]}>
-                      {item.date ? format(item.date, 'dd MMM yyyy') : 'No date'} · {item.category}
+                      {item.date ? format(item.date, 'dd MMM yyyy') : 'No date'} · {item.category || 'No category'}
                     </Text>
+                    {item.type !== null ? (
+                      <Pressable onPress={() => setPickerRowId(item.rowId)} hitSlop={8}>
+                        <Text style={[styles.catLink, { color: palette.primary }]}>Change category</Text>
+                      </Pressable>
+                    ) : null}
+                    {needsDirection(item) ? (
+                      <View style={styles.dirRow}>
+                        <Pressable
+                          onPress={() => imp.setRowType(item.rowId, 'credit')}
+                          style={[styles.dirBtn, { borderColor: palette.cardBorder }]}
+                        >
+                          <Text style={[styles.dirText, { color: palette.success }]}>Money in</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => imp.setRowType(item.rowId, 'debit')}
+                          style={[styles.dirBtn, { borderColor: palette.cardBorder }]}
+                        >
+                          <Text style={[styles.dirText, { color: palette.textPrimary }]}>Money out</Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                    {needsCategory(item) ? (
+                      <Text style={[styles.flag, { color: palette.warning }]}>Choose a category — not imported yet</Text>
+                    ) : null}
+                    {needsConfirmation(item) ? (
+                      <View>
+                        <Text style={[styles.flag, { color: palette.warning }]}>
+                          Looks like a transfer between your own accounts — not counted until you confirm it
+                        </Text>
+                        <Pressable onPress={() => imp.confirmRow(item.rowId)} hitSlop={8}>
+                          <Text style={[styles.catLink, { color: palette.primary }]}>Confirm transfer</Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
                     {item.duplicateOf ? (
                       <Text style={[styles.flag, { color: palette.warning }]}>
                         Possible {item.duplicateConfidence} duplicate
@@ -244,6 +288,44 @@ export default function ImportScreen() {
           </View>
         </>
       )}
+
+      <Modal
+        visible={pickerRow !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerRowId(null)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setPickerRowId(null)}>
+          <Pressable
+            style={[styles.sheet, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}
+            onPress={() => undefined}
+          >
+            <Text style={[styles.cardTitle, { color: palette.textPrimary }]}>Category</Text>
+            <Text style={[styles.sub, { color: palette.textSecondary }]} numberOfLines={2}>
+              {pickerRow?.narration}
+            </Text>
+            <ScrollView style={styles.optionList}>
+              {pickerOptions.map((option) => {
+                const selected = pickerRow?.category === option;
+                return (
+                  <Pressable
+                    key={option}
+                    onPress={() => {
+                      if (pickerRow) imp.updateCategory(pickerRow.rowId, option);
+                      setPickerRowId(null);
+                    }}
+                    style={[styles.option, { borderBottomColor: palette.cardBorder }]}
+                  >
+                    <Text style={{ color: selected ? palette.primary : palette.textPrimary, fontWeight: selected ? '700' : '500' }}>
+                      {option}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {imp.status === 'importing' && (
         <View style={[styles.body, styles.center]}>
@@ -332,6 +414,14 @@ const styles = StyleSheet.create({
   rowMeta: { fontSize: fontSize.xs, marginTop: 2 },
   flag: { fontSize: fontSize.xs, marginTop: 2, fontWeight: '600' },
   rowAmount: { fontSize: fontSize.md, fontWeight: '700' },
+  catLink: { fontSize: fontSize.xs, fontWeight: '700', marginTop: 4 },
+  dirRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  dirBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.full, borderWidth: StyleSheet.hairlineWidth },
+  dirText: { fontSize: fontSize.xs, fontWeight: '700' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet: { maxHeight: '70%', borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, padding: spacing.lg, gap: spacing.sm },
+  optionList: { marginTop: spacing.sm },
+  option: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth },
   footer: {
     flexDirection: 'row',
     gap: spacing.md,

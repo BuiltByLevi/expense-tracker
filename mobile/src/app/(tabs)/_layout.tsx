@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, Text } from 'react-native';
 import { Tabs } from 'expo-router';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 
 /**
  * Glyph-based tab icons keep the bundle free of an icon-font dependency while

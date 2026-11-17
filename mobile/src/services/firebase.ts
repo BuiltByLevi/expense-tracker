@@ -6,6 +6,7 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 // resolves to the browser build, which lacks getReactNativePersistence and
 // would silently fall back to in-memory auth (session lost on every restart).
 import {
+  getAuth,
   getReactNativePersistence,
   initializeAuth,
   type Auth,
@@ -51,7 +52,6 @@ try {
   });
 } catch {
   // Already initialized on a previous Fast Refresh pass.
-  const { getAuth } = require('@firebase/auth');
   authInstance = getAuth(app);
 }
 

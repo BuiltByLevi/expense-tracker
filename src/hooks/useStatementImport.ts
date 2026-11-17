@@ -5,9 +5,12 @@ import { useStatementImports } from './useStatementImports';
 import { parseCsvFile } from '../utils/statementParsers/csvParser';
 import { parseExcelFile } from '../utils/statementParsers/excelParser';
 import { parsePdfFile } from '../utils/statementParsers/pdfParser';
-import { buildReviewTransactions } from '../../shared/statementReview';
-import type { NormalizedTransaction, ReviewTransaction } from '../utils/statementParsers/types';
-import type { IncomeCategory } from '../types';
+import { assignCategory, assignRowType, buildReviewTransactions, isImportable, needsCategory, needsConfirmation } from '../../shared/statementReview';
+import { summarizeStatement } from '../../shared/statementLedger';
+import { executeImport, planImport, statementTotals, type ImportOutcome } from '../../shared/statementImport';
+import { sumMoney } from '../../shared/money';
+import type { NormalizedTransaction, ReviewTransaction, TransactionType } from '../utils/statementParsers/types';
+import type { Expense, Income } from '../types';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const BANK_NAME_PATTERN = /(STATE BANK OF INDIA|\bSBI\b|HDFC|ICICI|AXIS BANK|KOTAK MAHINDRA|KOTAK BANK|BANK OF BARODA|\bBOB\b|PUNJAB NATIONAL BANK|\bPNB\b|CANARA BANK|UNION BANK)/i;
@@ -29,7 +32,7 @@ export function useStatementImport() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [rows, setRows] = useState<ReviewTransaction[]>([]);
-  const [importSummary, setImportSummary] = useState<{ imported: number; skipped: number } | null>(null);
+  const [importSummary, setImportSummary] = useState<ImportOutcome | null>(null);
 
   const bankGuess = useMemo(
     () => (fileName ? guessBankName(fileName, rows.map((r) => r.narration)) : null),
@@ -45,13 +48,12 @@ export function useStatementImport() {
     };
   }, [rows]);
 
+  const statementSummary = useMemo(() => summarizeStatement(rows), [rows]);
+
   // Informational only — every credit row (salary or not) is reviewable and
   // importable the same way; this just surfaces which ones look like salary.
   const salaryRowsTotal = useMemo(
-    () =>
-      rows
-        .filter((r) => r.type === 'credit' && r.included && r.category === 'Salary')
-        .reduce((sum, r) => sum + (r.amount ?? 0), 0),
+    () => sumMoney(rows.filter((r) => r.type === 'credit' && r.included && r.category === 'Salary').map((r) => r.amount ?? 0)),
     [rows]
   );
 
@@ -98,16 +100,35 @@ export function useStatementImport() {
     setStatus('review');
   };
 
+  // A row that can't be saved (no direction/date/amount) can't be ticked —
+  // ticking it would promise an import that then skips it.
+  // A deposit still waiting for a category cannot be selected: selecting it would
+  // promise an import that then skips it.
+  const selectable = (r: ReviewTransaction) => isImportable(r) && !needsCategory(r) && !needsConfirmation(r);
+
   const toggleInclude = (rowId: string) => {
-    setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, included: !r.included } : r)));
+    setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, included: !r.included && selectable(r) } : r)));
   };
 
   const toggleSelectAllByType = (type: 'debit' | 'credit', include: boolean) => {
-    setRows((prev) => prev.map((r) => (r.type === type ? { ...r, included: include } : r)));
+    setRows((prev) => prev.map((r) => (r.type === type ? { ...r, included: include && selectable(r) } : r)));
+  };
+
+  /** The user's answer for a row whose direction the file didn't give. */
+  const setRowType = (rowId: string, type: TransactionType) => {
+    setRows((prev) => assignRowType(prev, rowId, type, expenses, income));
   };
 
   const updateCategory = (rowId: string, category: string) => {
-    setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, category, uncertain: false } : r)));
+    setRows((prev) => assignCategory(prev, rowId, category));
+  };
+
+  /** Confirms the suggested category of a row (e.g. an own-account transfer). */
+  const confirmRow = (rowId: string) => {
+    setRows((prev) => {
+      const row = prev.find((r) => r.rowId === rowId);
+      return row?.category ? assignCategory(prev, rowId, row.category) : prev;
+    });
   };
 
   const updateDescription = (rowId: string, description: string) => {
@@ -115,7 +136,11 @@ export function useStatementImport() {
   };
 
   const updateAmount = (rowId: string, amount: number) => {
-    setRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, amount, uncertain: false } : r)));
+    setRows((prev) => prev.map((r) => {
+      if (r.rowId !== rowId) return r;
+      const next = { ...r, amount, uncertain: false };
+      return { ...next, included: next.included && isImportable(next) };
+    }));
   };
 
   /** Imports all included, valid rows — debits as expenses, credits as income
@@ -124,56 +149,11 @@ export function useStatementImport() {
    *  rows (missing date/amount/type) even if marked included. */
   const confirmImport = async () => {
     setStatus('importing');
-    const importId = `import-${Date.now()}`;
-
-    const debitCandidates = rows.filter((row) => row.type === 'debit' && row.included);
-    const validDebits = debitCandidates.filter((row) => row.date && row.amount !== null);
-    const creditCandidates = rows.filter((row) => row.type === 'credit' && row.included);
-    const validCredits = creditCandidates.filter((row) => row.date && row.amount !== null);
-
-    let expensesImported = 0;
-    let incomeImported = 0;
-    let skipped = (debitCandidates.length - validDebits.length) + (creditCandidates.length - validCredits.length);
-
-    if (validDebits.length > 0) {
-      try {
-        await addExpenses(validDebits.map((row) => ({
-          amount: row.amount as number,
-          category: row.category,
-          description: row.description || row.narration,
-          date: row.date as Date,
-          source: 'import' as const,
-          importId,
-          originalNarration: row.narration,
-          referenceNumber: row.referenceNumber ?? undefined,
-        })));
-        expensesImported = validDebits.length;
-      } catch {
-        skipped += validDebits.length;
-      }
-    }
-
-    if (validCredits.length > 0) {
-      try {
-        await addIncomes(validCredits.map((row) => ({
-          amount: row.amount as number,
-          category: row.category as IncomeCategory,
-          description: row.description || row.narration,
-          date: row.date as Date,
-          source: 'import' as const,
-          importId,
-          originalNarration: row.narration,
-          referenceNumber: row.referenceNumber ?? undefined,
-        })));
-        incomeImported = validCredits.length;
-      } catch {
-        skipped += validCredits.length;
-      }
-    }
-
-    const creditsTotal = rows.filter((r) => r.type === 'credit').reduce((s, r) => s + (r.amount ?? 0), 0);
-    const debitsTotal = rows.filter((r) => r.type === 'debit').reduce((s, r) => s + (r.amount ?? 0), 0);
-    const imported = expensesImported + incomeImported;
+    const plan = planImport(rows, `import-${Date.now()}`);
+    const outcome = await executeImport(plan, {
+      addExpenses: (records) => addExpenses(records as Omit<Expense, 'id' | 'userId'>[]),
+      addIncomes: (records) => addIncomes(records as Omit<Income, 'id' | 'userId'>[]),
+    });
 
     // History is a log entry only; the transactions above are already saved,
     // so a failure here must not leave the screen stuck on "Importing".
@@ -185,18 +165,17 @@ export function useStatementImport() {
         statementPeriodEnd: statementPeriod.end?.toISOString() ?? null,
         uploadedAt: new Date().toISOString(),
         transactionsExtracted: rows.length,
-        expensesImported,
-        incomeImported,
-        transactionsSkipped: rows.length - imported,
-        creditsTotal,
-        debitsTotal,
-        status: skipped === 0 ? 'completed' : imported > 0 ? 'partial' : 'failed',
+        expensesImported: outcome.expensesImported,
+        incomeImported: outcome.incomeImported,
+        transactionsSkipped: outcome.skipped,
+        ...statementTotals(rows),
+        status: outcome.status,
       });
     } catch (err) {
       console.error('Saving statement import history failed:', err);
     }
 
-    setImportSummary({ imported, skipped });
+    setImportSummary(outcome);
     setStatus('done');
   };
 
@@ -215,13 +194,16 @@ export function useStatementImport() {
     rows,
     bankGuess,
     statementPeriod,
+    statementSummary,
     salaryRowsTotal,
     importSummary,
 
     handleFile,
     toggleInclude,
     toggleSelectAllByType,
+    setRowType,
     updateCategory,
+    confirmRow,
     updateDescription,
     updateAmount,
     confirmImport,

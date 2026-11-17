@@ -1,5 +1,7 @@
 import type { Income, MonthlyEarnings } from './types';
 import type { EarningsLookup } from './finance';
+import { cashFlowCredits } from './accounting';
+import { sumMoney } from './money';
 
 type IncomeForMonth = (year: number, month: number) => { entries: Income[]; total: number };
 type EarningsForMonth = (year: number, month: number) => MonthlyEarnings | null;
@@ -23,8 +25,10 @@ export function makeCashFlowLookup(
   return (year: number, month: number): MonthlyEarnings | null => {
     const record = getEarningsForMonth(year, month);
     if (record?.override) return record;
-    const { entries, total } = getIncomeForMonth(year, month);
+    // Transfers in are the user's own money moved — excluded (see cashFlowCredits).
+    const entries = cashFlowCredits(getIncomeForMonth(year, month).entries);
     if (entries.length > 0) {
+      const total = sumMoney(entries.map((e) => e.amount));
       const lastDate = entries.reduce((max, e) => (e.date.getTime() > max.getTime() ? e.date : max), entries[0].date);
       return { year, month, amount: total, status: 'confirmed', source: 'import', updatedAt: lastDate.toISOString() };
     }

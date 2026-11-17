@@ -2,7 +2,7 @@ import React from 'react';
 import { theme as design } from '../../styles/theme';
 import LedgerView from './LedgerView';
 import { LedgerIcon } from '../common/FinanceIcons';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../../context/useLanguage';
 
 interface TransactionLedgerPageProps {
   onBack: () => void;

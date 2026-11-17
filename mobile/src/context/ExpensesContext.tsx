@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   addDoc,
   collection,
@@ -11,27 +11,10 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 import type { Expense } from '@shared/types';
-
-interface ExpensesContextType {
-  expenses: Expense[];
-  loading: boolean;
-  error: string | null;
-  refresh: () => Promise<void>;
-  addExpense: (expense: Omit<Expense, 'id' | 'userId'>) => Promise<void>;
-  addExpenses: (expenses: Omit<Expense, 'id' | 'userId'>[]) => Promise<void>;
-  updateExpense: (id: string, updatedData: Partial<Expense>) => Promise<void>;
-  deleteExpense: (id: string) => Promise<void>;
-}
-
-const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
-
-export const useExpenses = () => {
-  const context = useContext(ExpensesContext);
-  if (!context) throw new Error('useExpenses must be used within an ExpensesProvider');
-  return context;
-};
+import { BulkWriteError, commitInChunks } from '@shared/bulkWrite';
+import { ExpensesContext } from './useExpenses';
 
 export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -80,6 +63,8 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user]);
 
   useEffect(() => {
+    // Async Firestore fetch: setLoading(true) runs before its first await by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadExpenses();
   }, [loadExpenses]);
 
@@ -106,16 +91,15 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   /** Batched bulk write (Firestore caps a batch at 500) for statement import. */
   const addExpenses = async (rows: Omit<Expense, 'id' | 'userId'>[]) => {
     if (!user || rows.length === 0) return;
-    const BATCH_LIMIT = 500;
-    for (let i = 0; i < rows.length; i += BATCH_LIMIT) {
-      const chunk = rows.slice(i, i + BATCH_LIMIT);
+    // Ids are chosen up front so a retried batch can't add copies.
+    const writes = rows.map((item) => ({ ref: doc(collection(db, 'expenses')), data: toExpenseDoc(item) }));
+    const result = await commitInChunks(writes, async (chunk) => {
       const batch = writeBatch(db);
-      for (const row of chunk) {
-        batch.set(doc(collection(db, 'expenses')), toExpenseDoc(row));
-      }
+      for (const write of chunk) batch.set(write.ref, write.data);
       await batch.commit();
-    }
+    });
     await loadExpenses();
+    if (result.failed > 0) throw new BulkWriteError(result);
   };
 
   const updateExpense = async (id: string, updatedData: Partial<Expense>) => {

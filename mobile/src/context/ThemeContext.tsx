@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -7,28 +7,8 @@ import {
   getPalette,
   type ColorMode,
   type ColorTheme,
-  type Palette,
 } from '@/theme';
-
-interface ThemeContextType {
-  palette: Palette;
-  categoryColors: string[];
-  incomeCategoryColors: Record<string, string>;
-  colorTheme: ColorTheme;
-  mode: ColorMode;
-  /** 'system' follows the OS setting; the others pin the mode. */
-  modePreference: 'system' | ColorMode;
-  setColorTheme: (t: ColorTheme) => void;
-  setModePreference: (m: 'system' | ColorMode) => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
-  return context;
-};
+import { ThemeContext } from './useTheme';
 
 const THEME_KEY = 'pratiq.colorTheme';
 const MODE_KEY = 'pratiq.modePreference';

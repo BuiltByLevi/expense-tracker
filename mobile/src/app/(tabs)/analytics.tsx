@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { DonutChart } from '@/components/DonutChart';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import { PieIcon } from '@/components/FinanceIcons';
 import { fontSize, radius, spacing } from '@/theme';
 import { formatCurrency } from '@/utils/format';

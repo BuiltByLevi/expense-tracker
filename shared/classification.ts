@@ -14,25 +14,38 @@ const CATEGORY_RULES: { pattern: RegExp; category: ExpenseCategory }[] = [
   { pattern: /HOSPITAL|PHARMACY|CLINIC|MEDICAL|APOLLO|DIAGNOSTIC/, category: 'Healthcare' },
   { pattern: /SCHOOL|COLLEGE|TUITION|UNIVERSITY|EDUCATION/, category: 'Education' },
   { pattern: /\bRENT\b|LANDLORD/, category: 'Rent' },
-  { pattern: /\bEMI\b|LOAN\s*(EMI|REPAYMENT)|ECS\s*(DR|DEBIT)/, category: 'EMI & Loans' },
+  { pattern: /\bEMI\b|\bLOAN\b|ECS\s*(DR|DEBIT)|\bNACH\b|ACH\s*D(R|EBIT)?\b/, category: 'EMI & Loans' },
   { pattern: /\bLIC\b|INSURANCE|PREMIUM/, category: 'Insurance' },
   { pattern: /MUTUAL\s*FUND|\bSIP\b|ZERODHA|GROWW|UPSTOX|STOCK|SHARES|DEMAT/, category: 'Investments' },
-  { pattern: /ATM\s*(CASH|WDL|WITHDRAWAL)|CASH\s*WITHDRAWAL/, category: 'Cash Withdrawal' },
-  { pattern: /\b(AMB|MIN\s*BAL)\b.*CHARGE|SERVICE\s*CHARGE|BANK\s*CHARGE|PENALTY|LATE\s*FEE/, category: 'Bank Charges' },
-  { pattern: /\bNEFT\b|\bIMPS\b|\bRTGS\b|FUND\s*TRANSFER|TRANSFER\s*TO|TRANSFER\s*FROM/, category: 'Transfers' },
+  { pattern: /\bATM\b|\bATW\b|\bNWD\b|\bAWL\b|CASH\s*(WDL|WITHDRAWAL)/, category: 'Cash Withdrawal' },
+  { pattern: /\b(AMB|MIN\s*BAL)\b.*CHARGE|SERVICE\s*CHARGE|BANK\s*CHARGE|PENALTY|LATE\s*FEE|(SMS|ANNUAL|MAINTENANCE|DEBIT\s*CARD|CH(E)?Q(UE)?\s*BOOK)\s*(ALERT\s*)?(CHARGES?|CHRGS?|CHGS?|FEES?)/, category: 'Bank Charges' },
+  // Only explicitly internal movements are Transfers. A bare NEFT/IMPS/RTGS
+  // payment could be a vendor or a family member, so it falls through to
+  // 'Other' (flagged for review) and keeps counting as spending.
+  { pattern: /INTERNAL\s*TRANSFER|SELF\s*TRANSFER|\bOWN\s*(A\/?C|ACCOUNT)\b|\bSWEEP\b/, category: 'Transfers' },
 ];
 
 const SALARY_PATTERN = /\bSALARY\b|\bPAYROLL\b|\bSAL\b/;
 const INTEREST_PATTERN = /\bINT\.?\s*PD\b|INTEREST\s*(CREDIT|PAID|EARNED)?/;
 const REFUND_PATTERN = /REFUND|REVERSAL|REVERSED|CASHBACK/;
-const TRANSFER_IN_PATTERN = /\bNEFT\b|\bIMPS\b|\bRTGS\b|FUND\s*TRANSFER|TRANSFER\s*FROM/;
+// Payment-gateway and marketplace payouts (Razorpay, Payload, ...) are money
+// earned. They are matched BEFORE the transfer rule because they almost
+// always arrive over NEFT/IMPS — "NEFT-N3012345-RAZORPAY SOFTWARE PVT LTD" —
+// and the bare rail name used to file them under Transfer, which is excluded
+// from Monthly Earnings.
+const EARNED_PAYOUT_PATTERN = /RAZORPAY|\bRZPX\b|PAYLOAD|CASHFREE|\bPAYU\b|INSTAMOJO|\bSTRIPE\b|PAYPAL|SETTLEMENT|\bPAYOUT\b/;
+// Incoming money that the statement itself says is between the user's own
+// accounts. Bare NEFT/IMPS/RTGS credits are NOT in this list: their sender
+// is unknown, so they stay unassigned until the user classifies them.
+const INTERNAL_TRANSFER_IN_PATTERN = /INTERNAL\s*TRANSFER|SELF\s*TRANSFER|\bOWN\s*(A\/?C|ACCOUNT)\b|\bSWEEP\b/;
 
 export interface CategorySuggestion<T extends string = ExpenseCategory> {
-  category: T;
+  /** null = no confident category: the row needs the user's classification. */
+  category: T | null;
   uncertain: boolean;
 }
 
-export function suggestCategory(narration: string): CategorySuggestion {
+export function suggestCategory(narration: string): { category: ExpenseCategory; uncertain: boolean } {
   const upper = narration.toUpperCase();
   for (const rule of CATEGORY_RULES) {
     if (rule.pattern.test(upper)) {
@@ -49,16 +62,20 @@ export function isSalaryCandidate(narration: string): boolean {
   return SALARY_PATTERN.test(narration.toUpperCase());
 }
 
-/** Category suggestion for credit (income) transactions — same spirit as
- *  suggestCategory: specific rules first, unmatched narrations fall back to
- *  "Other Income" flagged uncertain for the mandatory review step. */
+/** Category suggestion for credit (income) transactions. Specific rules
+ *  come first. An unrecognized credit gets NO category (null, flagged): it is
+ *  never assumed to be income, a transfer or a refund — the user decides.
+ *  Gateway payouts keep their suggested "Other Income" but stay flagged. */
 export function suggestIncomeCategory(narration: string): CategorySuggestion<IncomeCategory> {
   const upper = narration.toUpperCase();
   if (SALARY_PATTERN.test(upper)) return { category: 'Salary', uncertain: false };
   if (INTEREST_PATTERN.test(upper)) return { category: 'Interest', uncertain: false };
   if (REFUND_PATTERN.test(upper)) return { category: 'Refund', uncertain: false };
-  if (TRANSFER_IN_PATTERN.test(upper)) return { category: 'Transfer', uncertain: true };
-  return { category: 'Other Income', uncertain: true };
+  // A suggestion only: an own-account narration is never finalised on its own.
+  // The user confirms it (or picks another category) before it is imported.
+  if (INTERNAL_TRANSFER_IN_PATTERN.test(upper)) return { category: 'Transfer', uncertain: true };
+  if (EARNED_PAYOUT_PATTERN.test(upper)) return { category: 'Other Income', uncertain: true };
+  return { category: null, uncertain: true };
 }
 
 /** Best-effort employer/source name pulled from a salary narration, e.g.

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/AppHeader';
 import { BankCardTile, DeltaBadge } from '@/components/BankCardTile';
 import { Card } from '@/components/Card';
+import { AccountingBreakdownCard } from '@/components/AccountingBreakdownCard';
 import { StatCard } from '@/components/StatCard';
 import { StatementUploadCard } from '@/components/StatementUploadCard';
 import { EarningsSheet } from '@/components/EarningsSheet';
@@ -28,7 +29,7 @@ import {
   WalletIcon,
 } from '@/components/FinanceIcons';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import { fontSize, radius, spacing } from '@/theme';
 import { formatCurrency, formatSignedCurrency } from '@/utils/format';
 
@@ -169,6 +170,15 @@ export default function DashboardScreen() {
             }
           />
         </View>
+
+        <AccountingBreakdownCard
+          expenses={d.expenses}
+          income={d.income}
+          year={d.selectedYear}
+          month={d.selectedMonth}
+          dashboardEarnings={d.selectedMonthEarnings.amount}
+          dashboardNetCashFlow={d.monthNetCashFlow}
+        />
 
         {/* Cash-flow deficit banner */}
         <Card

@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { theme as design, categoryColors } from '../../styles/theme';
-import { UploadIcon, AlertIcon, CheckCircleIcon, RupeeIcon } from '../common/FinanceIcons';
+import { UploadIcon, AlertIcon, CheckCircleIcon, CheckIcon, RupeeIcon } from '../common/FinanceIcons';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type ExpenseCategory, type IncomeCategory } from '../../types';
 import { useStatementImport } from '../../hooks/useStatementImport';
-import { useLanguage } from '../../context/LanguageContext';
+import { needsCategory, needsConfirmation, needsDirection } from '../../../shared/statementReview';
+import { useLanguage } from '../../context/useLanguage';
 
 interface Props {
   onBack: () => void;
@@ -23,6 +24,8 @@ const INCOME_CATEGORY_COLORS: Record<IncomeCategory, string> = {
   'Other Income': design.colors.textTertiary,
 };
 
+const money = (n: number) => `${n < 0 ? '−' : ''}₹${Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 function expenseCategoryColor(category: string): string {
   const idx = (EXPENSE_CATEGORIES as readonly string[]).indexOf(category);
   return categoryColors[idx % categoryColors.length];
@@ -31,8 +34,8 @@ function expenseCategoryColor(category: string): string {
 const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => {
   const { t } = useLanguage();
   const {
-    status, errorMessage, fileName, rows, bankGuess, statementPeriod, salaryRowsTotal, importSummary,
-    handleFile, toggleInclude, toggleSelectAllByType, updateCategory, updateDescription, updateAmount,
+    status, errorMessage, fileName, rows, bankGuess, statementPeriod, statementSummary, salaryRowsTotal, importSummary,
+    handleFile, toggleInclude, toggleSelectAllByType, setRowType, updateCategory, confirmRow, updateDescription, updateAmount,
     confirmImport, reset,
   } = useStatementImport();
 
@@ -41,7 +44,10 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => 
 
   const debitRows = rows.filter((r) => r.type === 'debit');
   const creditRows = rows.filter((r) => r.type === 'credit');
-  const invalidRows = rows.filter((r) => r.type === null || r.date === null);
+  // Rows the file lists (date + amount) but without a direction: the user
+  // decides. Rows missing a date or amount altogether can't be saved at all.
+  const undecidedRows = rows.filter(needsDirection);
+  const invalidRows = rows.filter((r) => (r.type === null || r.date === null) && !needsDirection(r));
   const duplicatesUnselected = rows.filter((r) => r.duplicateOf && !r.included).length;
   const allDebitsSelected = debitRows.length > 0 && debitRows.every((r) => r.included);
   const allCreditsSelected = creditRows.length > 0 && creditRows.every((r) => r.included);
@@ -132,6 +138,25 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => 
               <div><p style={{ fontSize: '10px', color: design.colors.textSecondary, textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>{t('import.extractedLabel')}</p><p style={{ fontSize: '13px', fontWeight: 600, margin: '2px 0 0 0' }}>{t('import.transactionsCount', { count: rows.length })}</p></div>
             </div>
 
+            {statementSummary.reconciled !== null && statementSummary.openingBalance !== null && statementSummary.closingBalance !== null && (
+              <div className="glass-card animate-in" style={{ padding: '16px 24px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                  <div><p style={{ fontSize: '10px', color: design.colors.textSecondary, textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>{t('import.statement.opening')}</p><p style={{ fontSize: '13px', fontWeight: 600, margin: '2px 0 0 0' }}>{money(statementSummary.openingBalance)}</p></div>
+                  <div><p style={{ fontSize: '10px', color: design.colors.textSecondary, textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>{t('import.statement.withdrawals', { count: statementSummary.debitCount })}</p><p style={{ fontSize: '13px', fontWeight: 600, margin: '2px 0 0 0' }}>{money(statementSummary.totalDebits)}</p></div>
+                  <div><p style={{ fontSize: '10px', color: design.colors.textSecondary, textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>{t('import.statement.deposits', { count: statementSummary.creditCount })}</p><p style={{ fontSize: '13px', fontWeight: 600, margin: '2px 0 0 0' }}>{money(statementSummary.totalCredits)}</p></div>
+                  <div><p style={{ fontSize: '10px', color: design.colors.textSecondary, textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>{t('import.statement.closing')}</p><p style={{ fontSize: '13px', fontWeight: 600, margin: '2px 0 0 0' }}>{money(statementSummary.closingBalance)}</p></div>
+                </div>
+                <p style={{ fontSize: '12px', color: design.colors.textPrimary, margin: '12px 0 0 0', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  {statementSummary.reconciled
+                    ? <CheckIcon size={13} color={design.colors.success} style={{ flexShrink: 0 }} />
+                    : <AlertIcon size={13} color={design.colors.warning} style={{ flexShrink: 0 }} />}
+                  {statementSummary.reconciled
+                    ? t('import.statement.reconciled')
+                    : t('import.statement.notReconciled', { amount: money(Math.abs(statementSummary.difference)) })}
+                </p>
+              </div>
+            )}
+
             {salaryRowsTotal > 0 && (
               <div className="glass-card animate-in" style={{ padding: '14px 24px', marginBottom: '16px', background: `linear-gradient(135deg, rgba(${design.colors.successRgb}, 0.08) 0%, rgba(${design.colors.primaryRgb}, 0.08) 100%)`, border: `1px solid ${design.colors.success}30` }}>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: design.colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -146,6 +171,24 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => 
                   <AlertIcon size={13} color={design.colors.warning} style={{ flexShrink: 0 }} />
                   {t(invalidRows.length === 1 ? 'import.invalidRowsSingular' : 'import.invalidRowsPlural', { count: invalidRows.length })}
                 </p>
+              </div>
+            )}
+
+            {undecidedRows.length > 0 && (
+              <div className="glass-card animate-in" style={{ padding: '14px 24px', marginBottom: '16px', border: `1px solid ${design.colors.warning}30` }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
+                  {t('import.needsDirectionTitle', { count: undecidedRows.length })}
+                </h3>
+                <p style={{ fontSize: '12px', color: design.colors.textSecondary, margin: '4px 0 10px 0' }}>{t('import.needsDirectionHint')}</p>
+                {undecidedRows.map((row) => (
+                  <div key={row.rowId} style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid rgba(0,0,0,0.04)', fontSize: '13px' }}>
+                    <span style={{ color: design.colors.textSecondary, whiteSpace: 'nowrap' }}>{row.date ? format(row.date, 'dd MMM yyyy') : '—'}</span>
+                    <span style={{ flex: 1, minWidth: '180px', color: design.colors.textPrimary }}>{row.narration}</span>
+                    <strong style={{ whiteSpace: 'nowrap' }}>{money(row.amount ?? 0)}</strong>
+                    <button onClick={() => setRowType(row.rowId, 'credit')} className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '12px' }}>{t('import.markMoneyIn')}</button>
+                    <button onClick={() => setRowType(row.rowId, 'debit')} className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '12px' }}>{t('import.markMoneyOut')}</button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -190,7 +233,7 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => 
                       {creditRows.map((row) => (
                         <tr key={row.rowId} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', opacity: row.included ? 1 : 0.5 }}>
                           <td style={{ padding: '10px 12px 10px 24px' }}>
-                            <input type="checkbox" checked={row.included} onChange={() => toggleInclude(row.rowId)} />
+                            <input type="checkbox" checked={row.included} disabled={needsConfirmation(row)} onChange={() => toggleInclude(row.rowId)} />
                           </td>
                           <td style={{ padding: '10px 12px', color: design.colors.textSecondary, whiteSpace: 'nowrap' }}>
                             {row.date ? format(row.date, 'dd MMM yyyy') : '—'}
@@ -213,8 +256,18 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => 
                               value={row.category}
                               onChange={(e) => updateCategory(row.rowId, e.target.value as IncomeCategory)}
                             >
+                              {/* An unassigned deposit has no category: show a placeholder, never the first option. */}
+                              {!row.category && <option value="" disabled>{t('import.chooseCategory')}</option>}
                               {INCOME_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                             </select>
+                            {needsConfirmation(row) && (
+                              <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '11px', color: design.colors.textSecondary, maxWidth: '260px' }}>{t('import.suggestedTransferHint')}</span>
+                                <button type="button" className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => confirmRow(row.rowId)}>
+                                  {t('import.confirmSuggestion')}
+                                </button>
+                              </div>
+                            )}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                             <input
@@ -232,7 +285,12 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => 
                                   {row.duplicateConfidence === 'exact' ? t('import.duplicate') : t('import.possibleDup')}
                                 </span>
                               )}
-                              {row.uncertain && (
+                              {needsCategory(row) && (
+                                <span title={t('import.needsCategoryHint')} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', color: design.colors.warning, fontWeight: 600 }}>
+                                  {t('import.chooseCategory')}
+                                </span>
+                              )}
+                              {row.uncertain && !needsCategory(row) && (
                                 <span title={row.parseIssue ?? 'Low-confidence category'} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: `rgba(${design.colors.primaryRgb}, 0.15)`, color: design.colors.primary, fontWeight: 600 }}>
                                   {t('import.review')}
                                 </span>
@@ -354,14 +412,23 @@ const BankStatementImportPageWeb: React.FC<Props> = ({ onBack, onImported }) => 
               background: `rgba(${design.colors.successRgb}, 0.12)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <CheckCircleIcon size={34} color={design.colors.success} strokeWidth={1.8} />
+              {importSummary.imported > 0
+                ? <CheckCircleIcon size={34} color={design.colors.success} strokeWidth={1.8} />
+                : <AlertIcon size={34} color={design.colors.danger} strokeWidth={1.8} />}
             </div>
             <p style={{ fontSize: '16px', fontWeight: 700, color: design.colors.textPrimary, margin: 0 }}>
-              {t(importSummary.imported === 1 ? 'import.importedSingular' : 'import.importedPlural', { count: importSummary.imported })}
+              {importSummary.imported === 0 && importSummary.failed > 0
+                ? t('import.nothingSaved')
+                : t(importSummary.imported === 1 ? 'import.importedSingular' : 'import.importedPlural', { count: importSummary.imported })}
             </p>
-            {importSummary.skipped > 0 && (
+            {importSummary.failed > 0 && (
+              <p role="alert" style={{ fontSize: '13px', color: design.colors.danger, margin: '8px auto 0 auto', maxWidth: '520px' }}>
+                {t('import.saveFailed', { count: importSummary.failed })}
+              </p>
+            )}
+            {importSummary.skipped - importSummary.failed > 0 && (
               <p style={{ fontSize: '13px', color: design.colors.textSecondary, margin: '6px 0 0 0' }}>
-                {t('import.skippedWeb', { count: importSummary.skipped })}
+                {t('import.skippedWeb', { count: importSummary.skipped - importSummary.failed })}
               </p>
             )}
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px' }}>

@@ -9,6 +9,10 @@ export interface MappedRow {
   referenceNumber?: string;
   debit?: string;
   credit?: string;
+  /** A single combined amount column (direction from `indicator` or its sign). */
+  amount?: string;
+  /** A Dr/Cr marker column that says which way `amount` went. */
+  indicator?: string;
   balance?: string;
 }
 
@@ -32,6 +36,8 @@ export type DuplicateConfidence = 'exact' | 'likely' | null;
 /** A transaction ready for the review screen — fully classified and flagged. */
 export interface ReviewTransaction extends NormalizedTransaction {
   rowId: string;
+  /** Position among the statement's rows for the same day (0 = first). */
+  sequence: number;
   category: string;
   description: string;
   isSalaryCandidate: boolean;
