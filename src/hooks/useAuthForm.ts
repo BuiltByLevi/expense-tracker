@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { authErrorKey } from '../utils/authErrors';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/useLanguage';
 
@@ -59,17 +60,8 @@ export function useAuthForm() {
         toast.success(t('auth.success.accountCreated'));
       }
     } catch (error: unknown) {
-      const authError = error as { code?: string; message?: string };
-      const message = authError.code === 'auth/invalid-credential'
-        ? t('auth.error.invalidCredential')
-        : authError.code === 'auth/email-already-in-use'
-        ? t('auth.error.emailInUse')
-        : authError.code === 'auth/too-many-requests'
-        ? t('auth.error.tooManyRequests')
-        : authError.code === 'auth/network-request-failed'
-        ? t('auth.error.networkFailed')
-        : authError.message ?? t('auth.error.unexpected');
-      toast.error(message);
+      const code = (error as { code?: string }).code;
+      toast.error(t(authErrorKey(code)));
     } finally {
       setLoading(false);
     }
